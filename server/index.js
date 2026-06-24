@@ -564,106 +564,101 @@ app.post('/api/feedback', authenticateJWT, (req, res) => {
   db.run(
     `INSERT INTO feedbacks (id, user_id, email, category, message, delivery_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [feedbackId, userId, email, category, message, 'pending', createdAt],
-    async function (err) {
+    function (err) {
       if (err) {
         console.error('Failed to save feedback to database:', err);
         return res.status(500).json({ error: 'Failed to record feedback.' });
       }
 
-      // 2. Setup Nodemailer Transporter
-      let mailHost = process.env.SMTP_HOST || '';
-      let mailPort = parseInt(process.env.SMTP_PORT || '587');
-      let mailUser = process.env.SMTP_USER || '';
-      let mailPass = process.env.SMTP_PASS || '';
-      let isLocalMock = false;
+      // Return success response to the client immediately to prevent UI hanging
+      res.status(201).json({ success: true, message: 'Feedback submitted successfully.' });
 
-      // Automatically spin up Ethereal Mail testing environment if credentials are not configured
-      if (!mailHost || !mailUser || !mailPass) {
-        try {
-          console.log('ℹ️ [Feedback Diagnostics] SMTP credentials not set. Creating temporary Ethereal test account...');
-          const testAccount = await nodemailer.createTestAccount();
-          mailHost = 'smtp.ethereal.email';
-          mailPort = 587;
-          mailUser = testAccount.user;
-          mailPass = testAccount.pass;
-          isLocalMock = true;
-        } catch (etherealErr) {
-          console.error('⚠️ [Feedback Diagnostics] Failed to create Ethereal test account:', etherealErr.message);
-        }
-      }
+      // 2. Perform email dispatch asynchronously in the background
+      (async () => {
+        let mailHost = process.env.SMTP_HOST || '';
+        let mailPort = parseInt(process.env.SMTP_PORT || '587');
+        let mailUser = process.env.SMTP_USER || '';
+        let mailPass = process.env.SMTP_PASS || '';
+        let isLocalMock = false;
 
-      const mailOptions = {
-        from: `"SpendAchu App" <${mailUser || 'noreply@spendachu.com'}>`,
-        to: 'spendachu@gmail.com',
-        subject: `SpendAchu Feedback [${category.toUpperCase()}] - ${req.user.name}`,
-        text: `Feedback Received!\n\nUser: ${req.user.name}\nEmail: ${email}\nCategory: ${category}\nSubmitted At: ${new Date(createdAt).toLocaleString()}\n\nMessage:\n----------------------------------------\n${message}\n----------------------------------------\n`
-      };
-
-      if (mailHost && mailUser && mailPass) {
-        try {
-          const transporter = nodemailer.createTransport({
-            host: mailHost,
-            port: mailPort,
-            secure: mailPort === 465,
-            auth: { user: mailUser, pass: mailPass },
-            tls: { rejectUnauthorized: false } // Prevent security blocks from custom self-signed cert domains
-          });
-
-          const info = await transporter.sendMail(mailOptions);
-          const status = isLocalMock ? 'simulated' : 'sent';
-          
-          db.run(
-            `UPDATE feedbacks SET delivery_status = ? WHERE id = ?`,
-            [status, feedbackId]
-          );
-
-          if (isLocalMock) {
-            const previewUrl = nodemailer.getTestMessageUrl(info);
-            console.log('\n=================== MOCK EMAIL SENT ===================');
-            console.log(`To: ${mailOptions.to}`);
-            console.log(`Subject: ${mailOptions.subject}`);
-            console.log(`Preview URL: ${previewUrl}`);
-            console.log('=======================================================\n');
-            
-            // Store preview URL inside delivery_error for reference
-            db.run(
-              `UPDATE feedbacks SET delivery_error = ? WHERE id = ?`,
-              [`Preview URL: ${previewUrl}`, feedbackId]
-            );
-          } else {
-            console.log(`[Email] Feedback mail sent successfully to spendachu@gmail.com from ${email}`);
+        // Automatically spin up Ethereal Mail testing environment if credentials are not configured
+        if (!mailHost || !mailUser || !mailPass) {
+          try {
+            console.log('ℹ️ [Feedback Diagnostics] SMTP credentials not set. Creating temporary Ethereal test account...');
+            const testAccount = await nodemailer.createTestAccount();
+            mailHost = 'smtp.ethereal.email';
+            mailPort = 587;
+            mailUser = testAccount.user;
+            mailPass = testAccount.pass;
+            isLocalMock = true;
+          } catch (etherealErr) {
+            console.error('⚠️ [Feedback Diagnostics] Failed to create Ethereal test account:', etherealErr.message);
           }
-          
-          res.status(201).json({ success: true, message: 'Feedback submitted successfully.' });
-        } catch (mailErr) {
-          console.error('❌ [Email Diagnostics] Failed to deliver feedback email:', mailErr.message);
+        }
+
+        const mailOptions = {
+          from: `"SpendAchu App" <${mailUser || 'noreply@spendachu.com'}>`,
+          to: 'spendachu@gmail.com',
+          subject: `SpendAchu Feedback [${category.toUpperCase()}] - ${req.user.name}`,
+          text: `Feedback Received!\n\nUser: ${req.user.name}\nEmail: ${email}\nCategory: ${category}\nSubmitted At: ${new Date(createdAt).toLocaleString()}\n\nMessage:\n----------------------------------------\n${message}\n----------------------------------------\n`
+        };
+
+        if (mailHost && mailUser && mailPass) {
+          try {
+            const transporter = nodemailer.createTransport({
+              host: mailHost,
+              port: mailPort,
+              secure: mailPort === 465,
+              auth: { user: mailUser, pass: mailPass },
+              tls: { rejectUnauthorized: false } // Prevent security blocks from custom self-signed cert domains
+            });
+
+            const info = await transporter.sendMail(mailOptions);
+            const status = isLocalMock ? 'simulated' : 'sent';
+            
+            db.run(
+              `UPDATE feedbacks SET delivery_status = ? WHERE id = ?`,
+              [status, feedbackId]
+            );
+
+            if (isLocalMock) {
+              const previewUrl = nodemailer.getTestMessageUrl(info);
+              console.log('\n=================== MOCK EMAIL SENT ===================');
+              console.log(`To: ${mailOptions.to}`);
+              console.log(`Subject: ${mailOptions.subject}`);
+              console.log(`Preview URL: ${previewUrl}`);
+              console.log('=======================================================\n');
+              
+              // Store preview URL inside delivery_error for reference
+              db.run(
+                `UPDATE feedbacks SET delivery_error = ? WHERE id = ?`,
+                [`Preview URL: ${previewUrl}`, feedbackId]
+              );
+            } else {
+              console.log(`[Email] Feedback mail sent successfully to spendachu@gmail.com from ${email}`);
+            }
+          } catch (mailErr) {
+            console.error('❌ [Email Diagnostics] Failed to deliver feedback email:', mailErr.message);
+            
+            db.run(
+              `UPDATE feedbacks SET delivery_status = ?, delivery_error = ? WHERE id = ?`,
+              ['failed', mailErr.message, feedbackId]
+            );
+          }
+        } else {
+          // Ultimate fallback if SMTP creation completely failed
+          console.log('\n=================== LOCAL CONSOLE LOG ONLY ===================');
+          console.log(`To: ${mailOptions.to}`);
+          console.log(`Subject: ${mailOptions.subject}`);
+          console.log(`${mailOptions.text}`);
+          console.log('==============================================================\n');
           
           db.run(
             `UPDATE feedbacks SET delivery_status = ?, delivery_error = ? WHERE id = ?`,
-            ['failed', mailErr.message, feedbackId]
+            ['failed', 'SMTP service unavailable. Logged to console.', feedbackId]
           );
-
-          res.status(201).json({ 
-            success: true, 
-            message: 'Feedback submitted locally, but email delivery failed. Developer checking logs.',
-            warning: mailErr.message 
-          });
         }
-      } else {
-        // Ultimate fallback if SMTP creation completely failed
-        console.log('\n=================== LOCAL CONSOLE LOG ONLY ===================');
-        console.log(`To: ${mailOptions.to}`);
-        console.log(`Subject: ${mailOptions.subject}`);
-        console.log(`${mailOptions.text}`);
-        console.log('==============================================================\n');
-        
-        db.run(
-          `UPDATE feedbacks SET delivery_status = ?, delivery_error = ? WHERE id = ?`,
-          ['failed', 'SMTP service unavailable. Logged to console.', feedbackId]
-        );
-
-        res.status(201).json({ success: true, message: 'Feedback logged to local console.' });
-      }
+      })();
     }
   );
 });
