@@ -3,6 +3,10 @@ const dns = require('dns');
 if (dns.setDefaultResultOrder) {
   dns.setDefaultResultOrder('ipv4first');
 }
+// Custom lookup to force IPv4 and prevent ENETUNREACH on IPv6-unsupported cloud networks
+const ipv4Lookup = (hostname, options, callback) => {
+  return dns.lookup(hostname, { ...options, family: 4 }, callback);
+};
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -614,7 +618,8 @@ app.post('/api/feedback', authenticateJWT, (req, res) => {
               port: mailPort,
               secure: mailPort === 465,
               auth: { user: mailUser, pass: mailPass },
-              tls: { rejectUnauthorized: false } // Prevent security blocks from custom self-signed cert domains
+              tls: { rejectUnauthorized: false }, // Prevent security blocks from custom self-signed cert domains
+              lookup: ipv4Lookup
             });
 
             const info = await transporter.sendMail(mailOptions);
@@ -703,7 +708,8 @@ function checkSMTPSetup() {
       host: mailHost,
       port: mailPort,
       secure: mailPort === 465,
-      auth: { user: mailUser, pass: mailPass }
+      auth: { user: mailUser, pass: mailPass },
+      lookup: ipv4Lookup
     });
     
     testTransporter.verify((err) => {
