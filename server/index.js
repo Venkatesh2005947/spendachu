@@ -678,6 +678,14 @@ setInterval(() => {
   });
 }, 24 * 60 * 60 * 1000); // Once every 24 hours
 
+// Serve static frontend files in production
+app.use(express.static(path.join(__dirname, '../dist')));
+
+// Wildcard fallback route to support SPA client-side routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
+});
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Backend server listening on host 0.0.0.0:${PORT}`);
