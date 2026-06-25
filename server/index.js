@@ -5,6 +5,10 @@ if (dns.setDefaultResultOrder) {
 }
 // Custom lookup to force IPv4 and prevent ENETUNREACH on IPv6-unsupported cloud networks
 const ipv4Lookup = (hostname, options, callback) => {
+  if (typeof options === 'function') {
+    callback = options;
+    options = {};
+  }
   return dns.lookup(hostname, { ...options, family: 4 }, callback);
 };
 const express = require('express');
