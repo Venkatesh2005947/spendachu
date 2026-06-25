@@ -3,13 +3,35 @@ const dns = require('dns');
 if (dns.setDefaultResultOrder) {
   dns.setDefaultResultOrder('ipv4first');
 }
-// Custom lookup to force IPv4 and prevent ENETUNREACH on IPv6-unsupported cloud networks
-const ipv4Lookup = (hostname, options, callback) => {
-  if (typeof options === 'function') {
-    callback = options;
-    options = {};
+// Helper to resolve host to IPv4 address and create nodemailer transporter
+const createMailTransporter = async (host, port, user, pass) => {
+  let resolvedHost = host;
+  try {
+    resolvedHost = await new Promise((resolve, reject) => {
+      // If host looks like an IP address, don't perform lookup
+      if (/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(host)) {
+        return resolve(host);
+      }
+      dns.lookup(host, { family: 4 }, (err, address) => {
+        if (err) reject(err);
+        else resolve(address);
+      });
+    });
+    console.log(`ℹ️ [Email DNS] Resolved ${host} to IPv4: ${resolvedHost}`);
+  } catch (err) {
+    console.warn(`⚠️ [Email DNS] Failed to resolve ${host} to IPv4: ${err.message}. Falling back to original host.`);
   }
-  return dns.lookup(hostname, { ...options, family: 4 }, callback);
+
+  return nodemailer.createTransport({
+    host: resolvedHost,
+    port: port,
+    secure: port === 465,
+    auth: { user, pass },
+    tls: {
+      rejectUnauthorized: false,
+      servername: host // Crucial for TLS validation against original domain
+    }
+  });
 };
 const express = require('express');
 const cors = require('cors');
@@ -617,14 +639,7 @@ app.post('/api/feedback', authenticateJWT, (req, res) => {
 
         if (mailHost && mailUser && mailPass) {
           try {
-            const transporter = nodemailer.createTransport({
-              host: mailHost,
-              port: mailPort,
-              secure: mailPort === 465,
-              auth: { user: mailUser, pass: mailPass },
-              tls: { rejectUnauthorized: false }, // Prevent security blocks from custom self-signed cert domains
-              lookup: ipv4Lookup
-            });
+            const transporter = await createMailTransporter(mailHost, mailPort, mailUser, mailPass);
 
             const info = await transporter.sendMail(mailOptions);
             const status = isLocalMock ? 'simulated' : 'sent';
@@ -701,28 +716,25 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 
 // Verify SMTP connection on startup if details are present
-function checkSMTPSetup() {
+async function checkSMTPSetup() {
   const mailHost = process.env.SMTP_HOST;
   const mailUser = process.env.SMTP_USER;
   const mailPass = process.env.SMTP_PASS;
   
   if (mailHost && mailUser && mailPass) {
     const mailPort = parseInt(process.env.SMTP_PORT || '587');
-    const testTransporter = nodemailer.createTransport({
-      host: mailHost,
-      port: mailPort,
-      secure: mailPort === 465,
-      auth: { user: mailUser, pass: mailPass },
-      lookup: ipv4Lookup
-    });
-    
-    testTransporter.verify((err) => {
-      if (err) {
-        console.error('⚠️ [SMTP Diagnostics] Connection verification failed on boot:', err.message);
-      } else {
-        console.log('✅ [SMTP Diagnostics] Connection verified successfully. Ready to send emails.');
-      }
-    });
+    try {
+      const testTransporter = await createMailTransporter(mailHost, mailPort, mailUser, mailPass);
+      testTransporter.verify((err) => {
+        if (err) {
+          console.error('⚠️ [SMTP Diagnostics] Connection verification failed on boot:', err.message);
+        } else {
+          console.log('✅ [SMTP Diagnostics] Connection verified successfully. Ready to send emails.');
+        }
+      });
+    } catch (err) {
+      console.error('⚠️ [SMTP Diagnostics] Transporter verification setup failed on boot:', err.message);
+    }
   } else {
     console.log('ℹ️ [SMTP Diagnostics] Custom SMTP credentials not detected. Operating in mock/testing fallback mode.');
   }
