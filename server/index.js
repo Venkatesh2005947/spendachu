@@ -56,6 +56,46 @@ const sendEmailViaBrevo = (apiKey, category, message, senderEmail, senderName, c
     req.end();
   });
 };
+
+// Helper to send email using Resend HTTPS REST API
+const sendEmailViaResend = (apiKey, category, message, senderEmail, senderName, createdAt) => {
+  return new Promise((resolve, reject) => {
+    const emailData = JSON.stringify({
+      from: "SpendAchu App <onboarding@resend.dev>",
+      to: ["spendachu@gmail.com"],
+      reply_to: senderEmail,
+      subject: `SpendAchu Feedback [${category.toUpperCase()}] - ${senderName}`,
+      text: `Feedback Received!\n\nUser: ${senderName}\nEmail: ${senderEmail}\nCategory: ${category}\nSubmitted At: ${new Date(createdAt).toLocaleString()}\n\nMessage:\n----------------------------------------\n${message}\n----------------------------------------\n`
+    });
+
+    const options = {
+      hostname: 'api.resend.com',
+      path: '/emails',
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(emailData)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => body += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(JSON.parse(body));
+        } else {
+          reject(new Error(`Resend API returned status ${res.statusCode}: ${body}`));
+        }
+      });
+    });
+
+    req.on('error', (e) => reject(e));
+    req.write(emailData);
+    req.end();
+  });
+};
 // Helper to resolve host to IPv4 address and create nodemailer transporter
 const createMailTransporter = async (host, port, user, pass) => {
   let resolvedHost = host;
@@ -662,8 +702,30 @@ app.post('/api/feedback', authenticateJWT, (req, res) => {
 
       // 2. Perform email dispatch asynchronously in the background
       (async () => {
+        const resendApiKey = process.env.RESEND_API_KEY;
         const brevoApiKey = process.env.BREVO_API_KEY;
 
+        // Try Resend API first if configured
+        if (resendApiKey) {
+          try {
+            await sendEmailViaResend(resendApiKey, category, message, email, req.user.name, createdAt);
+            console.log(`[Email] Feedback mail sent successfully to spendachu@gmail.com via Resend HTTPS API`);
+            db.run(
+              `UPDATE feedbacks SET delivery_status = ? WHERE id = ?`,
+              ['sent', feedbackId]
+            );
+            return;
+          } catch (resendErr) {
+            console.error('❌ [Email Diagnostics] Failed to deliver feedback email via Resend API:', resendErr.message);
+            db.run(
+              `UPDATE feedbacks SET delivery_status = ?, delivery_error = ? WHERE id = ?`,
+              ['failed', resendErr.message, feedbackId]
+            );
+            return;
+          }
+        }
+
+        // Try Brevo API if configured
         if (brevoApiKey) {
           try {
             await sendEmailViaBrevo(brevoApiKey, category, message, email, req.user.name, createdAt);
@@ -791,9 +853,15 @@ app.listen(PORT, '0.0.0.0', () => {
 
 // Verify SMTP/API connection on startup if details are present
 async function checkSMTPSetup() {
+  const resendApiKey = process.env.RESEND_API_KEY;
   const brevoApiKey = process.env.BREVO_API_KEY;
+
+  if (resendApiKey) {
+    console.log('✅ [Resend Diagnostics] Resend API Key detected. Emails will be sent via Resend HTTPS API.');
+    return;
+  }
   if (brevoApiKey) {
-    console.log('✅ [Brevo Diagnostics] Brevo API Key detected. Emails will be sent via HTTPS API.');
+    console.log('✅ [Brevo Diagnostics] Brevo API Key detected. Emails will be sent via Brevo HTTPS API.');
     return;
   }
 
