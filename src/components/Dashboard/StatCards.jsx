@@ -68,9 +68,9 @@ export default function StatCards({ expenses, budgets, savings = [] }) {
           padding: '24px 30px', 
           background: 'var(--accent-primary)', 
           color: '#000000', 
-          border: '3px solid #000000', 
+          border: '1px solid var(--border-color)', 
           borderRadius: '24px', 
-          boxShadow: '6px 6px 0px #000000',
+          boxShadow: 'var(--shadow-md)',
           position: 'relative',
           overflow: 'hidden'
         }}
@@ -95,7 +95,7 @@ export default function StatCards({ expenses, budgets, savings = [] }) {
               background: '#000000', 
               padding: '8px 16px', 
               borderRadius: '99px',
-              border: '2px solid #000000'
+              border: 'none'
             }}
           >
             <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: trafficBg, boxShadow: `0 0 8px ${trafficBg}` }}></div>
@@ -111,7 +111,7 @@ export default function StatCards({ expenses, budgets, savings = [] }) {
             <span>Limit: {formatCurrency(globalBudget)}</span>
             <span>{budgetPercentage.toFixed(0)}% Used</span>
           </div>
-          <div style={{ height: '18px', background: '#ffffff', borderRadius: '99px', border: '3px solid #000000', overflow: 'hidden' }}>
+          <div style={{ height: '18px', background: '#ffffff', borderRadius: '99px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
             <div 
               style={{ 
                 height: '100%', 

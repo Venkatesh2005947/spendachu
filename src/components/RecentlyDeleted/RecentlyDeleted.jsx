@@ -120,9 +120,10 @@ export default function RecentlyDeleted({
                             padding: '6px 12px',
                             background: 'var(--accent-primary)',
                             color: '#000000',
-                            border: '2px solid #000000',
+                            border: 'none',
+                            borderRadius: 'var(--radius-full)',
                             fontWeight: 'bold',
-                            boxShadow: '1px 1px 0px #000000'
+                            boxShadow: 'var(--shadow-sm)'
                           }}
                         >
                           <RotateCcw size={13} />

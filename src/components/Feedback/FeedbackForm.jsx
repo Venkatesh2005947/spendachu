@@ -33,20 +33,20 @@ export default function FeedbackForm() {
 
   return (
     <div className="tab-pane active" style={{ maxWidth: '600px', margin: '0 auto', padding: '20px 0' }}>
-      <div className="glass-card" style={{ padding: '30px', border: '3px solid var(--border-color)', boxShadow: 'var(--neo-shadow)' }}>
+      <div className="glass-card" style={{ padding: '30px' }}>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
           <div style={{
             backgroundColor: 'var(--accent-primary)',
-            color: 'white',
+            color: 'var(--text-primary)',
             width: '40px',
             height: '40px',
-            borderRadius: '8px',
+            borderRadius: 'var(--radius-sm)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '2px solid var(--border-color)',
-            boxShadow: '2px 2px 0px var(--border-color)'
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-sm)'
           }}>
             <Mail size={20} />
           </div>

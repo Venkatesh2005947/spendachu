@@ -146,24 +146,12 @@ export default function AIChatbot({ expenses, budgets }) {
       {/* Floating Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="glow-effect"
+        className="ai-chatbot-toggle"
         style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          width: '56px',
-          height: '56px',
-          borderRadius: '50%',
-          background: 'var(--accent-primary)',
-          color: 'white',
-          border: 'none',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          cursor: 'pointer',
-          boxShadow: '0 8px 32px rgba(99, 102, 241, 0.4)',
-          zIndex: 9999,
-          transition: 'transform 0.2s'
+          cursor: 'pointer'
         }}
       >
         {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
@@ -172,19 +160,11 @@ export default function AIChatbot({ expenses, budgets }) {
       {/* Expanded Chat Dialog */}
       {isOpen && (
         <div
-          className="glass-card glow-card"
+          className="glass-card glow-card ai-chatbot-panel"
           style={{
-            position: 'fixed',
-            bottom: '96px',
-            right: '24px',
-            width: '380px',
-            height: '500px',
             display: 'flex',
             flexDirection: 'column',
-            zIndex: 9999,
-            overflow: 'hidden',
-            boxShadow: '0 12px 48px rgba(0, 0, 0, 0.25)',
-            border: '1px solid rgba(255, 255, 255, 0.15)'
+            overflow: 'hidden'
           }}
         >
           {/* Header */}

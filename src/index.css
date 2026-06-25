@@ -17,22 +17,23 @@
   --transition-smooth: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Playful Meme Colors */
+  /* Playful Meme Colors Modernized */
   --accent-primary: #facb05; /* SpendAchu Yellow */
   --accent-gradient: #facb05;
   --accent-gradient-hover: #e5b800;
 
-  /* Light Theme (Playful Cream/Yellow) */
-  --bg-primary: #fffbeb; /* Cream Yellow */
-  --bg-secondary: #fef3c7; /* Lighter Amber */
+  /* Light Theme (Modern Clean Finance App) */
+  --bg-primary: #f8fafc; /* Sleek Off-White/Slate 50 */
+  --bg-secondary: #f1f5f9; /* Slate 100 */
   --bg-sidebar: #ffffff;
   --card-bg: #ffffff;
-  --card-border: #000000;
+  --card-border: rgba(0, 0, 0, 0.08);
+  --border-color: rgba(0, 0, 0, 0.08);
   
-  --text-primary: #000000;
-  --text-secondary: #27272a;
-  --text-muted: #71717a;
-  --text-on-sidebar: #000000;
+  --text-primary: #0f172a; /* Slate 900 */
+  --text-secondary: #475569; /* Slate 600 */
+  --text-muted: #94a3b8; /* Slate 400 */
+  --text-on-sidebar: #0f172a;
   
   --accent-secondary: #10b981; /* Green */
   
@@ -40,29 +41,30 @@
   --warning: #f59e0b;
   --danger: #ef4444;
   
-  --success-bg: rgba(16, 185, 129, 0.15);
-  --warning-bg: rgba(245, 158, 11, 0.15);
-  --danger-bg: rgba(239, 68, 68, 0.15);
+  --success-bg: rgba(16, 185, 129, 0.08);
+  --warning-bg: rgba(245, 158, 11, 0.08);
+  --danger-bg: rgba(239, 68, 68, 0.08);
 
-  --shadow-sm: 2px 2px 0px #000000;
-  --shadow-md: 4px 4px 0px #000000;
-  --shadow-lg: 6px 6px 0px #000000;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.02);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.02);
 
-  --backdrop-blur: none;
+  --backdrop-blur: blur(12px);
 }
 
 [data-theme="dark"] {
-  /* Dark Theme Overrides (Warm Charcoal and Yellow Accent) */
-  --bg-primary: #121214;
-  --bg-secondary: #1a1a1e;
-  --bg-sidebar: #121214;
-  --card-bg: #1e1e24;
-  --card-border: #000000;
+  /* Dark Theme Overrides */
+  --bg-primary: #0f172a; /* Slate 900 */
+  --bg-secondary: #1e293b; /* Slate 800 */
+  --bg-sidebar: #0f172a;
+  --card-bg: #1e293b;
+  --card-border: rgba(255, 255, 255, 0.08);
+  --border-color: rgba(255, 255, 255, 0.08);
   
-  --text-primary: #fcfcfc;
-  --text-secondary: #e2e2e8;
-  --text-muted: #8e8e93;
-  --text-on-sidebar: #fcfcfc;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --text-on-sidebar: #f8fafc;
   
   --accent-primary: #facb05;
   --accent-gradient: #facb05;
@@ -72,13 +74,13 @@
   --warning: #f59e0b;
   --danger: #ef4444;
 
-  --success-bg: rgba(16, 185, 129, 0.2);
-  --warning-bg: rgba(245, 158, 11, 0.2);
-  --danger-bg: rgba(239, 68, 68, 0.2);
+  --success-bg: rgba(16, 185, 129, 0.15);
+  --warning-bg: rgba(245, 158, 11, 0.15);
+  --danger-bg: rgba(239, 68, 68, 0.15);
 
-  --shadow-sm: 2px 2px 0px #000000;
-  --shadow-md: 4px 4px 0px #000000;
-  --shadow-lg: 6px 6px 0px #000000;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.25), 0 2px 4px -2px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
 }
 
 /* ==========================================================================
@@ -134,28 +136,28 @@ a {
    ========================================================================== */
 .glass-card {
   background: var(--card-bg);
-  border: 3px solid #000000 !important;
+  border: 1px solid var(--border-color) !important;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md) !important;
   backdrop-filter: var(--backdrop-blur);
   -webkit-backdrop-filter: var(--backdrop-blur);
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .glass-card:hover {
-  /* Stable, no movement */
+  box-shadow: var(--shadow-lg) !important;
 }
 
 .glow-btn {
   background: var(--accent-primary) !important;
   color: #000000 !important;
-  border: 3px solid #000000 !important;
-  border-radius: var(--radius-md);
+  border: none !important;
+  border-radius: var(--radius-full) !important;
   padding: 12px 24px;
   font-weight: 800;
   cursor: pointer;
   box-shadow: var(--shadow-md) !important;
-  transition: background-color var(--transition-fast), opacity var(--transition-fast);
+  transition: background-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -163,10 +165,12 @@ a {
 
 .glow-btn:hover {
   background: var(--accent-gradient-hover) !important;
+  transform: translateY(-1px);
 }
 
 .glow-btn:active {
   opacity: 0.85;
+  transform: translateY(0);
 }
 
 .glow-btn:disabled {
@@ -177,26 +181,27 @@ a {
 }
 
 .outline-btn {
-  background: #ffffff !important;
-  color: #000000 !important;
-  border: 3px solid #000000 !important;
-  border-radius: var(--radius-md);
+  background: var(--card-bg) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-full) !important;
   padding: 10px 20px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: var(--shadow-md) !important;
-  transition: background-color var(--transition-fast);
+  box-shadow: var(--shadow-sm) !important;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
   display: inline-flex;
   align-items: center;
   gap: 8px;
 }
 
 .outline-btn:hover {
-  background-color: #f3f4f6 !important;
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--text-muted) !important;
 }
 
 .outline-btn:active {
-  background-color: #e5e7eb !important;
+  background-color: var(--bg-primary) !important;
 }
 
 /* ==========================================================================
@@ -493,12 +498,12 @@ a {
   width: 100%;
   padding: 12px 16px;
   border-radius: var(--radius-md);
-  border: 3px solid #000000;
+  border: 1px solid var(--border-color);
   background: var(--card-bg);
   color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
-  box-shadow: 2px 2px 0px #000000;
+  box-shadow: var(--shadow-sm);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
@@ -508,13 +513,13 @@ a {
 }
 
 [data-theme="dark"] .form-control option {
-  background-color: #1e1e24; /* Warm Charcoal */
-  color: #fcfcfc; /* White text */
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .form-control:focus {
   border-color: var(--accent-primary);
-  box-shadow: 4px 4px 0px #000000;
+  box-shadow: 0 0 0 3px rgba(250, 203, 5, 0.15);
 }
 
 .form-control-row {
@@ -1184,33 +1189,107 @@ a {
   position: fixed;
   right: 24px;
   z-index: 999;
-  padding: 16px 24px;
-  border-radius: 99px;
-  font-size: 16px;
-  font-weight: 900;
-  box-shadow: 4px 4px 0px #000000;
-  border: 3px solid #000000;
+  padding: 12px 20px;
+  border-radius: var(--radius-full) !important;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12) !important;
+  border: none !important;
   display: flex;
   align-items: center;
   gap: 8px;
+  transition: all var(--transition-fast);
+}
+
+.floating-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18) !important;
+}
+
+.floating-action-btn:active {
+  transform: translateY(0);
 }
 
 .floating-action-btn.saving {
-  bottom: 96px;
-  background: var(--success);
-  color: #000000;
+  bottom: 88px;
+  background: var(--success) !important;
+  color: #ffffff !important;
 }
 
 .floating-action-btn.spending {
   bottom: 24px;
+  background: var(--accent-primary) !important;
+  color: #000000 !important;
 }
 
 .mobile-text {
   display: none;
 }
 
+/* AI Chatbot Floating Styles */
+.ai-chatbot-toggle {
+  position: fixed;
+  bottom: 152px; /* Stacked above Saving (88px) and Spending (24px) */
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  background: var(--accent-primary);
+  color: #000000;
+  border: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.ai-chatbot-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+
+.ai-chatbot-toggle:active {
+  transform: translateY(0);
+}
+
+.ai-chatbot-panel {
+  position: fixed;
+  bottom: 24px;
+  right: 232px; /* Sits to the left of the button stack with a 28px gap */
+  width: 360px;
+  height: 500px;
+  max-height: calc(100vh - 48px);
+  z-index: 1000;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg) !important;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp var(--transition-smooth) forwards;
+}
+
 .tab-content-wrapper {
   width: 100%;
+}
+
+/* Dashboard spacing class */
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  padding-bottom: 24px;
+}
+
+@media (min-width: 769px) {
+  .tab-content-wrapper {
+    padding-right: 240px; /* Separates dashboard cards horizontally from floating buttons */
+  }
 }
 
 @media (max-width: 768px) {
@@ -1222,12 +1301,18 @@ a {
   }
 
   .floating-action-btn {
-    padding: 12px 16px !important;
-    font-size: 14px !important;
+    padding: 10px 14px !important;
+    font-size: 13.5px !important;
     bottom: 16px !important;
     width: calc(50% - 24px) !important;
     justify-content: center;
-    box-shadow: 3px 3px 0px #000000 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+    border: none !important;
+    transform: none !important;
+  }
+
+  .floating-action-btn:hover {
+    transform: none !important;
   }
 
   .floating-action-btn.saving {
@@ -1240,7 +1325,24 @@ a {
     left: auto !important;
   }
 
+  .ai-chatbot-toggle {
+    bottom: 80px !important; /* Stacked above the Spend button on mobile */
+    right: 16px !important;
+    width: 44px;
+    height: 44px;
+  }
+
+  .ai-chatbot-panel {
+    bottom: 16px !important;
+    left: 16px !important;
+    right: 16px !important;
+    width: auto !important;
+    height: calc(100vh - 110px) !important;
+    max-height: 550px !important;
+    z-index: 1001 !important;
+  }
+
   .tab-content-wrapper {
-    padding-bottom: 100px !important;
+    padding-bottom: 140px !important; /* Proper bottom spacing to scroll clear of mobile buttons */
   }
 }

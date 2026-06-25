@@ -330,7 +330,7 @@ export default function App() {
       case 'dashboard':
         const insights = aiService.generateInsights(expenses, budgets);
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+          <div className="dashboard-container">
             {/* AI Quick-Add Bar */}
             <QuickAddBar onAddExpense={handleSaveExpense} />
 
@@ -341,7 +341,7 @@ export default function App() {
             <AnalyticsCharts expenses={expenses} budgets={budgets} />
 
             {/* 2. One-line AI Insight Card */}
-            <div className="glass-card" style={{ padding: '20px', border: '3px solid #000000', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--card-bg)', boxShadow: '4px 4px 0px #000000' }}>
+            <div className="glass-card" style={{ padding: '20px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--card-bg)' }}>
               <div style={{ fontSize: '28px' }}>🤖</div>
               <div>
                 <h4 style={{ margin: 0, fontSize: '11px', fontWeight: '900', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>AI Smart Advice</h4>
@@ -355,7 +355,7 @@ export default function App() {
             {notifications.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {notifications.map((note, idx) => (
-                  <div key={idx} className="alert-pill danger" style={{ fontSize: '13px', padding: '12px 16px', border: '3px solid #000000', borderRadius: '12px', background: 'var(--danger-bg)', color: 'var(--danger)', fontWeight: 'bold', boxShadow: '2px 2px 0px #000000' }}>
+                  <div key={idx} className="alert-pill danger" style={{ fontSize: '13px', padding: '12px 16px', borderRadius: '12px', background: 'var(--danger-bg)', color: 'var(--danger)', fontWeight: 'bold', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
                     <span>{note}</span>
                   </div>
                 ))}
@@ -363,7 +363,7 @@ export default function App() {
             )}
 
             {/* Quick Strategy Tips */}
-            <div className="glass-card" style={{ padding: '20px', border: '3px solid #000000', borderRadius: '16px', background: 'var(--card-bg)', boxShadow: '4px 4px 0px #000000' }}>
+            <div className="glass-card" style={{ padding: '20px', borderRadius: '16px', background: 'var(--card-bg)' }}>
               <h3 style={{ fontSize: '14px', fontWeight: '900', textTransform: 'uppercase', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Sparkles size={16} style={{ color: 'var(--accent-primary)' }} />
                 <span>Quick Advice! 💡</span>
@@ -471,7 +471,7 @@ export default function App() {
           <img src="/logo.jpg" alt="Logo" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />
           <span style={{ fontWeight: '900', fontFamily: 'var(--font-heading)' }}>SpendAchu</span>
         </div>
-        <button className="theme-toggle-btn" onClick={toggleTheme} style={{ border: '2px solid #000000', borderRadius: '12px', padding: '4px 8px', background: 'var(--card-bg)', boxShadow: '2px 2px 0px #000000' }}>
+        <button className="theme-toggle-btn" onClick={toggleTheme} style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '4px 8px', background: 'var(--card-bg)', boxShadow: 'var(--shadow-sm)' }}>
           {theme === 'dark' ? '☀' : '🌙'}
         </button>
       </div>
@@ -504,7 +504,7 @@ export default function App() {
             {/* Quick Alert Bell */}
             {notifications.length > 0 && (
               <div 
-                style={{ position: 'relative', cursor: 'pointer', color: 'var(--danger)', padding: '8px', background: 'var(--danger-bg)', border: '2px solid #000000', borderRadius: '12px', boxShadow: '2px 2px 0px #000000' }} 
+                style={{ position: 'relative', cursor: 'pointer', color: 'var(--danger)', padding: '8px', background: 'var(--danger-bg)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '12px', boxShadow: 'var(--shadow-sm)' }} 
                 title="Active budget warning alerts"
                 onClick={() => setActiveTab('insights')}
               >
@@ -513,7 +513,7 @@ export default function App() {
             )}
             
             {/* Toggle light/dark */}
-            <button className="theme-toggle-btn" onClick={toggleTheme} title="Toggle screen theme" style={{ border: '2px solid #000000', borderRadius: '12px', padding: '6px 10px', background: 'var(--card-bg)', boxShadow: '2px 2px 0px #000000', fontWeight: 'bold', cursor: 'pointer' }}>
+            <button className="theme-toggle-btn" onClick={toggleTheme} title="Toggle screen theme" style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '6px 10px', background: 'var(--card-bg)', boxShadow: 'var(--shadow-sm)', fontWeight: 'bold', cursor: 'pointer' }}>
               {theme === 'dark' ? '☀' : '🌙'}
             </button>
           </div>
@@ -583,8 +583,8 @@ export default function App() {
               maxWidth: '400px',
               padding: '30px',
               borderRadius: '8px',
-              border: '3px solid var(--border-color)',
-              boxShadow: 'var(--neo-shadow)',
+              border: '1px solid var(--border-color)',
+              boxShadow: 'var(--shadow-md)',
               backgroundColor: 'var(--card-bg)',
               color: 'var(--text-color)',
               textAlign: 'center'
