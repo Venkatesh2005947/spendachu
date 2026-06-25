@@ -1,8 +1,61 @@
 require('dotenv').config();
 const dns = require('dns');
+const https = require('https');
 if (dns.setDefaultResultOrder) {
   dns.setDefaultResultOrder('ipv4first');
 }
+
+// Helper to send email using Brevo HTTPS REST API
+const sendEmailViaBrevo = (apiKey, category, message, senderEmail, senderName, createdAt) => {
+  return new Promise((resolve, reject) => {
+    const emailData = JSON.stringify({
+      sender: {
+        name: "SpendAchu App",
+        email: "spendachu@gmail.com"
+      },
+      to: [
+        {
+          email: "spendachu@gmail.com",
+          name: "SpendAchu"
+        }
+      ],
+      replyTo: {
+        email: senderEmail,
+        name: senderName
+      },
+      subject: `SpendAchu Feedback [${category.toUpperCase()}] - ${senderName}`,
+      textContent: `Feedback Received!\n\nUser: ${senderName}\nEmail: ${senderEmail}\nCategory: ${category}\nSubmitted At: ${new Date(createdAt).toLocaleString()}\n\nMessage:\n----------------------------------------\n${message}\n----------------------------------------\n`
+    });
+
+    const options = {
+      hostname: 'api.brevo.com',
+      path: '/v3/smtp/email',
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': apiKey,
+        'content-type': 'application/json',
+        'content-length': Buffer.byteLength(emailData)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => body += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(JSON.parse(body));
+        } else {
+          reject(new Error(`Brevo API returned status ${res.statusCode}: ${body}`));
+        }
+      });
+    });
+
+    req.on('error', (e) => reject(e));
+    req.write(emailData);
+    req.end();
+  });
+};
 // Helper to resolve host to IPv4 address and create nodemailer transporter
 const createMailTransporter = async (host, port, user, pass) => {
   let resolvedHost = host;
@@ -609,6 +662,27 @@ app.post('/api/feedback', authenticateJWT, (req, res) => {
 
       // 2. Perform email dispatch asynchronously in the background
       (async () => {
+        const brevoApiKey = process.env.BREVO_API_KEY;
+
+        if (brevoApiKey) {
+          try {
+            await sendEmailViaBrevo(brevoApiKey, category, message, email, req.user.name, createdAt);
+            console.log(`[Email] Feedback mail sent successfully to spendachu@gmail.com via Brevo HTTPS API`);
+            db.run(
+              `UPDATE feedbacks SET delivery_status = ? WHERE id = ?`,
+              ['sent', feedbackId]
+            );
+            return;
+          } catch (brevoErr) {
+            console.error('❌ [Email Diagnostics] Failed to deliver feedback email via Brevo API:', brevoErr.message);
+            db.run(
+              `UPDATE feedbacks SET delivery_status = ?, delivery_error = ? WHERE id = ?`,
+              ['failed', brevoErr.message, feedbackId]
+            );
+            return;
+          }
+        }
+
         let mailHost = process.env.SMTP_HOST || '';
         let mailPort = parseInt(process.env.SMTP_PORT || '587');
         let mailUser = process.env.SMTP_USER || '';
@@ -715,8 +789,14 @@ app.listen(PORT, '0.0.0.0', () => {
   checkSMTPSetup();
 });
 
-// Verify SMTP connection on startup if details are present
+// Verify SMTP/API connection on startup if details are present
 async function checkSMTPSetup() {
+  const brevoApiKey = process.env.BREVO_API_KEY;
+  if (brevoApiKey) {
+    console.log('✅ [Brevo Diagnostics] Brevo API Key detected. Emails will be sent via HTTPS API.');
+    return;
+  }
+
   const mailHost = process.env.SMTP_HOST;
   const mailUser = process.env.SMTP_USER;
   const mailPass = process.env.SMTP_PASS;
