@@ -21,6 +21,9 @@ import SavingForm from './components/SavingForm/SavingForm';
 import SavingTable from './components/SavingForm/SavingTable';
 import RecentlyDeleted from './components/RecentlyDeleted/RecentlyDeleted';
 import FeedbackForm from './components/Feedback/FeedbackForm';
+import QuickAddBar from './components/AIInsights/QuickAddBar';
+import AIChatbot from './components/AIInsights/AIChatbot';
+import SavingsChallenges from './components/AIInsights/SavingsChallenges';
 
 export default function App() {
   // 1. Session and Auth State
@@ -328,8 +331,14 @@ export default function App() {
         const insights = aiService.generateInsights(expenses, budgets);
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+            {/* AI Quick-Add Bar */}
+            <QuickAddBar onAddExpense={handleSaveExpense} />
+
             {/* 1. Main Spending Card */}
             <StatCards expenses={expenses} budgets={budgets} savings={savings} />
+
+            {/* AI Spending Analytics Charts */}
+            <AnalyticsCharts expenses={expenses} budgets={budgets} />
 
             {/* 2. One-line AI Insight Card */}
             <div className="glass-card" style={{ padding: '20px', border: '3px solid #000000', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--card-bg)', boxShadow: '4px 4px 0px #000000' }}>
@@ -365,6 +374,9 @@ export default function App() {
                 ))}
               </ul>
             </div>
+
+            {/* AI Savings Challenges */}
+            <SavingsChallenges expenses={expenses} onAddSaving={handleSaveSaving} />
           </div>
         );
       case 'expenses':
@@ -603,6 +615,9 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {/* Floating AI Chatbot Assistant */}
+        <AIChatbot expenses={expenses} budgets={budgets} />
       </main>
     </div>
   );

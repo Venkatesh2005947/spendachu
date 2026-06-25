@@ -1,8 +1,9 @@
 import React from 'react';
 import { 
   ResponsiveContainer, 
-  AreaChart, 
+  ComposedChart, 
   Area, 
+  Line,
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -12,6 +13,7 @@ import {
   Cell, 
   Legend 
 } from 'recharts';
+import { aiService } from '../../services/ai';
 import { formatCurrency } from '../../utils/helpers';
 
 // Category color mappings matching CSS classes
@@ -24,7 +26,7 @@ const COLORS = {
   Entertainment: '#0891b2'
 };
 
-export default function AnalyticsCharts({ expenses }) {
+export default function AnalyticsCharts({ expenses, budgets }) {
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
@@ -35,39 +37,21 @@ export default function AnalyticsCharts({ expenses }) {
     return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
   });
 
-  // 1. Process Data for Daily Spend Line/Area Chart
+  // 1. Process Data for Daily Spend Line/Area Chart with AI Forecast
   const getDailyData = () => {
-    // Create an array of days in current month up to today
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const limit = now.getDate(); // limit to current day for better aesthetics
-    
-    const dailyMap = {};
-    for (let i = 1; i <= daysInMonth; i++) {
-      dailyMap[i] = 0;
-    }
-
-    // Populate actual spending
-    thisMonthExpenses.forEach(e => {
-      const day = new Date(e.date + 'T00:00:00').getDate();
-      if (dailyMap[day] !== undefined) {
-        dailyMap[day] += e.amount;
-      }
+    const forecast = aiService.getSpendingForecast(expenses, budgets);
+    const monthLabel = now.toLocaleString('default', { month: 'short' });
+    const globalLimit = budgets.global || 30000;
+ 
+    return forecast.forecastData.map(item => {
+      const dayStr = item.day < 10 ? '0' + item.day : item.day;
+      return {
+        day: `${monthLabel} ${dayStr}`,
+        Actual: item.actual !== undefined ? parseFloat(item.actual.toFixed(2)) : null,
+        Projected: item.projected !== undefined ? parseFloat(item.projected.toFixed(2)) : null,
+        Budget: globalLimit
+      };
     });
-
-    // Compile cumulative data
-    let cumulativeSum = 0;
-    const data = [];
-    // We can show up to current day of month, or all days. Let's show up to daysInMonth but highlight only up to today's cumulative velocity
-    for (let i = 1; i <= daysInMonth; i++) {
-      cumulativeSum += dailyMap[i];
-      const monthLabel = now.toLocaleString('default', { month: 'short' });
-      data.push({
-        day: `${monthLabel} ${i < 10 ? '0' + i : i}`,
-        Daily: dailyMap[i],
-        Cumulative: parseFloat(cumulativeSum.toFixed(2))
-      });
-    }
-    return data;
   };
 
   // 2. Process Data for Category Distribution Pie Chart
@@ -89,6 +73,7 @@ export default function AnalyticsCharts({ expenses }) {
   // Custom tooltips
   const CustomAreaTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
+      const data = payload[0].payload;
       return (
         <div style={{
           background: 'var(--bg-secondary)',
@@ -97,12 +82,19 @@ export default function AnalyticsCharts({ expenses }) {
           borderRadius: 'var(--radius-sm)',
           boxShadow: 'var(--shadow-sm)'
         }}>
-          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>{payload[0].payload.day}</p>
-          <p style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--accent-primary)' }}>
-            Daily: {formatCurrency(payload[0].payload.Daily)}
-          </p>
-          <p style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--success)' }}>
-            Cumulative: {formatCurrency(payload[0].payload.Cumulative)}
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>{data.day}</p>
+          {data.Actual !== null && (
+            <p style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--accent-primary)' }}>
+              Actual Spend: {formatCurrency(data.Actual)}
+            </p>
+          )}
+          {data.Projected !== null && (
+            <p style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--info)' }}>
+              AI Projected: {formatCurrency(data.Projected)}
+            </p>
+          )}
+          <p style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--danger)' }}>
+            Budget Limit: {formatCurrency(data.Budget)}
           </p>
         </div>
       );
@@ -139,7 +131,7 @@ export default function AnalyticsCharts({ expenses }) {
         </div>
         <div className="chart-container-inner">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={dailyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <ComposedChart data={dailyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="spendGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.3}/>
@@ -163,13 +155,28 @@ export default function AnalyticsCharts({ expenses }) {
               <Tooltip content={<CustomAreaTooltip />} />
               <Area 
                 type="monotone" 
-                dataKey="Cumulative" 
+                dataKey="Actual" 
                 stroke="var(--accent-primary)" 
                 strokeWidth={3}
                 fillOpacity={1} 
                 fill="url(#spendGrad)" 
               />
-            </AreaChart>
+              <Line 
+                type="monotone" 
+                dataKey="Projected" 
+                stroke="var(--info)" 
+                strokeWidth={2}
+                strokeDasharray="4 4"
+                dot={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="Budget" 
+                stroke="var(--danger)" 
+                strokeWidth={2}
+                dot={false}
+              />
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
       </div>

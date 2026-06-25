@@ -230,5 +230,14 @@ export const dbService = {
       body: JSON.stringify(feedbackData)
     });
     return handleResponse(res);
+  },
+
+  async sendAIChatMessage(message) {
+    const res = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ message })
+    });
+    return handleResponse(res);
   }
 };

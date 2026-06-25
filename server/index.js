@@ -96,6 +96,56 @@ const sendEmailViaResend = (apiKey, category, message, senderEmail, senderName, 
     req.end();
   });
 };
+
+// Helper to query Gemini API via HTTPS REST
+const queryGeminiChat = (apiKey, systemPrompt, userMessage) => {
+  return new Promise((resolve, reject) => {
+    const payload = JSON.stringify({
+      contents: [
+        {
+          parts: [
+            {
+              text: `${systemPrompt}\n\nUser Question: ${userMessage}`
+            }
+          ]
+        }
+      ]
+    });
+
+    const options = {
+      hostname: 'generativelanguage.googleapis.com',
+      path: `/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => body += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            const data = JSON.parse(body);
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't process that.";
+            resolve(text);
+          } catch (err) {
+            reject(err);
+          }
+        } else {
+          reject(new Error(`Gemini API returned status ${res.statusCode}: ${body}`));
+        }
+      });
+    });
+
+    req.on('error', (e) => reject(e));
+    req.write(payload);
+    req.end();
+  });
+};
+
 // Helper to resolve host to IPv4 address and create nodemailer transporter
 const createMailTransporter = async (host, port, user, pass) => {
   let resolvedHost = host;
@@ -669,6 +719,75 @@ app.post('/api/budgets', authenticateJWT, (req, res) => {
       res.status(200).json(req.body);
     }
   );
+});
+
+// AI Chat Endpoint with Gemini API and local fallback
+app.post('/api/ai/chat', authenticateJWT, (req, res) => {
+  const { message } = req.body;
+  if (!message) {
+    return res.status(400).json({ error: 'Message is required.' });
+  }
+
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  if (!geminiApiKey) {
+    return res.status(503).json({ error: 'Gemini API not configured. Falling back to local advisor.' });
+  }
+
+  const userId = req.user.id;
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+
+  // Query DB to build context
+  db.serialize(() => {
+    // 1. Get budgets
+    db.get(`SELECT data FROM budgets WHERE user_id = ?`, [userId], (err, budgetRow) => {
+      const budgets = budgetRow ? JSON.parse(budgetRow.data) : {};
+
+      // 2. Get savings
+      db.all(`SELECT amount FROM savings WHERE user_id = ?`, [userId], (err, savingsRows) => {
+        const totalSavings = savingsRows ? savingsRows.reduce((sum, r) => sum + r.amount, 0) : 0;
+
+        // 3. Get expenses
+        db.all(`SELECT amount, category, date, description FROM expenses WHERE user_id = ?`, [userId], (err, expenseRows) => {
+          const currentMonthExpenses = expenseRows ? expenseRows.filter(e => {
+            const d = new Date(e.date);
+            return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+          }) : [];
+          const totalSpentThisMonth = currentMonthExpenses.reduce((sum, r) => sum + r.amount, 0);
+
+          // Get last 10 transactions for context
+          const recentExpenses = currentMonthExpenses
+            .slice(0, 10)
+            .map(e => `₹${e.amount} on ${e.description} (${e.category})`)
+            .join('\n');
+
+          // Build prompt context
+          const systemPrompt = `You are "Achu", a helpful and slightly humorous personal finance AI advisor for the SpendAchu app.
+You are chatting with ${req.user.name}.
+Analyze the user's spending data and answer their question. Keep it brief (under 3-4 sentences), friendly, and use formatting like bold text or list bullets.
+
+Context:
+- Current Month: ${new Date().toLocaleString('default', { month: 'long' })} ${currentYear}
+- Budgets: ${JSON.stringify(budgets)}
+- Total Savings: ₹${totalSavings}
+- Total Spent This Month: ₹${totalSpentThisMonth}
+- Recent Expenses:
+${recentExpenses || 'No transactions logged this month.'}
+
+Respond directly as Achu. Do not output JSON, raw HTML, or markups except markdown bold stars.`;
+
+          queryGeminiChat(geminiApiKey, systemPrompt, message)
+            .then(reply => {
+              res.json({ reply });
+            })
+            .catch(chatErr => {
+              console.error('❌ [AI Chat] Gemini API error:', chatErr.message);
+              res.status(500).json({ error: 'Failed to communicate with AI model.' });
+            });
+        });
+      });
+    });
+  });
 });
 
 // ==========================================================================
