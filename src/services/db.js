@@ -230,5 +230,14 @@ export const dbService = {
       body: JSON.stringify(feedbackData)
     });
     return handleResponse(res);
+  },
+
+  async scanReceipt(base64Image, mimeType) {
+    const res = await fetch('/api/expenses/scan-receipt', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ image: base64Image, mimeType })
+    });
+    return handleResponse(res);
   }
 };

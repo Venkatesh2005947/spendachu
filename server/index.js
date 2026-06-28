@@ -97,6 +97,80 @@ const sendEmailViaResend = (apiKey, category, message, senderEmail, senderName, 
   });
 };
 
+// Helper to query Gemini Vision API via HTTPS REST
+const queryGeminiVision = (apiKey, base64Data, mimeType) => {
+  return new Promise((resolve, reject) => {
+    const payload = JSON.stringify({
+      contents: [
+        {
+          parts: [
+            {
+              inlineData: {
+                mimeType: mimeType,
+                data: base64Data
+              }
+            },
+            {
+              text: `Analyze the provided receipt/bill image and accurately extract the following fields in strict JSON format.
+Choose the most appropriate category and payment method from the allowed lists.
+Do not guess values; use null if a field is completely missing or illegible.
+
+Allowed categories: "Food", "Transport", "Rent", "Shopping", "Bills", "Entertainment", "Others"
+Allowed payment methods: "Cash", "Card", "UPI", "Bank Transfer"
+
+Expected JSON format:
+{
+  "merchant": "Merchant Name or null",
+  "date": "YYYY-MM-DD format (use current date if missing: ${new Date().toISOString().split('T')[0]})",
+  "amount": 123.45 (number or null),
+  "category": "One of the allowed categories",
+  "paymentMethod": "One of the allowed payment methods",
+  "description": "Short description of items or note"
+}
+Return ONLY the raw JSON object inside no markdown block (do not enclose in \`\`\`json or \`\`\`).`
+            }
+          ]
+        }
+      ]
+    });
+
+    const options = {
+      hostname: 'generativelanguage.googleapis.com',
+      path: `/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => body += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            const data = JSON.parse(body);
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+            let cleanJson = text.trim();
+            if (cleanJson.startsWith('```')) {
+              cleanJson = cleanJson.replace(/^```json\s*/, '').replace(/```$/, '').trim();
+            }
+            resolve(JSON.parse(cleanJson));
+          } catch (err) {
+            reject(err);
+          }
+        } else {
+          reject(new Error(`Gemini API returned status ${res.statusCode}: ${body}`));
+        }
+      });
+    });
+
+    req.on('error', (e) => reject(e));
+    req.write(payload);
+    req.end();
+  });
+};
 
 // Helper to resolve host to IPv4 address and create nodemailer transporter
 const createMailTransporter = async (host, port, user, pass) => {
@@ -141,7 +215,8 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = 'secret_spendachu_9923';
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Initialize SQLite database
 const dbPath = path.join(__dirname, 'database.db');
@@ -375,9 +450,27 @@ app.post('/api/check-email', (req, res) => {
 
 
 
-// ==========================================================================
-// Expense Endpoints
-// ==========================================================================
+// Scan Receipt and Extract Details
+app.post('/api/expenses/scan-receipt', authenticateJWT, (req, res) => {
+  const { image, mimeType } = req.body;
+  if (!image || !mimeType) {
+    return res.status(400).json({ error: 'Image and mimeType are required.' });
+  }
+
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  if (!geminiApiKey) {
+    return res.status(503).json({ error: 'Gemini API is not configured on the server. Please set GEMINI_API_KEY.' });
+  }
+
+  queryGeminiVision(geminiApiKey, image, mimeType)
+    .then(result => {
+      res.json(result);
+    })
+    .catch(err => {
+      console.error('❌ [Gemini Vision Scan Error]:', err.message);
+      res.status(500).json({ error: 'Failed to scan receipt. Gemini API error: ' + err.message });
+    });
+});
 
 // Get Expenses
 app.get('/api/expenses', authenticateJWT, (req, res) => {
