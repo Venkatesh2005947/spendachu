@@ -70,7 +70,10 @@ export const aiService = {
         highestCategory: "None",
         comparisonText: "No data yet, start tracking!",
         hasAlerts: false,
-        alerts: []
+        alerts: [],
+        thisMonthTotal: 0,
+        lastMonthTotal: 0,
+        percentChange: 0
       };
     }
 
@@ -78,7 +81,6 @@ export const aiService = {
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    // 1. Group expenses by current month and previous month
     const thisMonthExpenses = expenses.filter(e => {
       const d = new Date(e.date);
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
@@ -94,88 +96,61 @@ export const aiService = {
     const thisMonthTotal = thisMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
     const lastMonthTotal = lastMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
 
-    // 2. Group current month by category
     const categoryTotals = {};
     thisMonthExpenses.forEach(e => {
       const catKey = e.category.startsWith('Others') ? 'Others' : e.category;
       categoryTotals[catKey] = (categoryTotals[catKey] || 0) + e.amount;
     });
 
-    // 3. Find highest category
     let highestCat = "None";
     let highestAmt = 0;
     Object.entries(categoryTotals).forEach(([cat, amt]) => {
-      if (amt > highestAmt) {
-        highestAmt = amt;
-        highestCat = cat;
-      }
+      if (amt > highestAmt) { highestAmt = amt; highestCat = cat; }
     });
 
-    // 4. Calculate month-over-month comparison
     let comparisonText = "";
     let percentChange = 0;
     if (lastMonthTotal > 0) {
       percentChange = ((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100;
       if (percentChange > 0) {
-        comparisonText = `Your monthly spending is ${percentChange.toFixed(0)}% higher than last month (Spent ₹${thisMonthTotal.toFixed(0)} vs ₹${lastMonthTotal.toFixed(0)})!`;
+        comparisonText = `Your monthly spending is ${percentChange.toFixed(0)}% higher than last month (₹${thisMonthTotal.toFixed(0)} vs ₹${lastMonthTotal.toFixed(0)})!`;
       } else if (percentChange < 0) {
-        comparisonText = `Nice! Your spending decreased by ${Math.abs(percentChange).toFixed(0)}% compared to last month (Spent ₹${thisMonthTotal.toFixed(0)} vs ₹${lastMonthTotal.toFixed(0)})!`;
+        comparisonText = `Nice! Your spending decreased by ${Math.abs(percentChange).toFixed(0)}% compared to last month (₹${thisMonthTotal.toFixed(0)} vs ₹${lastMonthTotal.toFixed(0)})!`;
       } else {
-        comparisonText = `Your spending is exactly identical to last month (Spent ₹${thisMonthTotal.toFixed(0)}).`;
+        comparisonText = `Your spending is exactly identical to last month (₹${thisMonthTotal.toFixed(0)}).`;
       }
     } else {
       comparisonText = `This month's damage is ₹${thisMonthTotal.toFixed(0)}. Keep tracking!`;
     }
 
-    // 5. Generate active budget alerts
     const alerts = [];
     const globalLimit = budgets.global || 30000;
     if (thisMonthTotal >= globalLimit) {
-      alerts.push({
-        type: 'danger',
-        message: `🚨 Global Budget Blown! ₹${thisMonthTotal.toFixed(0)} out of ₹${globalLimit} spent! Stop spending!`
-      });
+      alerts.push({ type: 'danger', message: `🚨 Global Budget Blown! ₹${thisMonthTotal.toFixed(0)} out of ₹${globalLimit} spent! Stop spending!` });
     } else if (thisMonthTotal >= globalLimit * 0.8) {
-      alerts.push({
-        type: 'warning',
-        message: `⚠️ Danger Zone Approaching! Spent ${(thisMonthTotal / globalLimit * 100).toFixed(0)}% of your monthly limit!`
-      });
+      alerts.push({ type: 'warning', message: `⚠️ Danger Zone Approaching! Spent ${(thisMonthTotal / globalLimit * 100).toFixed(0)}% of your monthly limit!` });
     }
 
-    // Category budget alerts
     Object.keys(budgets).forEach(cat => {
       if (cat === 'global') return;
       const catLimit = budgets[cat];
       const catSpent = categoryTotals[cat] || 0;
       if (catLimit > 0) {
         if (catSpent >= catLimit) {
-          alerts.push({
-            type: 'danger',
-            message: `🚨 Over budget in ${cat}! Spent ₹${catSpent.toFixed(0)} of ₹${catLimit}. Pocket is blank!`
-          });
+          alerts.push({ type: 'danger', message: `🚨 Over budget in ${cat}! Spent ₹${catSpent.toFixed(0)} of ₹${catLimit}. Pocket is blank!` });
         } else if (catSpent >= catLimit * 0.8) {
-          alerts.push({
-            type: 'warning',
-            message: `⚠️ Warning in ${cat}! Used ${(catSpent / catLimit * 100).toFixed(0)}% of limit.`
-          });
+          alerts.push({ type: 'warning', message: `⚠️ Warning in ${cat}! Used ${(catSpent / catLimit * 100).toFixed(0)}% of limit.` });
         }
       }
     });
 
-    // 6. Generate dynamic savings advice & tips based on spending
     const tips = [];
     if (highestCat !== "None" && categoryTotals[highestCat] > 0) {
-      if (highestCat === 'Food') {
-        tips.push("💡 **Wallet Rule**: Cut down on daily restaurant runs. Time to learn to cook noodles! 🍜");
-      } else if (highestCat === 'Transport') {
-        tips.push("💡 **Wallet Rule**: Petrol is liquid gold! Walk or use public transit when you can. 🚶‍♂️");
-      } else if (highestCat === 'Shopping') {
-        tips.push("💡 **Wallet Rule**: Wait 48 hours before checking out your cart. Avoid impulsive shopping! 🛒");
-      } else if (highestCat === 'Bills') {
-        tips.push("💡 **Wallet Rule**: Netflix, Spotify, Prime... unsubscribe from unused services! 📺");
-      } else if (highestCat === 'Entertainment') {
-        tips.push("💡 **Wallet Rule**: Skip expensive clubs. Try potlucks or park walks! 🌳");
-      }
+      if (highestCat === 'Food') tips.push("💡 **Wallet Rule**: Cut down on daily restaurant runs. Time to learn to cook noodles! 🍜");
+      else if (highestCat === 'Transport') tips.push("💡 **Wallet Rule**: Petrol is liquid gold! Walk or use public transit when you can. 🚶‍♂️");
+      else if (highestCat === 'Shopping') tips.push("💡 **Wallet Rule**: Wait 48 hours before checking out your cart. Avoid impulsive shopping! 🛒");
+      else if (highestCat === 'Bills') tips.push("💡 **Wallet Rule**: Netflix, Spotify, Prime... unsubscribe from unused services! 📺");
+      else if (highestCat === 'Entertainment') tips.push("💡 **Wallet Rule**: Skip expensive clubs. Try potlucks or park walks! 🌳");
     }
 
     if (thisMonthTotal > globalLimit * 0.5) {
@@ -184,36 +159,135 @@ export const aiService = {
       tips.push("💡 **Meme Warning**: Super! Your wallet is under control at this rate! 👍");
     }
 
-    // Construct primary AI summary sentence (Funny, one-liner)
     let summary = `Ayyayo Kaasu Pochu! Total Spent: ₹${thisMonthTotal.toFixed(0)}. `;
     if (highestCat !== "None" && highestCat !== "undefined") {
       const catSpent = categoryTotals[highestCat] || 0;
-      if (highestCat === 'Food') {
-        summary += `Swiggy and Zomato are eating your savings! There is a massive hole in your wallet! 🍕`;
-      } else if (highestCat === 'Transport') {
-        summary += `The Uber driver is going to hang your picture on his wall! Heavy damage on transport! 🚗`;
-      } else if (highestCat === 'Rent') {
-        summary += `Rent paid! Your landlord is buying treats, but you have an empty plate! 🏠`;
-      } else if (highestCat === 'Shopping') {
-        summary += `Amazon boxes are piling up at your door, and your savings box is crying! 🛍️`;
-      } else if (highestCat === 'Bills') {
-        summary += `Electricity, wifi, subscriptions... these bills are eating you alive! ⚡`;
-      } else if (highestCat === 'Entertainment') {
-        summary += `Heavy damage on socials and entertainment! Your pocket is crying! 🎬`;
-      } else {
-        summary += `Highest damage is in ${highestCat} (₹${catSpent.toFixed(0)}). Your pocket is crying! 💸`;
-      }
+      if (highestCat === 'Food') summary += `Swiggy and Zomato are eating your savings! There is a massive hole in your wallet! 🍕`;
+      else if (highestCat === 'Transport') summary += `The Uber driver is going to hang your picture on his wall! Heavy damage on transport! 🚗`;
+      else if (highestCat === 'Rent') summary += `Rent paid! Your landlord is buying treats, but you have an empty plate! 🏠`;
+      else if (highestCat === 'Shopping') summary += `Amazon boxes are piling up at your door, and your savings box is crying! 🛍️`;
+      else if (highestCat === 'Bills') summary += `Electricity, wifi, subscriptions... these bills are eating you alive! ⚡`;
+      else if (highestCat === 'Entertainment') summary += `Heavy damage on socials and entertainment! Your pocket is crying! 🎬`;
+      else summary += `Highest damage is in ${highestCat} (₹${catSpent.toFixed(0)}). Your pocket is crying! 💸`;
     } else {
       summary += "So far, your wallet is in the safe zone! Keep it up! 🛡️";
     }
 
-    return {
-      summary,
-      tips,
-      highestCategory: highestCat,
-      comparisonText,
-      hasAlerts: alerts.length > 0,
-      alerts
-    };
+    return { summary, tips, highestCategory: highestCat, comparisonText, hasAlerts: alerts.length > 0, alerts, thisMonthTotal, lastMonthTotal, percentChange };
+  },
+
+  /**
+   * Returns spending trend over last 7 days vs prior 7 days
+   */
+  getSpendingTrend(expenses) {
+    const now = new Date();
+    const msPerDay = 86400000;
+
+    const last7 = expenses.filter(e => {
+      const diff = (now - new Date(e.date)) / msPerDay;
+      return diff >= 0 && diff < 7;
+    });
+    const prior7 = expenses.filter(e => {
+      const diff = (now - new Date(e.date)) / msPerDay;
+      return diff >= 7 && diff < 14;
+    });
+
+    const last7Total = last7.reduce((s, e) => s + e.amount, 0);
+    const prior7Total = prior7.reduce((s, e) => s + e.amount, 0);
+
+    const last7Avg = last7Total / 7;
+    const prior7Avg = prior7Total / 7;
+
+    let delta = 0;
+    let trend = 'Stable';
+    if (prior7Avg > 0) {
+      delta = ((last7Avg - prior7Avg) / prior7Avg) * 100;
+      if (delta > 10) trend = 'Rising';
+      else if (delta < -10) trend = 'Falling';
+      else trend = 'Stable';
+    } else if (last7Avg > 0) {
+      trend = 'Rising';
+      delta = 100;
+    }
+
+    return { last7Total, prior7Total, last7Avg, prior7Avg, delta, trend };
+  },
+
+  /**
+   * Returns savings rate for the current month
+   */
+  getSavingsRate(expenses, savings) {
+    const now = new Date();
+    const cm = now.getMonth();
+    const cy = now.getFullYear();
+
+    const monthExpenses = (expenses || []).filter(e => {
+      const d = new Date(e.date);
+      return d.getMonth() === cm && d.getFullYear() === cy;
+    });
+    const monthSavings = (savings || []).filter(s => {
+      const d = new Date(s.date || s.created_at);
+      return d.getMonth() === cm && d.getFullYear() === cy;
+    });
+
+    const totalSpent = monthExpenses.reduce((s, e) => s + e.amount, 0);
+    const totalSaved = monthSavings.reduce((s, sv) => s + sv.amount, 0);
+    const total = totalSpent + totalSaved;
+    const rate = total > 0 ? (totalSaved / total) * 100 : 0;
+
+    let status = 'Needs Work';
+    let statusColor = 'var(--danger)';
+    if (rate >= 30) { status = 'Excellent 🌟'; statusColor = 'var(--success)'; }
+    else if (rate >= 15) { status = 'Good 👍'; statusColor = 'var(--warning)'; }
+
+    return { totalSpent, totalSaved, rate, status, statusColor };
+  },
+
+  /**
+   * Returns total spending aggregated by day of week (0=Sun … 6=Sat)
+   */
+  getDayOfWeekPattern(expenses) {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const totals = [0, 0, 0, 0, 0, 0, 0];
+
+    const now = new Date();
+    const cm = now.getMonth();
+    const cy = now.getFullYear();
+
+    (expenses || []).forEach(e => {
+      const d = new Date(e.date);
+      if (d.getMonth() === cm && d.getFullYear() === cy) {
+        totals[d.getDay()] += e.amount;
+      }
+    });
+
+    const maxVal = Math.max(...totals, 1);
+    const peakIndex = totals.indexOf(Math.max(...totals));
+
+    return { days, totals, maxVal, peakDay: days[peakIndex] };
+  },
+
+  /**
+   * Returns top 5 spending descriptions (merchants) by total amount this month
+   */
+  getTopMerchants(expenses) {
+    const now = new Date();
+    const cm = now.getMonth();
+    const cy = now.getFullYear();
+
+    const map = {};
+    (expenses || []).forEach(e => {
+      const d = new Date(e.date);
+      if (d.getMonth() === cm && d.getFullYear() === cy && e.description) {
+        const key = e.description.trim().toLowerCase();
+        if (!map[key]) map[key] = { label: e.description.trim(), total: 0, count: 0 };
+        map[key].total += e.amount;
+        map[key].count += 1;
+      }
+    });
+
+    return Object.values(map)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
   }
 };

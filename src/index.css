@@ -1210,6 +1210,21 @@ a {
   transform: translateY(0);
 }
 
+/* ─── AI Insights Panel ───────────────────────────────── */
+.insights-summary-card {
+  background: linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(139,92,246,0.06) 100%) !important;
+  border: 1px solid rgba(99,102,241,0.2) !important;
+}
+
+.insight-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  min-width: 110px;
+}
+/* ─────────────────────────────────────────────────────── */
 
 
 .floating-action-btn.saving {

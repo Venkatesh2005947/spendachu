@@ -409,6 +409,7 @@ export default function App() {
           <InsightsPanel 
             expenses={expenses} 
             budgets={budgets} 
+            savings={savings}
             currencyCode={currencyCode} 
           />
         );
