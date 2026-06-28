@@ -166,6 +166,11 @@ Return ONLY the raw JSON object inside no markdown block (do not enclose in \`\`
       });
     });
 
+    // Set 25 seconds request timeout
+    req.setTimeout(25000, () => {
+      req.destroy(new Error('Request to Gemini API timed out after 25 seconds.'));
+    });
+
     req.on('error', (e) => reject(e));
     req.write(payload);
     req.end();

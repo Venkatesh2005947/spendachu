@@ -313,6 +313,41 @@ export default function App() {
     }
   };
 
+  const resizeImage = (file, maxDimension = 1024) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(img.src);
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        resolve({
+          base64: dataUrl.split(',')[1],
+          mimeType: 'image/jpeg'
+        });
+      };
+      img.onerror = (err) => reject(err);
+    });
+  };
+
   const handleReceiptScan = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -322,37 +357,32 @@ export default function App() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        setIsScanning(true);
-        const base64String = reader.result.split(',')[1];
-        const mimeType = file.type;
-        
-        const result = await dbService.scanReceipt(base64String, mimeType);
-        setIsScanning(false);
+    try {
+      setIsScanning(true);
+      const { base64, mimeType } = await resizeImage(file);
+      
+      const result = await dbService.scanReceipt(base64, mimeType);
+      setIsScanning(false);
 
-        if (result && !result.error) {
-          setEditingExpense({
-            date: result.date || new Date().toISOString().split('T')[0],
-            amount: result.amount || '',
-            category: result.category || 'Others',
-            paymentMethod: result.paymentMethod || 'Cash',
-            description: result.merchant 
-              ? `${result.merchant}${result.description ? ' - ' + result.description : ''}`
-              : (result.description || 'Scanned Receipt')
-          });
-          setIsExpenseModalOpen(true);
-        } else {
-          alert('Could not scan receipt. Please enter the details manually.');
-        }
-      } catch (err) {
-        setIsScanning(false);
-        console.error('Scan Error:', err);
-        alert(err.message || 'Failed to scan receipt. Ensure a valid Gemini API key is configured on Render.');
+      if (result && !result.error) {
+        setEditingExpense({
+          date: result.date || new Date().toISOString().split('T')[0],
+          amount: result.amount || '',
+          category: result.category || 'Others',
+          paymentMethod: result.paymentMethod || 'Cash',
+          description: result.merchant 
+            ? `${result.merchant}${result.description ? ' - ' + result.description : ''}`
+            : (result.description || 'Scanned Receipt')
+        });
+        setIsExpenseModalOpen(true);
+      } else {
+        alert('Could not scan receipt. Please enter the details manually.');
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      setIsScanning(false);
+      console.error('Scan Error:', err);
+      alert(err.message || 'Failed to scan receipt. Ensure a valid Gemini API key is configured on Render.');
+    }
   };
 
   // Render Auth views if session is empty
