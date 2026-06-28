@@ -1226,53 +1226,6 @@ a {
   display: none;
 }
 
-/* AI Chatbot Floating Styles */
-.ai-chatbot-toggle {
-  position: fixed;
-  bottom: 152px; /* Stacked above Saving (88px) and Spending (24px) */
-  right: 24px;
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-full);
-  background: var(--accent-primary);
-  color: #000000;
-  border: none;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.ai-chatbot-toggle:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
-}
-
-.ai-chatbot-toggle:active {
-  transform: translateY(0);
-}
-
-.ai-chatbot-panel {
-  position: fixed;
-  bottom: 24px;
-  right: 232px; /* Sits to the left of the button stack with a 28px gap */
-  width: 360px;
-  height: 500px;
-  max-height: calc(100vh - 48px);
-  z-index: 1000;
-  background: var(--card-bg);
-  border: 1px solid var(--border-color) !important;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg) !important;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  animation: slideUp var(--transition-smooth) forwards;
-}
-
 .tab-content-wrapper {
   width: 100%;
 }
@@ -1288,7 +1241,7 @@ a {
 
 @media (min-width: 769px) {
   .tab-content-wrapper {
-    padding-right: 240px; /* Separates dashboard cards horizontally from floating buttons */
+    padding-right: 210px; /* Separates dashboard cards horizontally from floating buttons */
   }
 }
 
@@ -1325,24 +1278,7 @@ a {
     left: auto !important;
   }
 
-  .ai-chatbot-toggle {
-    bottom: 80px !important; /* Stacked above the Spend button on mobile */
-    right: 16px !important;
-    width: 44px;
-    height: 44px;
-  }
-
-  .ai-chatbot-panel {
-    bottom: 16px !important;
-    left: 16px !important;
-    right: 16px !important;
-    width: auto !important;
-    height: calc(100vh - 110px) !important;
-    max-height: 550px !important;
-    z-index: 1001 !important;
-  }
-
   .tab-content-wrapper {
-    padding-bottom: 140px !important; /* Proper bottom spacing to scroll clear of mobile buttons */
+    padding-bottom: 100px !important; /* Proper bottom spacing to scroll clear of mobile buttons */
   }
 }
