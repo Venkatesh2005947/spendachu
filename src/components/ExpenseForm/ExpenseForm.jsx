@@ -69,7 +69,7 @@ export default function ExpenseForm({ expense, onClose, onSave }) {
     const payload = {
       date,
       amount: amtFloat,
-      category: category === 'Others' && customCategory.trim() ? `Others (${customCategory.trim()})` : 'Others',
+      category: category === 'Others' && customCategory.trim() ? `Others (${customCategory.trim()})` : category,
       paymentMethod,
       description: description.trim()
     };

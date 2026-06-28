@@ -386,7 +386,18 @@ app.get('/api/expenses', authenticateJWT, (req, res) => {
     [req.user.id],
     (err, rows) => {
       if (err) return res.status(500).json({ error: 'Failed to fetch expenses.' });
-      res.status(200).json(rows);
+      
+      const formatted = rows.map(r => ({
+        id: r.id,
+        user_id: r.user_id,
+        date: r.date,
+        amount: r.amount,
+        category: r.category,
+        paymentMethod: r.payment_method, // Map db column to camelCase property
+        description: r.description,
+        created_at: r.created_at
+      }));
+      res.status(200).json(formatted);
     }
   );
 });
