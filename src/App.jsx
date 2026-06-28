@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Menu, X, Bell, Sparkles, Camera } from 'lucide-react';
+import { Plus, Menu, X, Bell, Sparkles } from 'lucide-react';
 
 // Services
 import { dbService } from './services/db';
@@ -39,7 +39,6 @@ export default function App() {
   // 3. UI control states
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [isSavingModalOpen, setIsSavingModalOpen] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -305,85 +304,7 @@ export default function App() {
     setIsExpenseModalOpen(true);
   };
 
-  const triggerFileSelect = () => {
-    const input = document.getElementById('receipt-file-input');
-    if (input) {
-      input.value = '';
-      input.click();
-    }
-  };
 
-  const resizeImage = (file, maxDimension = 1024) => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
-      img.onload = () => {
-        URL.revokeObjectURL(img.src);
-        let width = img.width;
-        let height = img.height;
-
-        if (width > maxDimension || height > maxDimension) {
-          if (width > height) {
-            height = Math.round((height * maxDimension) / width);
-            width = maxDimension;
-          } else {
-            width = Math.round((width * maxDimension) / height);
-            height = maxDimension;
-          }
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        resolve({
-          base64: dataUrl.split(',')[1],
-          mimeType: 'image/jpeg'
-        });
-      };
-      img.onerror = (err) => reject(err);
-    });
-  };
-
-  const handleReceiptScan = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      alert('Please upload a valid receipt image.');
-      return;
-    }
-
-    try {
-      setIsScanning(true);
-      const { base64, mimeType } = await resizeImage(file);
-      
-      const result = await dbService.scanReceipt(base64, mimeType);
-      setIsScanning(false);
-
-      if (result && !result.error) {
-        setEditingExpense({
-          date: result.date || new Date().toISOString().split('T')[0],
-          amount: result.amount || '',
-          category: result.category || 'Others',
-          paymentMethod: result.paymentMethod || 'Cash',
-          description: result.merchant 
-            ? `${result.merchant}${result.description ? ' - ' + result.description : ''}`
-            : (result.description || 'Scanned Receipt')
-        });
-        setIsExpenseModalOpen(true);
-      } else {
-        alert('Could not scan receipt. Please enter the details manually.');
-      }
-    } catch (err) {
-      setIsScanning(false);
-      console.error('Scan Error:', err);
-      alert(err.message || 'Failed to scan receipt. Ensure a valid Gemini API key is configured on Render.');
-    }
-  };
 
   // Render Auth views if session is empty
   if (!user) {
@@ -614,25 +535,6 @@ export default function App() {
           />
         )}
 
-        {/* Hidden File Input for scanning */}
-        <input 
-          type="file" 
-          id="receipt-file-input" 
-          accept="image/*" 
-          style={{ display: 'none' }} 
-          onChange={handleReceiptScan} 
-        />
-
-        {/* Large Floating Scan Receipt Button */}
-        <button 
-          className="glow-btn floating-action-btn scanner" 
-          onClick={triggerFileSelect}
-          title="Scan Receipt with AI"
-        >
-          <Camera size={20} />
-          <span className="desktop-text">Scan Receipt 📸</span>
-          <span className="mobile-text">Scan 📸</span>
-        </button>
 
         {/* Large Floating Add Saving Button */}
         <button 
@@ -708,27 +610,6 @@ export default function App() {
             </div>
           </div>
         )}
-        {/* Scanning Receipt Loader Overlay */}
-        {isScanning && (
-          <div className="modal-overlay scanning-overlay" style={{ zIndex: 10000 }}>
-            <div className="glass-card scanning-card" style={{ padding: '30px', borderRadius: '20px', textAlign: 'center', maxWidth: '400px', width: '90%' }}>
-              <div className="scanning-spinner" style={{
-                width: '50px',
-                height: '50px',
-                border: '4px solid var(--card-border)',
-                borderTop: '4px solid var(--accent-primary)',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-                margin: '0 auto 20px auto'
-              }}></div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: '900', marginBottom: '10px' }}>Scanning Receipt with AI...</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.5' }}>
-                Achu is analyzing the receipt content. Please wait a moment.
-              </p>
-            </div>
-          </div>
-        )}
-
       </main>
     </div>
   );

@@ -1210,11 +1210,7 @@ a {
   transform: translateY(0);
 }
 
-.floating-action-btn.scanner {
-  bottom: 152px;
-  background: var(--info) !important;
-  color: #ffffff !important;
-}
+
 
 .floating-action-btn.saving {
   bottom: 88px;
@@ -1263,7 +1259,7 @@ a {
     padding: 10px 14px !important;
     font-size: 13.5px !important;
     bottom: 16px !important;
-    width: calc(33.3% - 16px) !important;
+    width: calc(50% - 24px) !important;
     justify-content: center;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
     border: none !important;
@@ -1277,14 +1273,6 @@ a {
   .floating-action-btn.saving {
     left: 16px !important;
     right: auto !important;
-  }
-
-  .floating-action-btn.scanner {
-    left: 50% !important;
-    right: auto !important;
-    transform: translateX(-50%) !important;
-    background: var(--info) !important;
-    color: #ffffff !important;
   }
 
   .floating-action-btn.spending {
