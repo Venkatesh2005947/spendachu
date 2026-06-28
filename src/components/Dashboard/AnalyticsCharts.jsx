@@ -24,21 +24,21 @@ const COLORS = {
   Entertainment: '#0891b2'
 };
 
-export default function AnalyticsCharts({ expenses }) {
+export default function AnalyticsCharts({ expenses, selectedMonth, selectedYear }) {
   const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
+  const viewMonth = selectedMonth ?? now.getMonth();
+  const viewYear  = selectedYear  ?? now.getFullYear();
 
-  // Filter expenses for current month
+  // Filter expenses for selected month
   const thisMonthExpenses = expenses.filter(e => {
     const d = new Date(e.date);
-    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    return d.getMonth() === viewMonth && d.getFullYear() === viewYear;
   });
 
   // 1. Process Data for Daily Spend Line/Area Chart
   const getDailyData = () => {
-    // Create an array of days in current month up to today
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    // Create an array of days in selected month
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
     
     const dailyMap = {};
     for (let i = 1; i <= daysInMonth; i++) {
@@ -56,9 +56,9 @@ export default function AnalyticsCharts({ expenses }) {
     // Compile cumulative data
     let cumulativeSum = 0;
     const data = [];
+    const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleString('default', { month: 'short' });
     for (let i = 1; i <= daysInMonth; i++) {
       cumulativeSum += dailyMap[i];
-      const monthLabel = now.toLocaleString('default', { month: 'short' });
       data.push({
         day: `${monthLabel} ${i < 10 ? '0' + i : i}`,
         Daily: dailyMap[i],

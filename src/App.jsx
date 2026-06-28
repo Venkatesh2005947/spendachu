@@ -44,6 +44,11 @@ export default function App() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState([]); // Dynamic budget alerts
 
+  // Dashboard month selector (defaults to current month)
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+
   // 4. Filters state
   const [filters, setFilters] = useState({
     dateRange: 'all',
@@ -326,15 +331,87 @@ export default function App() {
   // Get active tab page view
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'dashboard':
-        const insights = aiService.generateInsights(expenses, budgets);
+      case 'dashboard': {
+        const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const isCurrentMonth = selectedMonth === now.getMonth() && selectedYear === now.getFullYear();
+
+        // Build last 13 months for the picker dropdown
+        const monthOptions = [];
+        for (let i = 0; i < 13; i++) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          monthOptions.push({ month: d.getMonth(), year: d.getFullYear() });
+        }
+
+        const insights = aiService.generateInsights(
+          expenses.filter(e => {
+            const d = new Date(e.date);
+            return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+          }),
+          budgets
+        );
+
         return (
           <div className="dashboard-container">
+
+            {/* Month Selector Bar */}
+            <div className="glass-card" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', borderRadius: '16px' }}>
+              <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Viewing:</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                <button
+                  id="dashboard-month-prev"
+                  onClick={() => {
+                    const d = new Date(selectedYear, selectedMonth - 1, 1);
+                    setSelectedMonth(d.getMonth());
+                    setSelectedYear(d.getFullYear());
+                  }}
+                  style={{ background: 'var(--card-border)', border: 'none', borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer', fontSize: '16px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  title="Previous month"
+                >‹</button>
+
+                <select
+                  id="dashboard-month-select"
+                  value={`${selectedYear}-${selectedMonth}`}
+                  onChange={e => {
+                    const [y, m] = e.target.value.split('-').map(Number);
+                    setSelectedYear(y);
+                    setSelectedMonth(m);
+                  }}
+                  style={{ border: '1px solid var(--border-color)', borderRadius: '10px', padding: '6px 12px', background: 'var(--card-bg)', color: 'var(--text-primary)', fontWeight: '700', fontSize: '14px', cursor: 'pointer', flex: 1, maxWidth: '200px' }}
+                >
+                  {monthOptions.map(({ month, year }) => (
+                    <option key={`${year}-${month}`} value={`${year}-${month}`}>
+                      {MONTH_NAMES[month]} {year}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  id="dashboard-month-next"
+                  onClick={() => {
+                    if (isCurrentMonth) return;
+                    const d = new Date(selectedYear, selectedMonth + 1, 1);
+                    setSelectedMonth(d.getMonth());
+                    setSelectedYear(d.getFullYear());
+                  }}
+                  style={{ background: 'var(--card-border)', border: 'none', borderRadius: '8px', width: '32px', height: '32px', cursor: isCurrentMonth ? 'not-allowed' : 'pointer', fontSize: '16px', color: isCurrentMonth ? 'var(--text-muted)' : 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isCurrentMonth ? 0.4 : 1 }}
+                  title="Next month"
+                  disabled={isCurrentMonth}
+                >›</button>
+              </div>
+              {!isCurrentMonth && (
+                <button
+                  id="dashboard-month-today"
+                  onClick={() => { setSelectedMonth(now.getMonth()); setSelectedYear(now.getFullYear()); }}
+                  style={{ fontSize: '12px', padding: '5px 12px', borderRadius: '20px', border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)', background: 'transparent', cursor: 'pointer', fontWeight: '700' }}
+                >Back to Today</button>
+              )}
+            </div>
+
             {/* 1. Main Spending Card */}
-            <StatCards expenses={expenses} budgets={budgets} savings={savings} />
+            <StatCards expenses={expenses} budgets={budgets} savings={savings} selectedMonth={selectedMonth} selectedYear={selectedYear} />
 
             {/* Spending Analytics Charts */}
-            <AnalyticsCharts expenses={expenses} />
+            <AnalyticsCharts expenses={expenses} selectedMonth={selectedMonth} selectedYear={selectedYear} />
 
             {/* 2. One-line AI Insight Card */}
             <div className="glass-card" style={{ padding: '20px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--card-bg)' }}>
@@ -348,7 +425,7 @@ export default function App() {
             </div>
 
             {/* Dynamic Alert Banner */}
-            {notifications.length > 0 && (
+            {notifications.length > 0 && isCurrentMonth && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {notifications.map((note, idx) => (
                   <div key={idx} className="alert-pill danger" style={{ fontSize: '13px', padding: '12px 16px', borderRadius: '12px', background: 'var(--danger-bg)', color: 'var(--danger)', fontWeight: 'bold', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
@@ -373,6 +450,7 @@ export default function App() {
 
           </div>
         );
+      }
       case 'expenses':
         return (
           <>
