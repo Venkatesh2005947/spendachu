@@ -1239,9 +1239,13 @@ a {
   color: #000000 !important;
 }
 
-.mobile-text {
-  display: none;
+/* Hide desktop floating buttons on mobile */
+@media (max-width: 768px) {
+  .desktop-only-fab {
+    display: none !important;
+  }
 }
+
 
 .tab-content-wrapper {
   width: 100%;
@@ -1270,32 +1274,58 @@ a {
     display: none;
   }
 
-  .floating-action-btn {
-    padding: 10px 14px !important;
+  /* ─── Mobile Bottom Action Bar ─── */
+  .mobile-action-bar {
+    display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 999;
+    padding: 10px 12px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    gap: 10px;
+    background: var(--card-bg);
+    border-top: 1px solid var(--card-border);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .mobile-action-bar .floating-action-btn {
+    position: static !important;
+    flex: 1;
+    padding: 12px 0 !important;
     font-size: 13.5px !important;
-    bottom: 16px !important;
-    width: calc(50% - 24px) !important;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+    border-radius: 14px !important;
+    box-shadow: none !important;
     border: none !important;
     transform: none !important;
   }
 
-  .floating-action-btn:hover {
+  .mobile-action-bar .floating-action-btn:hover {
     transform: none !important;
   }
 
-  .floating-action-btn.saving {
-    left: 16px !important;
+  .mobile-action-bar .floating-action-btn.saving {
+    left: auto !important;
     right: auto !important;
+    bottom: auto !important;
   }
 
-  .floating-action-btn.spending {
-    right: 16px !important;
+  .mobile-action-bar .floating-action-btn.spending {
     left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
   }
 
   .tab-content-wrapper {
-    padding-bottom: 100px !important; /* Proper bottom spacing to scroll clear of mobile buttons */
+    padding-bottom: 80px !important;
   }
 }
+
+/* Hide the mobile action bar wrapper on desktop */
+.mobile-action-bar {
+  display: none;
+}
+

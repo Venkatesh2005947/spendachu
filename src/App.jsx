@@ -615,27 +615,42 @@ export default function App() {
         )}
 
 
-        {/* Large Floating Add Saving Button */}
+        {/* Desktop Floating Buttons (hidden on mobile via CSS) */}
         <button 
-          className="glow-btn floating-action-btn saving" 
+          className="glow-btn floating-action-btn saving desktop-only-fab" 
           onClick={() => setIsSavingModalOpen(true)}
           title="Add Saving"
         >
           <Plus size={20} />
-          <span className="desktop-text">Add Saving 💰</span>
-          <span className="mobile-text">Save 💰</span>
+          <span>Add Saving 💰</span>
         </button>
 
-        {/* Large Floating Add Expense Button */}
         <button 
-          className="glow-btn floating-action-btn spending" 
+          className="glow-btn floating-action-btn spending desktop-only-fab" 
           onClick={openAddModal}
           title="Add Expense"
         >
           <Plus size={20} />
-          <span className="desktop-text">Sema Spending! 💸</span>
-          <span className="mobile-text">Spend 💸</span>
+          <span>Sema Spending! 💸</span>
         </button>
+
+        {/* Mobile Bottom Action Bar (visible only on mobile via CSS) */}
+        <div className="mobile-action-bar">
+          <button 
+            className="glow-btn floating-action-btn saving" 
+            onClick={() => setIsSavingModalOpen(true)}
+          >
+            <Plus size={18} />
+            <span>Save 💰</span>
+          </button>
+          <button 
+            className="glow-btn floating-action-btn spending" 
+            onClick={openAddModal}
+          >
+            <Plus size={18} />
+            <span>Spend 💸</span>
+          </button>
+        </div>
 
         {/* Logout Confirmation Modal */}
         {showLogoutConfirm && (
