@@ -1099,6 +1099,7 @@ a {
     border-bottom: 3px solid #000000 !important;
     overflow-y: auto;
     z-index: 150;
+    padding-bottom: 80px;
   }
   
   .sidebar.mobile-open {
