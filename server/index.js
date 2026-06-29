@@ -715,120 +715,118 @@ app.post('/api/feedback', authenticateJWT, (req, res) => {
   db.run(
     `INSERT INTO feedbacks (id, user_id, email, category, message, delivery_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [feedbackId, userId, email, category, message, 'pending', createdAt],
-    function (err) {
+    async function (err) {
       if (err) {
         console.error('Failed to save feedback to database:', err);
         return res.status(500).json({ error: 'Failed to record feedback.' });
       }
 
-      // Return success response to the client immediately to prevent UI hanging
-      res.status(201).json({ success: true, message: 'Feedback submitted successfully.' });
+      // 2. Perform email dispatch synchronously to report status to the client
+      const resendApiKey = process.env.RESEND_API_KEY;
+      const brevoApiKey = process.env.BREVO_API_KEY;
+      let sent = false;
+      let lastError = '';
 
-      // 2. Perform email dispatch asynchronously in the background
-      (async () => {
-        const resendApiKey = process.env.RESEND_API_KEY;
-        const brevoApiKey = process.env.BREVO_API_KEY;
-        let sent = false;
-        let lastError = '';
-
-        // Try Resend API first if configured
-        if (resendApiKey) {
-          try {
-            await sendEmailViaResend(resendApiKey, category, message, email, req.user.name, createdAt);
-            console.log(`[Email] Feedback mail sent successfully via Resend HTTPS API`);
-            db.run(
-              `UPDATE feedbacks SET delivery_status = ?, delivery_error = null WHERE id = ?`,
-              ['sent', feedbackId]
-            );
-            sent = true;
-          } catch (resendErr) {
-            console.error('❌ [Email Diagnostics] Failed to deliver via Resend API:', resendErr.message);
-            lastError = `Resend: ${resendErr.message}`;
-          }
-        }
-
-        // Try Brevo API if configured
-        if (!sent && brevoApiKey) {
-          try {
-            await sendEmailViaBrevo(brevoApiKey, category, message, email, req.user.name, createdAt);
-            console.log(`[Email] Feedback mail sent successfully via Brevo HTTPS API`);
-            db.run(
-              `UPDATE feedbacks SET delivery_status = ?, delivery_error = null WHERE id = ?`,
-              ['sent', feedbackId]
-            );
-            sent = true;
-          } catch (brevoErr) {
-            console.error('❌ [Email Diagnostics] Failed to deliver via Brevo API:', brevoErr.message);
-            lastError = `Brevo: ${brevoErr.message}`;
-          }
-        }
-
-        if (!sent) {
-          let mailHost = process.env.SMTP_HOST || '';
-          let mailPort = parseInt(process.env.SMTP_PORT || '587');
-          let mailUser = process.env.SMTP_USER || '';
-          let mailPass = process.env.SMTP_PASS || '';
-          let isLocalMock = false;
-
-          // Automatically spin up Ethereal Mail testing environment if credentials are not configured
-          if (!mailHost || !mailUser || !mailPass) {
-            try {
-              console.log('ℹ️ [Feedback Diagnostics] SMTP credentials not set. Creating temporary Ethereal test account...');
-              const testAccount = await nodemailer.createTestAccount();
-              mailHost = 'smtp.ethereal.email';
-              mailPort = 587;
-              mailUser = testAccount.user;
-              mailPass = testAccount.pass;
-              isLocalMock = true;
-            } catch (etherealErr) {
-              console.error('⚠️ [Feedback Diagnostics] Failed to create Ethereal test account:', etherealErr.message);
-              lastError = lastError ? `${lastError} | Ethereal: ${etherealErr.message}` : etherealErr.message;
-            }
-          }
-
-          const mailOptions = {
-            from: `"SpendAchu App" <${mailUser || 'noreply@spendachu.com'}>`,
-            to: process.env.ADMIN_EMAIL || 'spendachu@gmail.com',
-            subject: `SpendAchu Feedback [${category.toUpperCase()}] - ${req.user.name}`,
-            text: `Feedback Received!\n\nUser: ${req.user.name}\nEmail: ${email}\nCategory: ${category}\nSubmitted At: ${new Date(createdAt).toLocaleString()}\n\nMessage:\n----------------------------------------\n${message}\n----------------------------------------\n`
-          };
-
-          if (mailHost && mailUser && mailPass) {
-            try {
-              const transporter = await createMailTransporter(mailHost, mailPort, mailUser, mailPass);
-              const info = await transporter.sendMail(mailOptions);
-              const status = isLocalMock ? 'simulated' : 'sent';
-              
-              db.run(
-                `UPDATE feedbacks SET delivery_status = ?, delivery_error = ? WHERE id = ?`,
-                [status, isLocalMock ? `Preview URL: ${nodemailer.getTestMessageUrl(info)}` : null, feedbackId]
-              );
-
-              if (isLocalMock) {
-                const previewUrl = nodemailer.getTestMessageUrl(info);
-                console.log('\n=================== MOCK EMAIL SENT ===================');
-                console.log(`To: ${mailOptions.to}`);
-                console.log(`Subject: ${mailOptions.subject}`);
-                console.log(`Preview URL: ${previewUrl}`);
-                console.log('=======================================================\n');
-              } else {
-                console.log(`[Email] Feedback mail sent successfully to spendachu@gmail.com from ${email}`);
-              }
-              sent = true;
-            } catch (mailErr) {
-              console.error('❌ [Email Diagnostics] Failed to deliver feedback email:', mailErr.message);
-              lastError = lastError ? `${lastError} | SMTP: ${mailErr.message}` : mailErr.message;
-            }
-          }
-        }
-
-        if (!sent) {
+      // Try Resend API first if configured
+      if (resendApiKey) {
+        try {
+          await sendEmailViaResend(resendApiKey, category, message, email, req.user.name, createdAt);
+          console.log(`[Email] Feedback mail sent successfully via Resend HTTPS API`);
           db.run(
-            `UPDATE feedbacks SET delivery_status = ?, delivery_error = ? WHERE id = ?`,
-            ['failed', lastError || 'Unknown dispatch error', feedbackId]
+            `UPDATE feedbacks SET delivery_status = ?, delivery_error = null WHERE id = ?`,
+            ['sent', feedbackId]
           );
+          sent = true;
+        } catch (resendErr) {
+          console.error('❌ [Email Diagnostics] Failed to deliver via Resend API:', resendErr.message);
+          lastError = `Resend: ${resendErr.message}`;
         }
-      })();
+      }
+
+      // Try Brevo API if configured
+      if (!sent && brevoApiKey) {
+        try {
+          await sendEmailViaBrevo(brevoApiKey, category, message, email, req.user.name, createdAt);
+          console.log(`[Email] Feedback mail sent successfully via Brevo HTTPS API`);
+          db.run(
+            `UPDATE feedbacks SET delivery_status = ?, delivery_error = null WHERE id = ?`,
+            ['sent', feedbackId]
+          );
+          sent = true;
+        } catch (brevoErr) {
+          console.error('❌ [Email Diagnostics] Failed to deliver via Brevo API:', brevoErr.message);
+          lastError = `Brevo: ${brevoErr.message}`;
+        }
+      }
+
+      if (!sent) {
+        let mailHost = process.env.SMTP_HOST || '';
+        let mailPort = parseInt(process.env.SMTP_PORT || '587');
+        let mailUser = process.env.SMTP_USER || '';
+        let mailPass = process.env.SMTP_PASS || '';
+        let isLocalMock = false;
+
+        // Automatically spin up Ethereal Mail testing environment if credentials are not configured
+        if (!mailHost || !mailUser || !mailPass) {
+          try {
+            console.log('ℹ️ [Feedback Diagnostics] SMTP credentials not set. Creating temporary Ethereal test account...');
+            const testAccount = await nodemailer.createTestAccount();
+            mailHost = 'smtp.ethereal.email';
+            mailPort = 587;
+            mailUser = testAccount.user;
+            mailPass = testAccount.pass;
+            isLocalMock = true;
+          } catch (etherealErr) {
+            console.error('⚠️ [Feedback Diagnostics] Failed to create Ethereal test account:', etherealErr.message);
+            lastError = lastError ? `${lastError} | Ethereal: ${etherealErr.message}` : etherealErr.message;
+          }
+        }
+
+        const mailOptions = {
+          from: `"SpendAchu App" <${mailUser || 'noreply@spendachu.com'}>`,
+          to: process.env.ADMIN_EMAIL || 'spendachu@gmail.com',
+          subject: `SpendAchu Feedback [${category.toUpperCase()}] - ${req.user.name}`,
+          text: `Feedback Received!\n\nUser: ${req.user.name}\nEmail: ${email}\nCategory: ${category}\nSubmitted At: ${new Date(createdAt).toLocaleString()}\n\nMessage:\n----------------------------------------\n${message}\n----------------------------------------\n`
+        };
+
+        if (mailHost && mailUser && mailPass) {
+          try {
+            const transporter = await createMailTransporter(mailHost, mailPort, mailUser, mailPass);
+            const info = await transporter.sendMail(mailOptions);
+            const status = isLocalMock ? 'simulated' : 'sent';
+            
+            db.run(
+              `UPDATE feedbacks SET delivery_status = ?, delivery_error = ? WHERE id = ?`,
+              [status, isLocalMock ? `Preview URL: ${nodemailer.getTestMessageUrl(info)}` : null, feedbackId]
+            );
+
+            if (isLocalMock) {
+              const previewUrl = nodemailer.getTestMessageUrl(info);
+              console.log('\n=================== MOCK EMAIL SENT ===================');
+              console.log(`To: ${mailOptions.to}`);
+              console.log(`Subject: ${mailOptions.subject}`);
+              console.log(`Preview URL: ${previewUrl}`);
+              console.log('=======================================================\n');
+            } else {
+              console.log(`[Email] Feedback mail sent successfully to spendachu@gmail.com from ${email}`);
+            }
+            sent = true;
+          } catch (mailErr) {
+            console.error('❌ [Email Diagnostics] Failed to deliver feedback email:', mailErr.message);
+            lastError = lastError ? `${lastError} | SMTP: ${mailErr.message}` : mailErr.message;
+          }
+        }
+      }
+
+      if (sent) {
+        res.status(201).json({ success: true, message: 'Feedback submitted and email sent successfully.' });
+      } else {
+        db.run(
+          `UPDATE feedbacks SET delivery_status = ?, delivery_error = ? WHERE id = ?`,
+          ['failed', lastError || 'Unknown dispatch error', feedbackId]
+        );
+        res.status(500).json({ error: `Failed to deliver email: ${lastError}` });
+      }
     }
   );
 });
