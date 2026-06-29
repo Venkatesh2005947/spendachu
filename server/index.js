@@ -7,6 +7,7 @@ if (dns.setDefaultResultOrder) {
 
 // Helper to send email using Brevo HTTPS REST API
 const sendEmailViaBrevo = (apiKey, category, message, senderEmail, senderName, createdAt) => {
+  const recipientEmail = process.env.ADMIN_EMAIL || "spendachu@gmail.com";
   return new Promise((resolve, reject) => {
     const emailData = JSON.stringify({
       sender: {
@@ -15,8 +16,8 @@ const sendEmailViaBrevo = (apiKey, category, message, senderEmail, senderName, c
       },
       to: [
         {
-          email: "spendachu@gmail.com",
-          name: "SpendAchu"
+          email: recipientEmail,
+          name: "SpendAchu Admin"
         }
       ],
       replyTo: {
@@ -59,10 +60,11 @@ const sendEmailViaBrevo = (apiKey, category, message, senderEmail, senderName, c
 
 // Helper to send email using Resend HTTPS REST API
 const sendEmailViaResend = (apiKey, category, message, senderEmail, senderName, createdAt) => {
+  const recipientEmail = process.env.ADMIN_EMAIL || "spendachu@gmail.com";
   return new Promise((resolve, reject) => {
     const emailData = JSON.stringify({
       from: "SpendAchu App <onboarding@resend.dev>",
-      to: ["spendachu@gmail.com"],
+      to: [recipientEmail],
       reply_to: senderEmail,
       subject: `SpendAchu Feedback [${category.toUpperCase()}] - ${senderName}`,
       text: `Feedback Received!\n\nUser: ${senderName}\nEmail: ${senderEmail}\nCategory: ${category}\nSubmitted At: ${new Date(createdAt).toLocaleString()}\n\nMessage:\n----------------------------------------\n${message}\n----------------------------------------\n`
@@ -779,7 +781,7 @@ app.post('/api/feedback', authenticateJWT, (req, res) => {
 
           const mailOptions = {
             from: `"SpendAchu App" <${mailUser || 'noreply@spendachu.com'}>`,
-            to: 'spendachu@gmail.com',
+            to: process.env.ADMIN_EMAIL || 'spendachu@gmail.com',
             subject: `SpendAchu Feedback [${category.toUpperCase()}] - ${req.user.name}`,
             text: `Feedback Received!\n\nUser: ${req.user.name}\nEmail: ${email}\nCategory: ${category}\nSubmitted At: ${new Date(createdAt).toLocaleString()}\n\nMessage:\n----------------------------------------\n${message}\n----------------------------------------\n`
           };
