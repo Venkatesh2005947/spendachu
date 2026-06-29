@@ -855,17 +855,17 @@ app.listen(PORT, '0.0.0.0', () => {
   checkSMTPSetup();
 });
 
-// Verify SMTP/API connection on startup if details are present
+// Verify email service connection on startup
 async function checkSMTPSetup() {
   const resendApiKey = process.env.RESEND_API_KEY;
   const brevoApiKey = process.env.BREVO_API_KEY;
 
   if (resendApiKey) {
-    console.log('✅ [Resend Diagnostics] Resend API Key detected. Emails will be sent via Resend HTTPS API.');
+    console.log('✅ [Email] Resend API Key detected. Emails will be sent via Resend HTTPS API (port 443).');
     return;
   }
   if (brevoApiKey) {
-    console.log('✅ [Brevo Diagnostics] Brevo API Key detected. Emails will be sent via Brevo HTTPS API.');
+    console.log('✅ [Email] Brevo API Key detected. Emails will be sent via Brevo HTTPS API (port 443).');
     return;
   }
 
@@ -874,6 +874,11 @@ async function checkSMTPSetup() {
   const mailPass = process.env.SMTP_PASS;
   
   if (mailHost && mailUser && mailPass) {
+    console.log('⚠️ [Email] WARNING: Only SMTP credentials detected (no Resend/Brevo API key).');
+    console.log('⚠️ [Email] Cloud hosts like Render.com block outbound SMTP ports (25/465/587).');
+    console.log('⚠️ [Email] Emails will likely fail with "Connection timeout" on Render.');
+    console.log('⚠️ [Email] FIX: Set RESEND_API_KEY env variable. Get a free key at https://resend.com');
+    
     const mailPort = parseInt(process.env.SMTP_PORT || '587');
     try {
       const testTransporter = await createMailTransporter(mailHost, mailPort, mailUser, mailPass);
@@ -888,6 +893,7 @@ async function checkSMTPSetup() {
       console.error('⚠️ [SMTP Diagnostics] Transporter verification setup failed on boot:', err.message);
     }
   } else {
-    console.log('ℹ️ [SMTP Diagnostics] Custom SMTP credentials not detected. Operating in mock/testing fallback mode.');
+    console.log('ℹ️ [Email] No email credentials detected. Operating in mock/testing fallback mode.');
+    console.log('ℹ️ [Email] To enable email delivery, set RESEND_API_KEY env variable.');
   }
 }
