@@ -101,8 +101,15 @@ const sendEmailViaResend = (apiKey, category, message, senderEmail, senderName, 
 
 
 
-// Helper to resolve host to IPv4 address and create nodemailer transporter
 const createMailTransporter = async (host, port, user, pass) => {
+  if (host.toLowerCase().includes('gmail.com')) {
+    console.log('ℹ️ [SMTP Diagnostics] Gmail SMTP detected. Configuring via service: "gmail" for maximum reliability.');
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user, pass }
+    });
+  }
+
   let resolvedHost = host;
   try {
     resolvedHost = await new Promise((resolve, reject) => {
