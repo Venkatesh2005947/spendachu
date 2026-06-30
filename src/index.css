@@ -1270,16 +1270,7 @@ a {
   padding-bottom: 24px;
 }
 
-@media (min-width: 1400px) {
-  .tab-content-wrapper {
-    padding-right: 210px; /* Separates dashboard cards horizontally from floating buttons on very wide screens */
-  }
-}
-@media (max-width: 1399px) and (min-width: 769px) {
-  .tab-content-wrapper {
-    padding-right: 0px; /* Allow content to use full width on laptop screens */
-  }
-}
+
 
 @media (max-width: 768px) {
   .mobile-text {
