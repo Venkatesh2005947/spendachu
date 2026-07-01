@@ -40,9 +40,7 @@ export default function App() {
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [isSavingModalOpen, setIsSavingModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    return typeof window !== 'undefined' ? window.innerWidth < 1200 : false;
-  });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState([]); // Dynamic budget alerts
 
@@ -558,12 +556,7 @@ export default function App() {
           setActiveTab(tab);
           setMobileSidebarOpen(false);
         }} 
-        user={user} 
         onLogout={handleLogout} 
-        theme={theme}
-        toggleTheme={toggleTheme}
-        collapsed={sidebarCollapsed}
-        setCollapsed={setCollapsed => setSidebarCollapsed(setCollapsed)}
         mobileOpen={mobileSidebarOpen}
       />
 
