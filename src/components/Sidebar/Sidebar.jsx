@@ -1,20 +1,28 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
   ReceiptText, 
   PiggyBank, 
   Sparkles, 
   LogOut, 
-  Coins, 
-  Trash2, 
+  ChevronLeft, 
+  ChevronRight,
+  Sun,
+  Moon,
+  Coins,
+  Trash2,
   MessageSquare
 } from 'lucide-react';
 
 export default function Sidebar({ 
   activeTab, 
   setActiveTab, 
-  user,
+  user, 
   onLogout, 
+  theme, 
+  toggleTheme, 
+  collapsed, 
+  setCollapsed,
   mobileOpen
 }) {
   const menuItems = [
@@ -39,7 +47,22 @@ export default function Sidebar({
   };
 
   return (
-    <div className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
+    <div className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
+      {/* Sidebar Toggle Trigger */}
+      <button 
+        className="sidebar-toggle-btn"
+        onClick={() => setCollapsed(!collapsed)}
+        title={collapsed ? 'Expand menu' : 'Collapse menu'}
+      >
+        {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+      </button>
+
+      {/* Brand logo */}
+      <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 20px' }}>
+        <img src="/logo.jpg" alt="Logo" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', minWidth: '32px' }} />
+        {!collapsed && <span className="sidebar-logo-text" style={{ fontWeight: '900' }}>SpendAchu</span>}
+      </div>
+
       {/* Navigation menu items */}
       <ul className="sidebar-menu">
         {menuItems.map(item => {
@@ -50,21 +73,34 @@ export default function Sidebar({
               key={item.id}
               className={`sidebar-item ${isActive ? 'active' : ''}`}
               onClick={() => setActiveTab(item.id)}
+              title={collapsed ? item.label : ''}
             >
               <Icon size={20} />
-              <span>{item.label}</span>
+              {!collapsed && <span>{item.label}</span>}
             </li>
           );
         })}
+
+        {/* Theme toggle within sidebar */}
+        <li 
+          className="sidebar-item" 
+          onClick={toggleTheme}
+          title={collapsed ? 'Toggle theme' : ''}
+          style={{ marginTop: 'auto' }}
+        >
+          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          {!collapsed && <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
+        </li>
 
         {/* Logout */}
         <li 
           className="sidebar-item" 
           onClick={onLogout}
+          title={collapsed ? 'Log Out' : ''}
           style={{ color: '#f87171' }}
         >
           <LogOut size={20} />
-          <span>Log Out</span>
+          {!collapsed && <span>Log Out</span>}
         </li>
       </ul>
 
@@ -73,12 +109,13 @@ export default function Sidebar({
         <div className="sidebar-user-avatar">
           {getInitials(user?.name)}
         </div>
-        <div className="sidebar-user-info">
-          <span className="sidebar-user-name">{user?.name || 'User'}</span>
-          <span className="sidebar-user-email">{user?.email || 'user@example.com'}</span>
-        </div>
+        {!collapsed && (
+          <div className="sidebar-user-info">
+            <span className="sidebar-user-name">{user?.name || 'User'}</span>
+            <span className="sidebar-user-email">{user?.email || 'user@example.com'}</span>
+          </div>
+        )}
       </div>
     </div>
   );
 }
-

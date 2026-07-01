@@ -556,8 +556,12 @@ export default function App() {
           setActiveTab(tab);
           setMobileSidebarOpen(false);
         }} 
-        user={user}
+        user={user} 
         onLogout={handleLogout} 
+        theme={theme}
+        toggleTheme={toggleTheme}
+        collapsed={sidebarCollapsed}
+        setCollapsed={setCollapsed => setSidebarCollapsed(setCollapsed)}
         mobileOpen={mobileSidebarOpen}
       />
 
