@@ -214,6 +214,16 @@ a {
   overflow: hidden;
 }
 
+.mobile-header {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-header {
+    display: block;
+  }
+}  
+
 .main-content {
   flex: 1;
   display: flex;
