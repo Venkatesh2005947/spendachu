@@ -556,6 +556,7 @@ export default function App() {
           setActiveTab(tab);
           setMobileSidebarOpen(false);
         }} 
+        user={user}
         onLogout={handleLogout} 
         mobileOpen={mobileSidebarOpen}
       />
