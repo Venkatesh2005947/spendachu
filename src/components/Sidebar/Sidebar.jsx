@@ -92,29 +92,59 @@ export default function Sidebar({
           {!collapsed && <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
         </li>
 
-        {/* Logout */}
-        <li 
-          className="sidebar-item" 
-          onClick={onLogout}
-          title={collapsed ? 'Log Out' : ''}
-          style={{ color: '#f87171' }}
-        >
-          <LogOut size={20} />
-          {!collapsed && <span>Log Out</span>}
-        </li>
       </ul>
 
       {/* User profile section */}
-      <div className="sidebar-user">
-        <div className="sidebar-user-avatar">
-          {getInitials(user?.name)}
-        </div>
-        {!collapsed && (
-          <div className="sidebar-user-info">
-            <span className="sidebar-user-name">{user?.name || 'User'}</span>
-            <span className="sidebar-user-email">{user?.email || 'user@example.com'}</span>
+      <div 
+        className="sidebar-user" 
+        style={{ 
+          display: 'flex', 
+          flexDirection: collapsed ? 'column' : 'row',
+          alignItems: 'center', 
+          justifyContent: collapsed ? 'center' : 'space-between', 
+          gap: '10px',
+          width: '100%',
+          padding: collapsed ? '20px 10px' : '20px'
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: collapsed ? 'column' : 'row', alignItems: 'center', gap: '12px', overflow: 'hidden', width: collapsed ? 'auto' : '80%' }}>
+          <div className="sidebar-user-avatar" title={collapsed ? user?.name : ''}>
+            {getInitials(user?.name)}
           </div>
-        )}
+          {!collapsed && (
+            <div className="sidebar-user-info" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%' }}>
+              <span className="sidebar-user-name" style={{ fontSize: '14px', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {user?.name || 'User'}
+              </span>
+              <span className="sidebar-user-email" style={{ fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {user?.email || 'user@example.com'}
+              </span>
+            </div>
+          )}
+        </div>
+        
+        <button 
+          onClick={onLogout}
+          title="Log Out"
+          className="sidebar-logout-btn"
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#f87171',
+            cursor: 'pointer',
+            padding: '6px',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease',
+            marginTop: collapsed ? '6px' : '0'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(248, 113, 113, 0.15)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+        >
+          <LogOut size={collapsed ? 16 : 18} />
+        </button>
       </div>
     </div>
   );
