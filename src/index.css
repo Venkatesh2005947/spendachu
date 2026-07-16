@@ -1250,6 +1250,12 @@ a {
   color: #000000 !important;
 }
 
+.floating-action-btn.scanner {
+  bottom: 152px;
+  background: var(--accent-secondary, #3b82f6) !important;
+  color: #ffffff !important;
+}
+
 /* Hide desktop floating buttons on mobile */
 @media (max-width: 768px) {
   .desktop-only-fab {
@@ -1328,6 +1334,14 @@ a {
     left: auto !important;
     right: auto !important;
     bottom: auto !important;
+  }
+
+  .mobile-action-bar .floating-action-btn.scanner {
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    background: var(--accent-secondary, #3b82f6) !important;
+    color: #ffffff !important;
   }
 
   .tab-content-wrapper {

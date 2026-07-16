@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Menu, X, Bell, Sparkles } from 'lucide-react';
+import { Plus, Menu, X, Bell, Sparkles, Camera } from 'lucide-react';
 
 // Services
 import { dbService } from './services/db';
@@ -21,6 +21,7 @@ import SavingForm from './components/SavingForm/SavingForm';
 import SavingTable from './components/SavingForm/SavingTable';
 import RecentlyDeleted from './components/RecentlyDeleted/RecentlyDeleted';
 import FeedbackForm from './components/Feedback/FeedbackForm';
+import ReceiptPreview from './components/ReceiptPreview/ReceiptPreview';
 
 export default function App() {
   // 1. Session and Auth State
@@ -43,6 +44,9 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState([]); // Dynamic budget alerts
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+  const [isReceiptPreviewOpen, setIsReceiptPreviewOpen] = useState(false);
 
   // Dashboard month selector (defaults to current month)
   const now = new Date();
@@ -307,6 +311,92 @@ export default function App() {
   const openEditModal = (expense) => {
     setEditingExpense(expense);
     setIsExpenseModalOpen(true);
+  };
+
+  const triggerFileSelect = () => {
+    const input = document.getElementById('receipt-file-input');
+    if (input) {
+      input.value = '';
+      input.click();
+    }
+  };
+
+  const resizeImage = (file, maxDimension = 1024) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(img.src);
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        resolve({
+          base64: dataUrl.split(',')[1],
+          mimeType: 'image/jpeg'
+        });
+      };
+      img.onerror = (err) => reject(err);
+    });
+  };
+
+  const handleReceiptScan = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload a valid receipt image.');
+      return;
+    }
+
+    try {
+      setIsScanning(true);
+      const { base64, mimeType } = await resizeImage(file);
+      
+      const result = await dbService.scanReceipt(base64, mimeType);
+      setIsScanning(false);
+
+      if (result && !result.error) {
+        setScanResult(result);
+        setIsReceiptPreviewOpen(true);
+      } else {
+        alert('Could not scan receipt. Please enter the details manually.');
+      }
+    } catch (err) {
+      setIsScanning(false);
+      console.error('Scan Error:', err);
+      alert(err.message || 'Failed to scan receipt. Ensure a valid Gemini API key is configured.');
+    }
+  };
+
+  const handleSaveScannedExpense = async (payload) => {
+    try {
+      await dbService.addExpense(payload);
+      // Refresh expenses list
+      const updated = await dbService.getExpenses();
+      setExpenses(updated);
+      setIsReceiptPreviewOpen(false);
+      setScanResult(null);
+    } catch (err) {
+      console.error('Failed to save scanned expense:', err);
+      alert(err.message || 'Failed to save expense.');
+    }
   };
 
 
@@ -614,6 +704,51 @@ export default function App() {
           />
         )}
 
+        {/* Hidden File Input for scanning */}
+        <input 
+          type="file" 
+          id="receipt-file-input" 
+          accept="image/*" 
+          style={{ display: 'none' }} 
+          onChange={handleReceiptScan} 
+        />
+
+        {/* Receipt Preview Screen */}
+        {isReceiptPreviewOpen && scanResult && (
+          <ReceiptPreview 
+            result={scanResult}
+            onSave={handleSaveScannedExpense}
+            onScanAgain={() => {
+              setIsReceiptPreviewOpen(false);
+              triggerFileSelect();
+            }}
+            onCancel={() => {
+              setIsReceiptPreviewOpen(false);
+              setScanResult(null);
+            }}
+          />
+        )}
+
+        {/* Scanning Receipt Loader Overlay */}
+        {isScanning && (
+          <div className="modal-overlay scanning-overlay" style={{ zIndex: 12000 }}>
+            <div className="glass-card scanning-card" style={{ padding: '30px', borderRadius: '20px', textAlign: 'center', maxWidth: '400px', width: '90%', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-lg)' }}>
+              <div className="scanning-spinner" style={{
+                width: '50px',
+                height: '50px',
+                border: '4px solid var(--card-border)',
+                borderTop: '4px solid var(--accent-primary)',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                margin: '0 auto 20px auto'
+              }}></div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '900', marginBottom: '10px' }}>Scanning Receipt with AI...</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                Achu is analyzing the receipt content. Please wait a moment.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Desktop Floating Buttons (hidden on mobile via CSS) */}
         <button 
@@ -634,6 +769,15 @@ export default function App() {
           <span>Sema Spending! 💸</span>
         </button>
 
+        <button 
+          className="glow-btn floating-action-btn scanner desktop-only-fab" 
+          onClick={triggerFileSelect}
+          title="Scan Receipt with AI"
+        >
+          <Camera size={20} />
+          <span>Scan Receipt 📸</span>
+        </button>
+
         {/* Mobile Bottom Action Bar (visible only on mobile via CSS) */}
         <div className="mobile-action-bar">
           <button 
@@ -649,6 +793,13 @@ export default function App() {
           >
             <Plus size={18} />
             <span>Spend 💸</span>
+          </button>
+          <button 
+            className="glow-btn floating-action-btn scanner" 
+            onClick={triggerFileSelect}
+          >
+            <Camera size={18} />
+            <span>Scan 📸</span>
           </button>
         </div>
 

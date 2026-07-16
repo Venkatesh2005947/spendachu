@@ -101,6 +101,101 @@ const sendEmailViaResend = (apiKey, category, message, senderEmail, senderName, 
 
 
 
+
+// Helper to query Gemini Vision API via HTTPS REST with confidence scoring
+const queryGeminiVision = (apiKey, base64Data, mimeType) => {
+  return new Promise((resolve, reject) => {
+    const payload = JSON.stringify({
+      contents: [
+        {
+          parts: [
+            {
+              inlineData: {
+                mimeType: mimeType,
+                data: base64Data
+              }
+            },
+            {
+              text: `Analyze the provided receipt/bill image and extract the following fields in strict JSON format.
+Choose the most appropriate category and payment method from the allowed lists.
+Do not guess values; use null if a field is completely missing or illegible.
+For the confidence map, set true if you are highly confident in the extracted value, or false if it is blurry, guess-work, low-confidence, or completely missing from the receipt.
+
+Allowed categories: "Food", "Transport", "Rent", "Shopping", "Bills", "Entertainment", "Others"
+Allowed payment methods: "Cash", "Card", "UPI", "Bank Transfer"
+
+Expected JSON format:
+{
+  "merchant": "Merchant Name or null",
+  "date": "YYYY-MM-DD format (use current date if missing: ${new Date().toISOString().split('T')[0]})",
+  "time": "HH:MM format or null",
+  "amount": 123.45 (number or null),
+  "tax": 12.34 (number or null),
+  "category": "One of the allowed categories",
+  "paymentMethod": "One of the allowed payment methods",
+  "notes": "Short description of items or note or null",
+  "confidence": {
+    "merchant": true,
+    "date": true,
+    "time": true,
+    "amount": true,
+    "tax": true,
+    "category": true,
+    "paymentMethod": true
+  }
+}
+Return ONLY the raw JSON object inside no markdown block (do not enclose in \`\`\`json or \`\`\`).`
+            }
+          ]
+        }
+      ]
+    });
+
+    const options = {
+      hostname: 'generativelanguage.googleapis.com',
+      path: `/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => body += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            const data = JSON.parse(body);
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+            let cleanJson = text.trim();
+            if (cleanJson.startsWith('```')) {
+              cleanJson = cleanJson.replace(/^```json\s*/, '').replace(/```$/, '').trim();
+            }
+            resolve(JSON.parse(cleanJson));
+          } catch (err) {
+            reject(err);
+          }
+        } else {
+          reject(new Error(`Gemini API returned status ${res.statusCode}: ${body}`));
+        }
+      });
+    });
+
+    // Set 25 seconds request timeout
+    req.setTimeout(25000, () => {
+      req.destroy(new Error('Request to Gemini API timed out after 25 seconds.'));
+    });
+
+    req.on('error', (e) => reject(e));
+    req.write(payload);
+    req.end();
+  });
+};
+
+
+
 const createMailTransporter = async (host, port, user, pass) => {
   if (host.toLowerCase().includes('gmail.com')) {
     console.log('ℹ️ [SMTP Diagnostics] Gmail SMTP detected. Configuring via service: "gmail" for maximum reliability.');
@@ -186,7 +281,11 @@ function initializeTables() {
       category TEXT NOT NULL,
       payment_method TEXT NOT NULL,
       description TEXT,
-      created_at INTEGER NOT NULL
+      created_at INTEGER NOT NULL,
+      merchant TEXT,
+      time TEXT,
+      tax REAL,
+      notes TEXT
     )`);
 
     // 3. Savings
@@ -229,6 +328,10 @@ function initializeTables() {
         // Safe migrations for existing databases
         db.run(`ALTER TABLE feedbacks ADD COLUMN delivery_status TEXT`, () => {});
         db.run(`ALTER TABLE feedbacks ADD COLUMN delivery_error TEXT`, () => {});
+        db.run(`ALTER TABLE expenses ADD COLUMN merchant TEXT`, () => {});
+        db.run(`ALTER TABLE expenses ADD COLUMN time TEXT`, () => {});
+        db.run(`ALTER TABLE expenses ADD COLUMN tax REAL`, () => {});
+        db.run(`ALTER TABLE expenses ADD COLUMN notes TEXT`, () => {});
       }
     });
   });
@@ -394,6 +497,28 @@ app.post('/api/check-email', (req, res) => {
 
 
 // Get Expenses
+// Scan Receipt and Extract Details
+app.post('/api/expenses/scan-receipt', authenticateJWT, (req, res) => {
+  const { image, mimeType } = req.body;
+  if (!image || !mimeType) {
+    return res.status(400).json({ error: 'Image and mimeType are required.' });
+  }
+
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  if (!geminiApiKey) {
+    return res.status(503).json({ error: 'Gemini API is not configured on the server. Please set GEMINI_API_KEY.' });
+  }
+
+  queryGeminiVision(geminiApiKey, image, mimeType)
+    .then(result => {
+      res.json(result);
+    })
+    .catch(err => {
+      console.error('❌ [Gemini Vision Scan Error]:', err.message);
+      res.status(500).json({ error: 'Failed to scan receipt. Gemini API error: ' + err.message });
+    });
+});
+
 app.get('/api/expenses', authenticateJWT, (req, res) => {
   db.all(
     `SELECT * FROM expenses WHERE user_id = ? ORDER BY date DESC`,
@@ -409,7 +534,11 @@ app.get('/api/expenses', authenticateJWT, (req, res) => {
         category: r.category,
         paymentMethod: r.payment_method, // Map db column to camelCase property
         description: r.description,
-        created_at: r.created_at
+        created_at: r.created_at,
+        merchant: r.merchant,
+        time: r.time,
+        tax: r.tax,
+        notes: r.notes
       }));
       res.status(200).json(formatted);
     }
@@ -418,8 +547,9 @@ app.get('/api/expenses', authenticateJWT, (req, res) => {
 
 // Add Expense
 app.post('/api/expenses', authenticateJWT, (req, res) => {
-  const { date, amount, category, paymentMethod, description } = req.body;
+  const { date, amount, category, paymentMethod, description, merchant, time, tax, notes } = req.body;
   const amtFloat = parseFloat(amount);
+  const taxFloat = tax ? parseFloat(tax) : 0;
 
   if (isNaN(amtFloat) || amtFloat <= 0) {
     return res.status(400).json({ error: 'Amount must be a positive number.' });
@@ -427,11 +557,27 @@ app.post('/api/expenses', authenticateJWT, (req, res) => {
 
   const expenseId = `exp_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
   db.run(
-    `INSERT INTO expenses (id, user_id, date, amount, category, payment_method, description, created_at) 
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [expenseId, req.user.id, date || new Date().toISOString().split('T')[0], amtFloat, category || 'Food', paymentMethod || 'Cash', description || '', Date.now()],
+    `INSERT INTO expenses (id, user_id, date, amount, category, payment_method, description, created_at, merchant, time, tax, notes) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      expenseId, 
+      req.user.id, 
+      date || new Date().toISOString().split('T')[0], 
+      amtFloat, 
+      category || 'Others', 
+      paymentMethod || 'Cash', 
+      description || '', 
+      Date.now(),
+      merchant || null,
+      time || null,
+      isNaN(taxFloat) ? null : taxFloat,
+      notes || null
+    ],
     function (err) {
-      if (err) return res.status(500).json({ error: 'Failed to add expense.' });
+      if (err) {
+        console.error('Failed to add expense:', err);
+        return res.status(500).json({ error: 'Failed to add expense.' });
+      }
       res.status(201).json({ id: expenseId });
     }
   );
@@ -439,17 +585,30 @@ app.post('/api/expenses', authenticateJWT, (req, res) => {
 
 // Update Expense
 app.put('/api/expenses/:id', authenticateJWT, (req, res) => {
-  const { date, amount, category, paymentMethod, description } = req.body;
+  const { date, amount, category, paymentMethod, description, merchant, time, tax, notes } = req.body;
   const amtFloat = parseFloat(amount);
+  const taxFloat = tax ? parseFloat(tax) : 0;
 
   if (isNaN(amtFloat) || amtFloat <= 0) {
     return res.status(400).json({ error: 'Amount must be a positive number.' });
   }
 
   db.run(
-    `UPDATE expenses SET date = ?, amount = ?, category = ?, payment_method = ?, description = ? 
+    `UPDATE expenses SET date = ?, amount = ?, category = ?, payment_method = ?, description = ?, merchant = ?, time = ?, tax = ?, notes = ? 
      WHERE id = ? AND user_id = ?`,
-    [date, amtFloat, category, paymentMethod, description || '', req.params.id, req.user.id],
+    [
+      date, 
+      amtFloat, 
+      category, 
+      paymentMethod, 
+      description || '', 
+      merchant || null,
+      time || null,
+      isNaN(taxFloat) ? null : taxFloat,
+      notes || null,
+      req.params.id, 
+      req.user.id
+    ],
     function (err) {
       if (err) return res.status(500).json({ error: 'Failed to update expense.' });
       res.status(200).json({ success: true });
