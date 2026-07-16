@@ -145,6 +145,7 @@ const bcrypt = require('bcryptjs');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const nodemailer = require('nodemailer');
+const { sendWelcomeWebhook } = require('./services/webhook');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -294,6 +295,10 @@ app.post('/api/register', (req, res) => {
         [userId, JSON.stringify(DEFAULT_BUDGETS)],
         (budgetErr) => {
           if (budgetErr) console.error('Failed to seed budgets:', budgetErr);
+          
+          // Trigger the welcome email webhook asynchronously without blocking registration success
+          sendWelcomeWebhook(name, normalizedEmail);
+
           res.status(201).json({ name, email: normalizedEmail });
         }
       );
