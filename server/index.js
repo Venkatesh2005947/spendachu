@@ -103,6 +103,7 @@ const sendEmailViaResend = (apiKey, category, message, senderEmail, senderName, 
 
 
 // Helper to query Gemini Vision API via HTTPS REST with confidence scoring
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 const queryGeminiVision = (apiKey, base64Data, mimeType) => {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify({
@@ -153,7 +154,7 @@ Return ONLY the raw JSON object inside no markdown block (do not enclose in \`\`
 
     const options = {
       hostname: 'generativelanguage.googleapis.com',
-      path: `/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      path: `/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -174,11 +175,18 @@ Return ONLY the raw JSON object inside no markdown block (do not enclose in \`\`
               cleanJson = cleanJson.replace(/^```json\s*/, '').replace(/```$/, '').trim();
             }
             resolve(JSON.parse(cleanJson));
-          } catch (err) {
-            reject(err);
+          } catch (parseErr) {
+            reject(new Error('Gemini returned an unreadable response. Please try again.'));
           }
         } else {
-          reject(new Error(`Gemini API returned status ${res.statusCode}: ${body}`));
+          // Log the full body on the backend for debugging; do NOT forward it to the client
+          console.error(`❌ [Gemini API] HTTP ${res.statusCode}:`, body);
+          let friendlyMsg = `Receipt scanning failed (HTTP ${res.statusCode}).`;
+          if (res.statusCode === 400) friendlyMsg = 'Gemini rejected the image (bad request). Try a clearer photo.';
+          if (res.statusCode === 403) friendlyMsg = 'Gemini API key is invalid or lacks permission.';
+          if (res.statusCode === 404) friendlyMsg = `Gemini model "${GEMINI_MODEL}" is not available. Check GEMINI_MODEL env var.`;
+          if (res.statusCode === 429) friendlyMsg = 'Gemini API rate limit reached. Please wait a moment and try again.';
+          reject(new Error(friendlyMsg));
         }
       });
     });
@@ -514,8 +522,9 @@ app.post('/api/expenses/scan-receipt', authenticateJWT, (req, res) => {
       res.json(result);
     })
     .catch(err => {
+      // Full error already logged inside queryGeminiVision; just send a clean message
       console.error('❌ [Gemini Vision Scan Error]:', err.message);
-      res.status(500).json({ error: 'Failed to scan receipt. Gemini API error: ' + err.message });
+      res.status(500).json({ error: err.message });
     });
 });
 
