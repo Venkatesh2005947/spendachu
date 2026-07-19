@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   LayoutDashboard, 
   ReceiptText, 
@@ -11,7 +11,8 @@ import {
   Moon,
   Coins,
   Trash2,
-  MessageSquare
+  MessageSquare,
+  Trophy
 } from 'lucide-react';
 
 export default function Sidebar({ 
@@ -29,6 +30,7 @@ export default function Sidebar({
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'expenses', label: 'Expenses', icon: ReceiptText },
     { id: 'savings', label: 'Savings', icon: Coins },
+    { id: 'achievements', label: 'Achievements', icon: Trophy },
     { id: 'budgeting', label: 'Budgeting', icon: PiggyBank },
     { id: 'insights', label: 'AI Insights', icon: Sparkles },
     { id: 'trash', label: 'Recently Deleted', icon: Trash2 },

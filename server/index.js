@@ -249,6 +249,7 @@ const path = require('path');
 const nodemailer = require('nodemailer');
 const { sendWelcomeWebhook } = require('./services/webhook');
 const { db } = require('./services/dbConnector');
+const { evaluateAchievements } = require('./services/achievementEngine');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -628,12 +629,25 @@ app.post('/api/expenses', authenticateJWT, async (req, res) => {
       isNaN(taxFloat) ? null : taxFloat,
       notes || null
     ],
-    function (err) {
+    async function (err) {
       if (err) {
         console.error('Failed to add expense:', err);
         return res.status(500).json({ error: 'Failed to add expense.' });
       }
-      res.status(201).json({ id: expenseId });
+
+      // Track streak days, budget limits, and counts
+      const rulesToEvaluate = ['expense_count', 'streak_days', 'under_budget_count'];
+      if (req.body.isScanned) {
+        rulesToEvaluate.push('scanned_count');
+      }
+
+      try {
+        const unlocked = await evaluateAchievements(req.user.id, rulesToEvaluate);
+        res.status(201).json({ id: expenseId, unlockedAchievements: unlocked });
+      } catch (achErr) {
+        console.error('Non-fatal achievements check error:', achErr);
+        res.status(201).json({ id: expenseId, unlockedAchievements: [] });
+      }
     }
   );
 });
@@ -741,9 +755,16 @@ app.post('/api/savings', authenticateJWT, (req, res) => {
     `INSERT INTO savings (id, user_id, date, amount, description, created_at) 
      VALUES (?, ?, ?, ?, ?, ?)`,
     [savingId, req.user.id, new Date().toISOString().split('T')[0], amtFloat, description || '', Date.now()],
-    function (err) {
+    async function (err) {
       if (err) return res.status(500).json({ error: 'Failed to add saving.' });
-      res.status(201).json({ id: savingId });
+      
+      try {
+        const unlocked = await evaluateAchievements(req.user.id, ['saved_amount']);
+        res.status(201).json({ id: savingId, unlockedAchievements: unlocked });
+      } catch (achErr) {
+        console.error('Non-fatal achievements check error:', achErr);
+        res.status(201).json({ id: savingId, unlockedAchievements: [] });
+      }
     }
   );
 });
@@ -858,11 +879,24 @@ app.post('/api/goals', authenticateJWT, (req, res) => {
       status,
       Date.now()
     ],
-    function (err) {
+    async function (err) {
       if (err) {
         console.error('Failed to create goal:', err);
         return res.status(500).json({ error: 'Failed to create goal.' });
       }
+
+      const rules = ['goal_created_count'];
+      if (status === 'completed') {
+        rules.push('goal_completed_count');
+      }
+
+      let unlocked = [];
+      try {
+        unlocked = await evaluateAchievements(req.user.id, rules);
+      } catch (achErr) {
+        console.error('Non-fatal achievements check error:', achErr);
+      }
+
       res.status(201).json({
         id: goalId,
         user_id: req.user.id,
@@ -874,7 +908,8 @@ app.post('/api/goals', authenticateJWT, (req, res) => {
         priority: priority || 'medium',
         notes: notes || '',
         status,
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        unlockedAchievements: unlocked
       });
     }
   );
@@ -924,11 +959,26 @@ app.put('/api/goals/:id', authenticateJWT, (req, res) => {
       req.params.id,
       req.user.id
     ],
-    function (err) {
+    async function (err) {
       if (err) {
         console.error('Failed to update goal:', err);
         return res.status(500).json({ error: 'Failed to update goal.' });
       }
+
+      const rules = [];
+      if (finalStatus === 'completed') {
+        rules.push('goal_completed_count');
+      }
+
+      let unlocked = [];
+      if (rules.length > 0) {
+        try {
+          unlocked = await evaluateAchievements(req.user.id, rules);
+        } catch (achErr) {
+          console.error('Non-fatal achievements check error:', achErr);
+        }
+      }
+
       res.status(200).json({
         id: req.params.id,
         name: name.trim(),
@@ -938,7 +988,8 @@ app.put('/api/goals/:id', authenticateJWT, (req, res) => {
         category: category || 'Others',
         priority: priority || 'medium',
         notes: notes || '',
-        status: finalStatus
+        status: finalStatus,
+        unlockedAchievements: unlocked
       });
     }
   );
@@ -970,15 +1021,26 @@ app.post('/api/goals/:id/add-savings', authenticateJWT, (req, res) => {
       db.run(
         `UPDATE financial_goals SET saved_amount = ?, status = ? WHERE id = ? AND user_id = ?`,
         [newSaved, newStatus, req.params.id, req.user.id],
-        function (updateErr) {
+        async function (updateErr) {
           if (updateErr) return res.status(500).json({ error: 'Failed to add savings to goal.' });
           
+          const isNewlyCompleted = newStatus === 'completed' && goal.status !== 'completed';
+          let unlocked = [];
+          if (isNewlyCompleted) {
+            try {
+              unlocked = await evaluateAchievements(req.user.id, ['goal_completed_count']);
+            } catch (achErr) {
+              console.error('Non-fatal achievements check error:', achErr);
+            }
+          }
+
           res.status(200).json({
             success: true,
             id: req.params.id,
             savedAmount: newSaved,
             status: newStatus,
-            completed: newStatus === 'completed' && goal.status !== 'completed' // true only if transitioned to completed now
+            completed: isNewlyCompleted,
+            unlockedAchievements: unlocked
           });
         }
       );
@@ -1124,7 +1186,72 @@ app.post('/api/budgets', authenticateJWT, (req, res) => {
   );
 });
 
+// ==========================================================================
+// Achievements Endpoints
+// ==========================================================================
 
+// Get achievements list and user progress
+app.get('/api/achievements', authenticateJWT, (req, res) => {
+  db.all(
+    `SELECT a.*, ua.unlocked_at, ua.progress, ua.seen
+     FROM achievements a
+     LEFT JOIN user_achievements ua ON a.id = ua.achievement_id AND ua.user_id = ?
+     WHERE a.active = 1
+     ORDER BY a.category, a.points`,
+    [req.user.id],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Failed to fetch achievements.' });
+      
+      let totalPoints = 0;
+      const formatted = rows.map(r => {
+        const unlocked = r.unlocked_at && r.unlocked_at > 0;
+        if (unlocked) {
+          totalPoints += r.points;
+        }
+        return {
+          id: r.id,
+          name: r.name,
+          description: r.description,
+          category: r.category,
+          icon: r.icon,
+          ruleType: r.rule_type,
+          ruleValue: r.rule_value,
+          points: r.points,
+          unlocked: !!unlocked,
+          unlockedAt: r.unlocked_at || null,
+          progress: r.progress || 0,
+          seen: r.seen === 1
+        };
+      });
+
+      res.status(200).json({
+        achievements: formatted,
+        totalPoints
+      });
+    }
+  );
+});
+
+// Mark achievements as seen
+app.post('/api/achievements/seen', authenticateJWT, (req, res) => {
+  const { achievementIds } = req.body;
+  if (!achievementIds || !Array.isArray(achievementIds) || achievementIds.length === 0) {
+    return res.status(400).json({ error: 'Valid achievementIds array is required.' });
+  }
+
+  // Create placeholders like (?, ?, ?)
+  const placeholders = achievementIds.map(() => '?').join(',');
+  db.run(
+    `UPDATE user_achievements 
+     SET seen = 1 
+     WHERE user_id = ? AND achievement_id IN (${placeholders})`,
+    [req.user.id, ...achievementIds],
+    function (err) {
+      if (err) return res.status(500).json({ error: 'Failed to mark achievements as seen.' });
+      res.status(200).json({ success: true });
+    }
+  );
+});
 
 // ==========================================================================
 // Feedback Endpoints

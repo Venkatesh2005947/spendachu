@@ -27,6 +27,8 @@ import FinancialGoals from './components/Dashboard/FinancialGoals';
 import GoalForm from './components/Dashboard/GoalForm';
 import AddGoalSavingsModal from './components/Dashboard/AddGoalSavingsModal';
 import GoalCompletedModal from './components/Dashboard/GoalCompletedModal';
+import AchievementsList from './components/Dashboard/AchievementsList';
+import AchievementUnlockModal from './components/Dashboard/AchievementUnlockModal';
 
 export default function App() {
   // 1. Session and Auth State
@@ -66,6 +68,11 @@ export default function App() {
   const [isAddGoalSavingsOpen, setIsAddGoalSavingsOpen] = useState(false);
   const [selectedGoalForSavings, setSelectedGoalForSavings] = useState(null);
   const [completedGoalCelebration, setCompletedGoalCelebration] = useState(null);
+
+  // 6. Achievements State
+  const [achievementsData, setAchievementsData] = useState({ achievements: [], totalPoints: 0 });
+  const [achievementsLoading, setAchievementsLoading] = useState(false);
+  const [unlockedAchievementsQueue, setUnlockedAchievementsQueue] = useState([]);
 
   // Dashboard month selector (defaults to current month)
   const now = new Date();
@@ -109,12 +116,13 @@ export default function App() {
     
     try {
       // Fetch user-isolated financial data
-      const [records, limits, savingsList, trashList, goalsList] = await Promise.all([
+      const [records, limits, savingsList, trashList, goalsList, achs] = await Promise.all([
         dbService.getExpenses(),
         dbService.getBudgets(),
         dbService.getSavings(),
         dbService.getTrash(),
-        dbService.getGoals().catch(() => []) // Gracefully fallback if table does not exist yet
+        dbService.getGoals().catch(() => []),
+        dbService.getAchievements().catch(() => ({ achievements: [], totalPoints: 0 }))
       ]);
       
       setExpenses(records);
@@ -122,6 +130,13 @@ export default function App() {
       setSavings(savingsList);
       setTrash(trashList);
       setGoals(goalsList);
+      setAchievementsData(achs);
+
+      // Queue congratulations for any unlocked but unseen achievements from offline/updates
+      const unseenUnlocked = (achs?.achievements || []).filter(a => a.unlocked && !a.seen);
+      if (unseenUnlocked.length > 0) {
+        setUnlockedAchievementsQueue(unseenUnlocked);
+      }
 
       // Fetch user currency setting if saved
       const savedCurrency = localStorage.getItem(`tracker_currency_${loggedInUser.email}`) || 'INR';
@@ -150,6 +165,8 @@ export default function App() {
     setBudgets({});
     setNotifications([]);
     setGoals([]);
+    setAchievementsData({ achievements: [], totalPoints: 0 });
+    setUnlockedAchievementsQueue([]);
   };
 
   const handleSaveExpense = async (payload) => {
@@ -169,6 +186,13 @@ export default function App() {
             source: 'manual'
           });
           return; // Do NOT close the expense modal yet
+        }
+        
+        // Intercept any newly unlocked achievements
+        if (result && result.unlockedAchievements && result.unlockedAchievements.length > 0) {
+          setUnlockedAchievementsQueue(prev => [...prev, ...result.unlockedAchievements]);
+          const updatedAchs = await dbService.getAchievements();
+          setAchievementsData(updatedAchs);
         }
       }
 
@@ -224,10 +248,17 @@ export default function App() {
 
   const handleSaveSaving = async (payload) => {
     try {
-      await dbService.addSaving(payload);
+      const res = await dbService.addSaving(payload);
       const updatedSavings = await dbService.getSavings();
       setSavings(updatedSavings);
       setIsSavingModalOpen(false);
+
+      // Check for newly unlocked achievements
+      if (res && res.unlockedAchievements && res.unlockedAchievements.length > 0) {
+        setUnlockedAchievementsQueue(prev => [...prev, ...res.unlockedAchievements]);
+        const updatedAchs = await dbService.getAchievements();
+        setAchievementsData(updatedAchs);
+      }
     } catch (err) {
       console.error('Failed to save saving:', err);
     }
@@ -450,7 +481,7 @@ export default function App() {
 
   const handleSaveScannedExpense = async (payload) => {
     try {
-      const result = await dbService.addExpense(payload);
+      const result = await dbService.addExpense({ ...payload, isScanned: true });
       if (result && result.isDuplicate) {
         // Pause receipt preview and ask the user
         setDuplicateWarning({
@@ -466,6 +497,13 @@ export default function App() {
       setExpenses(updated);
       setIsReceiptPreviewOpen(false);
       setScanResult(null);
+
+      // Check for newly unlocked achievements
+      if (result && result.unlockedAchievements && result.unlockedAchievements.length > 0) {
+        setUnlockedAchievementsQueue(prev => [...prev, ...result.unlockedAchievements]);
+        const updatedAchs = await dbService.getAchievements();
+        setAchievementsData(updatedAchs);
+      }
     } catch (err) {
       console.error('Failed to save scanned expense:', err);
       alert(err.message || 'Failed to save expense.');
@@ -475,16 +513,17 @@ export default function App() {
   // ── Goals Handlers ──────────────────────────────────────────────────────
   const handleSaveGoal = async (payload) => {
     try {
+      let res;
       if (editingGoal) {
         const prevStatus = editingGoal.status;
-        const res = await dbService.updateGoal(editingGoal.id, payload);
+        res = await dbService.updateGoal(editingGoal.id, payload);
         
         // Show celebration only if transitioned to completed now
         if (res.status === 'completed' && prevStatus !== 'completed') {
           setCompletedGoalCelebration(res);
         }
       } else {
-        const res = await dbService.addGoal(payload);
+        res = await dbService.addGoal(payload);
         if (res.status === 'completed') {
           setCompletedGoalCelebration(res);
         }
@@ -494,6 +533,13 @@ export default function App() {
       setGoals(updatedGoals);
       setIsGoalFormOpen(false);
       setEditingGoal(null);
+
+      // Check for newly unlocked achievements
+      if (res && res.unlockedAchievements && res.unlockedAchievements.length > 0) {
+        setUnlockedAchievementsQueue(prev => [...prev, ...res.unlockedAchievements]);
+        const updatedAchs = await dbService.getAchievements();
+        setAchievementsData(updatedAchs);
+      }
     } catch (err) {
       console.error('Failed to save goal:', err);
       alert(err.message || 'Failed to save goal.');
@@ -552,9 +598,28 @@ export default function App() {
       setGoals(updatedGoals);
       setIsAddGoalSavingsOpen(false);
       setSelectedGoalForSavings(null);
+
+      // Check for newly unlocked achievements
+      if (res && res.unlockedAchievements && res.unlockedAchievements.length > 0) {
+        setUnlockedAchievementsQueue(prev => [...prev, ...res.unlockedAchievements]);
+        const updatedAchs = await dbService.getAchievements();
+        setAchievementsData(updatedAchs);
+      }
     } catch (err) {
       console.error('Failed to deposit savings to goal:', err);
       alert(err.message || 'Failed to deposit savings.');
+    }
+  };
+
+  const handleDismissUnlockModal = async (id) => {
+    // Remove from active modal queue
+    setUnlockedAchievementsQueue(prev => prev.filter(a => a.id !== id));
+    try {
+      await dbService.markAchievementsSeen([id]);
+      const updatedAchs = await dbService.getAchievements();
+      setAchievementsData(updatedAchs);
+    } catch (err) {
+      console.error('Failed to mark achievement as seen:', err);
     }
   };
   // ────────────────────────────────────────────────────────────────────────
@@ -790,6 +855,13 @@ export default function App() {
             currencyCode={currencyCode} 
           />
         );
+      case 'achievements':
+        return (
+          <AchievementsList 
+            achievementsData={achievementsData}
+            loading={achievementsLoading}
+          />
+        );
       case 'trash':
         return (
           <RecentlyDeleted 
@@ -811,6 +883,7 @@ export default function App() {
       case 'dashboard': return 'Financial Dashboard';
       case 'expenses': return 'Expense Management';
       case 'savings': return 'Savings Log';
+      case 'achievements': return 'Milestones & Achievements';
       case 'budgeting': return 'Budget Settings';
       case 'insights': return 'AI Smart Insights';
       case 'trash': return 'Recently Deleted';
@@ -824,6 +897,7 @@ export default function App() {
       case 'dashboard': return `Welcome back, ${user.name}! Here is your current month status.`;
       case 'expenses': return 'Search, filter, edit, and export your expense records.';
       case 'savings': return 'Keep your backup money safe and track your deposits.';
+      case 'achievements': return 'Track your streaks, milestones, and unlock special badges.';
       case 'budgeting': return 'Configure your monthly budget limits and alerts.';
       case 'insights': return 'Review natural language breakdowns and savings suggestions.';
       case 'trash': return 'Recover deleted expenses and savings within 30 days.';
@@ -1201,6 +1275,14 @@ export default function App() {
           <GoalCompletedModal
             goal={completedGoalCelebration}
             onClose={() => setCompletedGoalCelebration(null)}
+          />
+        )}
+
+        {/* Achievement Unlock Congratulations Modal */}
+        {unlockedAchievementsQueue.length > 0 && (
+          <AchievementUnlockModal
+            achievements={unlockedAchievementsQueue}
+            onClose={handleDismissUnlockModal}
           />
         )}
       </main>

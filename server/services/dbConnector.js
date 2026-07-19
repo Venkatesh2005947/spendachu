@@ -221,6 +221,149 @@ const MIGRATIONS = [
         )
       `);
     }
+  },
+  {
+    version: '005_create_achievements',
+    up: async (runQuery) => {
+      // 1. Create achievements table
+      await runQuery(`
+        CREATE TABLE IF NOT EXISTS achievements (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          description TEXT NOT NULL,
+          category TEXT NOT NULL,
+          icon TEXT NOT NULL,
+          rule_type TEXT NOT NULL,
+          rule_value DOUBLE PRECISION NOT NULL,
+          points INTEGER NOT NULL,
+          active INTEGER NOT NULL DEFAULT 1
+        )
+      `);
+
+      // 2. Create user_achievements table
+      await runQuery(`
+        CREATE TABLE IF NOT EXISTS user_achievements (
+          user_id TEXT NOT NULL,
+          achievement_id TEXT NOT NULL,
+          unlocked_at BIGINT NOT NULL,
+          progress DOUBLE PRECISION NOT NULL DEFAULT 0,
+          seen INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (user_id, achievement_id)
+        )
+      `);
+
+      // 3. Seed initial achievements
+      const initialAchievements = [
+        {
+          id: 'ach_first_expense',
+          name: 'First Expense',
+          description: 'Record your very first expense entry.',
+          category: 'expense tracking',
+          icon: 'Award',
+          rule_type: 'expense_count',
+          rule_value: 1,
+          points: 10
+        },
+        {
+          id: 'ach_10_expenses',
+          name: '10 Expenses Added',
+          description: 'Add 10 expense records.',
+          category: 'expense tracking',
+          icon: 'TrendingUp',
+          rule_type: 'expense_count',
+          rule_value: 10,
+          points: 20
+        },
+        {
+          id: 'ach_100_expenses',
+          name: '100 Expenses Added',
+          description: 'Keep logging! Reach 100 expenses.',
+          category: 'expense tracking',
+          icon: 'Flame',
+          rule_type: 'expense_count',
+          rule_value: 100,
+          points: 50
+        },
+        {
+          id: 'ach_first_receipt',
+          name: 'First Receipt Scanned',
+          description: 'Scan a receipt with AI for the first time.',
+          category: 'receipt scanning',
+          icon: 'Camera',
+          rule_type: 'scanned_count',
+          rule_value: 1,
+          points: 15
+        },
+        {
+          id: 'ach_first_goal_created',
+          name: 'First Financial Goal Created',
+          description: 'Set a new savings goal.',
+          category: 'financial goals',
+          icon: 'Target',
+          rule_type: 'goal_created_count',
+          rule_value: 1,
+          points: 10
+        },
+        {
+          id: 'ach_first_goal_completed',
+          name: 'First Goal Completed',
+          description: 'Reach a saving goal target! 🎉',
+          category: 'financial goals',
+          icon: 'CheckCircle2',
+          rule_type: 'goal_completed_count',
+          rule_value: 1,
+          points: 25
+        },
+        {
+          id: 'ach_7_day_streak',
+          name: '7 Day Tracking Streak',
+          description: 'Add an expense daily for 7 days in a row.',
+          category: 'consistency',
+          icon: 'Calendar',
+          rule_type: 'streak_days',
+          rule_value: 7,
+          points: 30
+        },
+        {
+          id: 'ach_30_day_streak',
+          name: '30 Day Tracking Streak',
+          description: 'Maintain consistency with 30 days streak!',
+          category: 'consistency',
+          icon: 'Sparkles',
+          rule_type: 'streak_days',
+          rule_value: 30,
+          points: 75
+        },
+        {
+          id: 'ach_saved_10k',
+          name: 'Saved ₹10,000',
+          description: 'Log ₹10,000 total in savings entries.',
+          category: 'savings',
+          icon: 'PiggyBank',
+          rule_type: 'saved_amount',
+          rule_value: 10000,
+          points: 40
+        },
+        {
+          id: 'ach_under_budget',
+          name: 'Stayed Under Budget',
+          description: 'Stay under your monthly budget limit.',
+          category: 'budget',
+          icon: 'Coins',
+          rule_type: 'under_budget_count',
+          rule_value: 1,
+          points: 20
+        }
+      ];
+
+      for (const ach of initialAchievements) {
+        await runQuery(
+          `INSERT INTO achievements (id, name, description, category, icon, rule_type, rule_value, points, active) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [ach.id, ach.name, ach.description, ach.category, ach.icon, ach.rule_type, ach.rule_value, ach.points, 1]
+        );
+      }
+    }
   }
 ];
 
@@ -264,7 +407,7 @@ async function backupDatabase() {
       fs.mkdirSync(backupDir, { recursive: true });
     }
     
-    const tables = ['users', 'expenses', 'savings', 'trash', 'budgets', 'feedbacks', 'financial_goals'];
+    const tables = ['users', 'expenses', 'savings', 'trash', 'budgets', 'feedbacks', 'financial_goals', 'achievements', 'user_achievements'];
     const backupData = {};
 
     for (const table of tables) {
@@ -385,6 +528,28 @@ async function syncSqliteToPostgre() {
       );
     }
     console.log(`🔄 [Data Sync] Synced ${sqliteGoals.length} financial goals.`);
+
+    // 8. Achievements
+    const sqliteAchievements = await fetchSqliteTable('achievements');
+    for (const a of sqliteAchievements) {
+      await pgPool.query(
+        `INSERT INTO achievements (id, name, description, category, icon, rule_type, rule_value, points, active) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT (id) DO NOTHING`,
+        [a.id, a.name, a.description, a.category, a.icon, a.rule_type, a.rule_value, a.points, a.active]
+      );
+    }
+    console.log(`🔄 [Data Sync] Synced ${sqliteAchievements.length} achievements.`);
+
+    // 9. User Achievements
+    const sqliteUserAchievements = await fetchSqliteTable('user_achievements');
+    for (const ua of sqliteUserAchievements) {
+      await pgPool.query(
+        `INSERT INTO user_achievements (user_id, achievement_id, unlocked_at, progress, seen) 
+         VALUES ($1, $2, $3, $4, $5) ON CONFLICT (user_id, achievement_id) DO NOTHING`,
+        [ua.user_id, ua.achievement_id, ua.unlocked_at, ua.progress, ua.seen]
+      );
+    }
+    console.log(`🔄 [Data Sync] Synced ${sqliteUserAchievements.length} user unlocked achievements.`);
 
     // Sync finished: rename SQLite file to prevent running again next time
     tempDb.close();
