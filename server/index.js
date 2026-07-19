@@ -245,10 +245,10 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const nodemailer = require('nodemailer');
 const { sendWelcomeWebhook } = require('./services/webhook');
+const { db } = require('./services/dbConnector');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -258,107 +258,6 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// Initialize SQLite database
-const dbPath = path.join(__dirname, 'database.db');
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('Failed to connect to SQLite database:', err);
-  } else {
-    console.log('Connected to SQLite database at:', dbPath);
-    initializeTables();
-  }
-});
-
-// Setup database tables
-function initializeTables() {
-  db.serialize(() => {
-    // 1. Users
-    db.run(`CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      email TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL
-    )`);
-
-    // 2. Expenses
-    db.run(`CREATE TABLE IF NOT EXISTS expenses (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      date TEXT NOT NULL,
-      amount REAL NOT NULL,
-      category TEXT NOT NULL,
-      payment_method TEXT NOT NULL,
-      description TEXT,
-      created_at INTEGER NOT NULL,
-      merchant TEXT,
-      time TEXT,
-      tax REAL,
-      notes TEXT
-    )`);
-
-    // 3. Savings
-    db.run(`CREATE TABLE IF NOT EXISTS savings (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      date TEXT NOT NULL,
-      amount REAL NOT NULL,
-      description TEXT,
-      created_at INTEGER NOT NULL
-    )`);
-
-    // 4. Trash
-    db.run(`CREATE TABLE IF NOT EXISTS trash (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      type TEXT NOT NULL,
-      item TEXT NOT NULL,
-      deleted_at INTEGER NOT NULL
-    )`);
-
-    // 5. Budgets
-    db.run(`CREATE TABLE IF NOT EXISTS budgets (
-      user_id TEXT PRIMARY KEY,
-      data TEXT NOT NULL
-    )`);
-
-    // 6. Feedbacks
-    db.run(`CREATE TABLE IF NOT EXISTS feedbacks (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      email TEXT NOT NULL,
-      category TEXT NOT NULL,
-      message TEXT NOT NULL,
-      delivery_status TEXT,
-      delivery_error TEXT,
-      created_at INTEGER NOT NULL
-    )`, (err) => {
-      if (!err) {
-        // Safe migrations for existing databases
-        db.run(`ALTER TABLE feedbacks ADD COLUMN delivery_status TEXT`, () => {});
-        db.run(`ALTER TABLE feedbacks ADD COLUMN delivery_error TEXT`, () => {});
-        db.run(`ALTER TABLE expenses ADD COLUMN merchant TEXT`, () => {});
-        db.run(`ALTER TABLE expenses ADD COLUMN time TEXT`, () => {});
-        db.run(`ALTER TABLE expenses ADD COLUMN tax REAL`, () => {});
-        db.run(`ALTER TABLE expenses ADD COLUMN notes TEXT`, () => {});
-      }
-    });
-
-    // 7. Financial Goals
-    db.run(`CREATE TABLE IF NOT EXISTS financial_goals (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      name TEXT NOT NULL,
-      target_amount REAL NOT NULL,
-      saved_amount REAL NOT NULL,
-      deadline TEXT NOT NULL,
-      category TEXT NOT NULL,
-      priority TEXT NOT NULL,
-      notes TEXT,
-      status TEXT NOT NULL,
-      created_at INTEGER NOT NULL
-    )`);
-  });
-}
 
 // JWT Authentication Middleware
 function authenticateJWT(req, res, next) {
@@ -1381,10 +1280,17 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
-// Start server
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Backend server listening on host 0.0.0.0:${PORT}`);
-  checkSMTPSetup();
+// Start server after initializing database
+const { initializeDatabase } = require('./services/dbConnector');
+
+initializeDatabase().then(() => {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Backend server listening on host 0.0.0.0:${PORT}`);
+    checkSMTPSetup();
+  });
+}).catch(err => {
+  console.error("❌ FAILED to initialize database and run migrations. Aborting server startup.", err);
+  process.exit(1);
 });
 
 // Verify email service connection on startup
