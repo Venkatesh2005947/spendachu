@@ -342,6 +342,21 @@ function initializeTables() {
         db.run(`ALTER TABLE expenses ADD COLUMN notes TEXT`, () => {});
       }
     });
+
+    // 7. Financial Goals
+    db.run(`CREATE TABLE IF NOT EXISTS financial_goals (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      target_amount REAL NOT NULL,
+      saved_amount REAL NOT NULL,
+      deadline TEXT NOT NULL,
+      category TEXT NOT NULL,
+      priority TEXT NOT NULL,
+      notes TEXT,
+      status TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    )`);
   });
 }
 
@@ -873,6 +888,218 @@ app.post('/api/savings/clear', authenticateJWT, (req, res) => {
     }
   );
 });
+
+// ==========================================================================
+// Financial Goals Endpoints
+// ==========================================================================
+
+// Get Goals
+app.get('/api/goals', authenticateJWT, (req, res) => {
+  db.all(
+    `SELECT * FROM financial_goals WHERE user_id = ? ORDER BY created_at DESC`,
+    [req.user.id],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Failed to fetch financial goals.' });
+      const formatted = rows.map(r => ({
+        id: r.id,
+        user_id: r.user_id,
+        name: r.name,
+        targetAmount: r.target_amount,
+        savedAmount: r.saved_amount,
+        deadline: r.deadline,
+        category: r.category,
+        priority: r.priority,
+        notes: r.notes,
+        status: r.status,
+        createdAt: r.created_at
+      }));
+      res.status(200).json(formatted);
+    }
+  );
+});
+
+// Add Goal
+app.post('/api/goals', authenticateJWT, (req, res) => {
+  const { name, targetAmount, savedAmount, deadline, category, priority, notes, allowExceed } = req.body;
+  const target = parseFloat(targetAmount);
+  const saved = parseFloat(savedAmount || 0);
+
+  if (!name || name.trim() === '') {
+    return res.status(400).json({ error: 'Goal name is required.' });
+  }
+  if (isNaN(target) || target <= 0) {
+    return res.status(400).json({ error: 'Target amount must be greater than zero.' });
+  }
+  if (isNaN(saved) || saved < 0) {
+    return res.status(400).json({ error: 'Saved amount cannot be negative.' });
+  }
+  if (saved > target && !allowExceed) {
+    return res.status(400).json({ error: 'Saved amount cannot exceed target amount.' });
+  }
+  if (!deadline) {
+    return res.status(400).json({ error: 'Deadline is required.' });
+  }
+
+  const status = saved >= target ? 'completed' : 'active';
+  const goalId = `goal_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+
+  db.run(
+    `INSERT INTO financial_goals (id, user_id, name, target_amount, saved_amount, deadline, category, priority, notes, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      goalId,
+      req.user.id,
+      name.trim(),
+      target,
+      saved,
+      deadline,
+      category || 'Others',
+      priority || 'medium',
+      notes || '',
+      status,
+      Date.now()
+    ],
+    function (err) {
+      if (err) {
+        console.error('Failed to create goal:', err);
+        return res.status(500).json({ error: 'Failed to create goal.' });
+      }
+      res.status(201).json({
+        id: goalId,
+        user_id: req.user.id,
+        name: name.trim(),
+        targetAmount: target,
+        savedAmount: saved,
+        deadline,
+        category: category || 'Others',
+        priority: priority || 'medium',
+        notes: notes || '',
+        status,
+        createdAt: Date.now()
+      });
+    }
+  );
+});
+
+// Update Goal
+app.put('/api/goals/:id', authenticateJWT, (req, res) => {
+  const { name, targetAmount, savedAmount, deadline, category, priority, notes, status, allowExceed } = req.body;
+  const target = parseFloat(targetAmount);
+  const saved = parseFloat(savedAmount);
+
+  if (!name || name.trim() === '') {
+    return res.status(400).json({ error: 'Goal name is required.' });
+  }
+  if (isNaN(target) || target <= 0) {
+    return res.status(400).json({ error: 'Target amount must be greater than zero.' });
+  }
+  if (isNaN(saved) || saved < 0) {
+    return res.status(400).json({ error: 'Saved amount cannot be negative.' });
+  }
+  if (saved > target && !allowExceed) {
+    return res.status(400).json({ error: 'Saved amount cannot exceed target amount.' });
+  }
+  if (!deadline) {
+    return res.status(400).json({ error: 'Deadline is required.' });
+  }
+
+  // Determine status automatically if saved >= target, otherwise preserve status or use active
+  let finalStatus = status || 'active';
+  if (saved >= target) {
+    finalStatus = 'completed';
+  }
+
+  db.run(
+    `UPDATE financial_goals
+     SET name = ?, target_amount = ?, saved_amount = ?, deadline = ?, category = ?, priority = ?, notes = ?, status = ?
+     WHERE id = ? AND user_id = ?`,
+    [
+      name.trim(),
+      target,
+      saved,
+      deadline,
+      category || 'Others',
+      priority || 'medium',
+      notes || '',
+      finalStatus,
+      req.params.id,
+      req.user.id
+    ],
+    function (err) {
+      if (err) {
+        console.error('Failed to update goal:', err);
+        return res.status(500).json({ error: 'Failed to update goal.' });
+      }
+      res.status(200).json({
+        id: req.params.id,
+        name: name.trim(),
+        targetAmount: target,
+        savedAmount: saved,
+        deadline,
+        category: category || 'Others',
+        priority: priority || 'medium',
+        notes: notes || '',
+        status: finalStatus
+      });
+    }
+  );
+});
+
+// Add Savings to Goal
+app.post('/api/goals/:id/add-savings', authenticateJWT, (req, res) => {
+  const { amount, allowExceed } = req.body;
+  const savingAmt = parseFloat(amount);
+
+  if (isNaN(savingAmt) || savingAmt <= 0) {
+    return res.status(400).json({ error: 'Saving amount must be greater than zero.' });
+  }
+
+  db.get(
+    `SELECT * FROM financial_goals WHERE id = ? AND user_id = ?`,
+    [req.params.id, req.user.id],
+    (err, goal) => {
+      if (err) return res.status(500).json({ error: 'Database error fetching goal.' });
+      if (!goal) return res.status(404).json({ error: 'Goal not found.' });
+
+      const newSaved = goal.saved_amount + savingAmt;
+      if (newSaved > goal.target_amount && !allowExceed) {
+        return res.status(400).json({ error: 'Saved amount cannot exceed target amount.' });
+      }
+
+      const newStatus = newSaved >= goal.target_amount ? 'completed' : goal.status;
+
+      db.run(
+        `UPDATE financial_goals SET saved_amount = ?, status = ? WHERE id = ? AND user_id = ?`,
+        [newSaved, newStatus, req.params.id, req.user.id],
+        function (updateErr) {
+          if (updateErr) return res.status(500).json({ error: 'Failed to add savings to goal.' });
+          
+          res.status(200).json({
+            success: true,
+            id: req.params.id,
+            savedAmount: newSaved,
+            status: newStatus,
+            completed: newStatus === 'completed' && goal.status !== 'completed' // true only if transitioned to completed now
+          });
+        }
+      );
+    }
+  );
+});
+
+// Delete Goal
+app.delete('/api/goals/:id', authenticateJWT, (req, res) => {
+  db.run(
+    `DELETE FROM financial_goals WHERE id = ? AND user_id = ?`,
+    [req.params.id, req.user.id],
+    function (err) {
+      if (err) return res.status(500).json({ error: 'Failed to delete goal.' });
+      res.status(200).json({ success: true });
+    }
+  );
+});
+
+
 
 // ==========================================================================
 // Recently Deleted (Trash) Endpoints

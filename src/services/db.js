@@ -245,5 +245,49 @@ export const dbService = {
       body: JSON.stringify({ image: base64Image, mimeType })
     });
     return handleResponse(res);
+  },
+
+  // 6. Financial Goals Operations
+  async getGoals() {
+    const res = await fetch('/api/goals', {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async addGoal(goalData) {
+    const res = await fetch('/api/goals', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(goalData)
+    });
+    return handleResponse(res);
+  },
+
+  async updateGoal(id, updatedData) {
+    const res = await fetch(`/api/goals/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(updatedData)
+    });
+    return handleResponse(res);
+  },
+
+  async addSavingsToGoal(id, amount, allowExceed = false) {
+    const res = await fetch(`/api/goals/${id}/add-savings`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ amount, allowExceed })
+    });
+    return handleResponse(res);
+  },
+
+  async deleteGoal(id) {
+    const res = await fetch(`/api/goals/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
   }
 };

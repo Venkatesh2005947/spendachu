@@ -23,6 +23,10 @@ import RecentlyDeleted from './components/RecentlyDeleted/RecentlyDeleted';
 import FeedbackForm from './components/Feedback/FeedbackForm';
 import ReceiptPreview from './components/ReceiptPreview/ReceiptPreview';
 import DuplicateWarning from './components/DuplicateWarning/DuplicateWarning';
+import FinancialGoals from './components/Dashboard/FinancialGoals';
+import GoalForm from './components/Dashboard/GoalForm';
+import AddGoalSavingsModal from './components/Dashboard/AddGoalSavingsModal';
+import GoalCompletedModal from './components/Dashboard/GoalCompletedModal';
 
 export default function App() {
   // 1. Session and Auth State
@@ -53,6 +57,15 @@ export default function App() {
   const fileInputRef = useRef(null);
   // duplicateWarning: null | { confidence, existing, pendingPayload, source: 'manual'|'scan' }
   const [duplicateWarning, setDuplicateWarning] = useState(null);
+
+  // 5. Goals State
+  const [goals, setGoals] = useState([]);
+  const [goalsLoading, setGoalsLoading] = useState(false);
+  const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState(null);
+  const [isAddGoalSavingsOpen, setIsAddGoalSavingsOpen] = useState(false);
+  const [selectedGoalForSavings, setSelectedGoalForSavings] = useState(null);
+  const [completedGoalCelebration, setCompletedGoalCelebration] = useState(null);
 
   // Dashboard month selector (defaults to current month)
   const now = new Date();
@@ -96,17 +109,19 @@ export default function App() {
     
     try {
       // Fetch user-isolated financial data
-      const [records, limits, savingsList, trashList] = await Promise.all([
+      const [records, limits, savingsList, trashList, goalsList] = await Promise.all([
         dbService.getExpenses(),
         dbService.getBudgets(),
         dbService.getSavings(),
-        dbService.getTrash()
+        dbService.getTrash(),
+        dbService.getGoals().catch(() => []) // Gracefully fallback if table does not exist yet
       ]);
       
       setExpenses(records);
       setBudgets(limits);
       setSavings(savingsList);
       setTrash(trashList);
+      setGoals(goalsList);
 
       // Fetch user currency setting if saved
       const savedCurrency = localStorage.getItem(`tracker_currency_${loggedInUser.email}`) || 'INR';
@@ -134,6 +149,7 @@ export default function App() {
     setTrash([]);
     setBudgets({});
     setNotifications([]);
+    setGoals([]);
   };
 
   const handleSaveExpense = async (payload) => {
@@ -456,6 +472,93 @@ export default function App() {
     }
   };
 
+  // ── Goals Handlers ──────────────────────────────────────────────────────
+  const handleSaveGoal = async (payload) => {
+    try {
+      if (editingGoal) {
+        const prevStatus = editingGoal.status;
+        const res = await dbService.updateGoal(editingGoal.id, payload);
+        
+        // Show celebration only if transitioned to completed now
+        if (res.status === 'completed' && prevStatus !== 'completed') {
+          setCompletedGoalCelebration(res);
+        }
+      } else {
+        const res = await dbService.addGoal(payload);
+        if (res.status === 'completed') {
+          setCompletedGoalCelebration(res);
+        }
+      }
+      
+      const updatedGoals = await dbService.getGoals();
+      setGoals(updatedGoals);
+      setIsGoalFormOpen(false);
+      setEditingGoal(null);
+    } catch (err) {
+      console.error('Failed to save goal:', err);
+      alert(err.message || 'Failed to save goal.');
+    }
+  };
+
+  const handleUpdateGoalStatus = async (id, updatedGoalData) => {
+    try {
+      if (updatedGoalData) {
+        // Toggle paused/active or cancelled status
+        await dbService.updateGoal(id, updatedGoalData);
+      } else {
+        // Direct edit trigger — find goal in list and open editor modal
+        const goalToEdit = goals.find(g => g.id === id);
+        if (goalToEdit) {
+          setEditingGoal(goalToEdit);
+          setIsGoalFormOpen(true);
+        }
+      }
+      const updatedGoals = await dbService.getGoals();
+      setGoals(updatedGoals);
+    } catch (err) {
+      console.error('Failed to update goal status:', err);
+      alert(err.message || 'Failed to update goal.');
+    }
+  };
+
+  const handleDeleteGoal = async (id) => {
+    try {
+      await dbService.deleteGoal(id);
+      const updatedGoals = await dbService.getGoals();
+      setGoals(updatedGoals);
+    } catch (err) {
+      console.error('Failed to delete goal:', err);
+      alert(err.message || 'Failed to delete goal.');
+    }
+  };
+
+  const handleDepositGoalSavings = async (amount, allowExceed) => {
+    if (!selectedGoalForSavings) return;
+    try {
+      const res = await dbService.addSavingsToGoal(selectedGoalForSavings.id, amount, allowExceed);
+      if (res.completed) {
+        // Show celebration
+        const completedGoal = goals.find(g => g.id === selectedGoalForSavings.id);
+        if (completedGoal) {
+          setCompletedGoalCelebration({
+            ...completedGoal,
+            savedAmount: res.savedAmount,
+            status: res.status
+          });
+        }
+      }
+      
+      const updatedGoals = await dbService.getGoals();
+      setGoals(updatedGoals);
+      setIsAddGoalSavingsOpen(false);
+      setSelectedGoalForSavings(null);
+    } catch (err) {
+      console.error('Failed to deposit savings to goal:', err);
+      alert(err.message || 'Failed to deposit savings.');
+    }
+  };
+  // ────────────────────────────────────────────────────────────────────────
+
   // ── Duplicate Warning handlers ──────────────────────────────────────────
   const handleDuplicateAddAnyway = async () => {
     if (!duplicateWarning) return;
@@ -620,6 +723,16 @@ export default function App() {
                 ))}
               </div>
             )}
+
+            {/* Financial Goals Section */}
+            <FinancialGoals 
+              goals={goals} 
+              onAddGoal={() => { setEditingGoal(null); setIsGoalFormOpen(true); }}
+              onUpdateGoal={handleUpdateGoalStatus}
+              onDeleteGoal={handleDeleteGoal}
+              onAddGoalSavings={(goal) => { setSelectedGoalForSavings(goal); setIsAddGoalSavingsOpen(true); }}
+              loading={goalsLoading}
+            />
 
             {/* Quick Strategy Tips */}
             <div className="glass-card" style={{ padding: '20px', borderRadius: '16px', background: 'var(--card-bg)' }}>
@@ -1064,6 +1177,31 @@ export default function App() {
               </div>
             </div>
           </div>
+        )}
+        {/* Goal Creation/Edit Modal */}
+        {isGoalFormOpen && (
+          <GoalForm
+            goal={editingGoal}
+            onClose={() => { setIsGoalFormOpen(false); setEditingGoal(null); }}
+            onSave={handleSaveGoal}
+          />
+        )}
+
+        {/* Deposit savings to Goal Modal */}
+        {isAddGoalSavingsOpen && selectedGoalForSavings && (
+          <AddGoalSavingsModal
+            goal={selectedGoalForSavings}
+            onClose={() => { setIsAddGoalSavingsOpen(false); setSelectedGoalForSavings(null); }}
+            onSave={handleDepositGoalSavings}
+          />
+        )}
+
+        {/* Goal Achievement Celebration Modal */}
+        {completedGoalCelebration && (
+          <GoalCompletedModal
+            goal={completedGoalCelebration}
+            onClose={() => setCompletedGoalCelebration(null)}
+          />
         )}
       </main>
     </div>
