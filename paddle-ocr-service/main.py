@@ -61,8 +61,7 @@ def init_ocr():
         use_angle_cls=True,    # Handle rotated text
         lang="en",             # English receipts
         use_gpu=False,         # CPU-only
-        show_log=False,        # Suppress PaddleOCR internal logs
-        det_db_score_mode="slow",  # Better accuracy for receipts
+        show_log=False         # Suppress PaddleOCR internal logs
     )
     elapsed = round(time.time() - start, 2)
     logger.info(f"✅ PaddleOCR engine ready in {elapsed}s")
