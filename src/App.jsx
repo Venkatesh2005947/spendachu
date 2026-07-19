@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Menu, X, Bell, Sparkles, Camera } from 'lucide-react';
 
 // Services
@@ -47,6 +47,9 @@ export default function App() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [isReceiptPreviewOpen, setIsReceiptPreviewOpen] = useState(false);
+  const [capturedFile, setCapturedFile] = useState(null);     // File object from camera
+  const [capturePreviewUrl, setCapturePreviewUrl] = useState(null); // Object URL for preview
+  const fileInputRef = useRef(null);
 
   // Dashboard month selector (defaults to current month)
   const now = new Date();
@@ -314,10 +317,48 @@ export default function App() {
   };
 
   const triggerFileSelect = () => {
-    const input = document.getElementById('receipt-file-input');
+    const input = fileInputRef.current;
     if (input) {
-      input.value = '';
+      input.value = '';   // reset so same file can be selected again
       input.click();
+    }
+  };
+
+  // Called when user clicks "Retake" in the capture preview
+  const handleRetake = () => {
+    if (capturePreviewUrl) {
+      URL.revokeObjectURL(capturePreviewUrl);
+    }
+    setCapturePreviewUrl(null);
+    setCapturedFile(null);
+    triggerFileSelect();
+  };
+
+  // Called when user clicks "Continue" in the capture preview — runs OCR
+  const handleContinueToOCR = async () => {
+    if (!capturedFile) return;
+    // Revoke preview URL before starting scan
+    if (capturePreviewUrl) {
+      URL.revokeObjectURL(capturePreviewUrl);
+      setCapturePreviewUrl(null);
+    }
+    const file = capturedFile;
+    setCapturedFile(null);
+    try {
+      setIsScanning(true);
+      const { base64, mimeType } = await resizeImage(file);
+      const result = await dbService.scanReceipt(base64, mimeType);
+      setIsScanning(false);
+      if (result && !result.error) {
+        setScanResult(result);
+        setIsReceiptPreviewOpen(true);
+      } else {
+        alert('Could not scan receipt. Please enter the details manually.');
+      }
+    } catch (err) {
+      setIsScanning(false);
+      console.error('Scan Error:', err);
+      alert(err.message || 'Failed to scan receipt. Ensure a valid Gemini API key is configured.');
     }
   };
 
@@ -356,33 +397,26 @@ export default function App() {
     });
   };
 
-  const handleReceiptScan = async (e) => {
+  const handleReceiptScan = (e) => {
     const file = e.target.files[0];
+    // User dismissed the picker / cancelled
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Please upload a valid receipt image.');
+      alert('Please capture or upload a valid receipt image (JPEG, PNG, etc.).');
+      e.target.value = '';
       return;
     }
 
-    try {
-      setIsScanning(true);
-      const { base64, mimeType } = await resizeImage(file);
-      
-      const result = await dbService.scanReceipt(base64, mimeType);
-      setIsScanning(false);
-
-      if (result && !result.error) {
-        setScanResult(result);
-        setIsReceiptPreviewOpen(true);
-      } else {
-        alert('Could not scan receipt. Please enter the details manually.');
-      }
-    } catch (err) {
-      setIsScanning(false);
-      console.error('Scan Error:', err);
-      alert(err.message || 'Failed to scan receipt. Ensure a valid Gemini API key is configured.');
+    // Revoke any previous preview URL to avoid memory leaks
+    if (capturePreviewUrl) {
+      URL.revokeObjectURL(capturePreviewUrl);
     }
+
+    // Create a new object URL for the preview and store the raw File
+    const url = URL.createObjectURL(file);
+    setCapturedFile(file);
+    setCapturePreviewUrl(url);
   };
 
   const handleSaveScannedExpense = async (payload) => {
@@ -705,13 +739,116 @@ export default function App() {
         )}
 
         {/* Hidden File Input for scanning */}
-        <input 
-          type="file" 
-          id="receipt-file-input" 
-          accept="image/*" 
-          style={{ display: 'none' }} 
-          onChange={handleReceiptScan} 
+        <input
+          ref={fileInputRef}
+          type="file"
+          id="receipt-file-input"
+          accept="image/*"
+          capture="environment"
+          style={{ display: 'none' }}
+          onChange={handleReceiptScan}
         />
+
+        {/* ── Camera Capture Preview Overlay ── */}
+        {capturePreviewUrl && (
+          <div
+            className="modal-overlay"
+            style={{ zIndex: 11500 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Receipt capture preview"
+          >
+            <div
+              className="glass-card"
+              style={{
+                width: '95%',
+                maxWidth: '480px',
+                borderRadius: '24px',
+                border: '1px solid var(--card-border)',
+                boxShadow: 'var(--shadow-lg)',
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px',
+                animation: 'scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+            >
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <span style={{ fontSize: '11px', fontWeight: '900', color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '1px' }}>Receipt Captured 📸</span>
+                  <h2 style={{ margin: '4px 0 0', fontSize: '22px', fontWeight: '900', color: 'var(--text-primary)' }}>Looks good?</h2>
+                </div>
+                <button
+                  onClick={() => {
+                    URL.revokeObjectURL(capturePreviewUrl);
+                    setCapturePreviewUrl(null);
+                    setCapturedFile(null);
+                  }}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '6px' }}
+                  title="Cancel"
+                  aria-label="Cancel capture"
+                >
+                  <X size={22} />
+                </button>
+              </div>
+
+              {/* Image Preview */}
+              <div
+                style={{
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  border: '2px solid var(--card-border)',
+                  background: 'var(--bg-secondary)',
+                  maxHeight: '55vh',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <img
+                  src={capturePreviewUrl}
+                  alt="Captured receipt"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                    display: 'block',
+                    maxHeight: '55vh'
+                  }}
+                />
+              </div>
+
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: '1.5' }}>
+                Make sure the receipt is sharp and fully visible before scanning.
+              </p>
+
+              {/* Actions */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <button
+                  id="capture-retake-btn"
+                  type="button"
+                  onClick={handleRetake}
+                  className="outline-btn"
+                  style={{ justifyContent: 'center', padding: '13px', borderRadius: '14px', fontSize: '14px', fontWeight: '700' }}
+                >
+                  <Camera size={16} />
+                  <span>Retake</span>
+                </button>
+                <button
+                  id="capture-continue-btn"
+                  type="button"
+                  onClick={handleContinueToOCR}
+                  className="glow-btn"
+                  style={{ justifyContent: 'center', padding: '13px', borderRadius: '14px', fontSize: '14px', fontWeight: '700' }}
+                >
+                  <Sparkles size={16} />
+                  <span>Scan with AI</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Receipt Preview Screen */}
         {isReceiptPreviewOpen && scanResult && (
