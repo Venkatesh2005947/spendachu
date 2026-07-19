@@ -22,6 +22,7 @@ import SavingTable from './components/SavingForm/SavingTable';
 import RecentlyDeleted from './components/RecentlyDeleted/RecentlyDeleted';
 import FeedbackForm from './components/Feedback/FeedbackForm';
 import ReceiptPreview from './components/ReceiptPreview/ReceiptPreview';
+import DuplicateWarning from './components/DuplicateWarning/DuplicateWarning';
 
 export default function App() {
   // 1. Session and Auth State
@@ -50,6 +51,8 @@ export default function App() {
   const [capturedFile, setCapturedFile] = useState(null);     // File object from camera
   const [capturePreviewUrl, setCapturePreviewUrl] = useState(null); // Object URL for preview
   const fileInputRef = useRef(null);
+  // duplicateWarning: null | { confidence, existing, pendingPayload, source: 'manual'|'scan' }
+  const [duplicateWarning, setDuplicateWarning] = useState(null);
 
   // Dashboard month selector (defaults to current month)
   const now = new Date();
@@ -136,13 +139,23 @@ export default function App() {
   const handleSaveExpense = async (payload) => {
     try {
       if (editingExpense && editingExpense.id) {
-        // Update action
+        // Update action — no duplicate check needed for edits
         await dbService.updateExpense(editingExpense.id, payload);
       } else {
-        // Add action
-        await dbService.addExpense(payload);
+        // Add action — check for duplicates
+        const result = await dbService.addExpense(payload);
+        if (result && result.isDuplicate) {
+          // Pause and ask the user what to do
+          setDuplicateWarning({
+            confidence: result.confidence,
+            existing: result.existing,
+            pendingPayload: payload,
+            source: 'manual'
+          });
+          return; // Do NOT close the expense modal yet
+        }
       }
-      
+
       // Reload database states
       const updatedExpenses = await dbService.getExpenses();
       setExpenses(updatedExpenses);
@@ -421,7 +434,17 @@ export default function App() {
 
   const handleSaveScannedExpense = async (payload) => {
     try {
-      await dbService.addExpense(payload);
+      const result = await dbService.addExpense(payload);
+      if (result && result.isDuplicate) {
+        // Pause receipt preview and ask the user
+        setDuplicateWarning({
+          confidence: result.confidence,
+          existing: result.existing,
+          pendingPayload: payload,
+          source: 'scan'
+        });
+        return; // Keep receipt preview open in background
+      }
       // Refresh expenses list
       const updated = await dbService.getExpenses();
       setExpenses(updated);
@@ -432,6 +455,45 @@ export default function App() {
       alert(err.message || 'Failed to save expense.');
     }
   };
+
+  // ── Duplicate Warning handlers ──────────────────────────────────────────
+  const handleDuplicateAddAnyway = async () => {
+    if (!duplicateWarning) return;
+    const { pendingPayload, source } = duplicateWarning;
+    setDuplicateWarning(null);
+    try {
+      await dbService.addExpense({ ...pendingPayload, forceCreate: true });
+      const updated = await dbService.getExpenses();
+      setExpenses(updated);
+      checkBudgetAlerts(updated, budgets);
+      if (source === 'manual') {
+        setIsExpenseModalOpen(false);
+        setEditingExpense(null);
+      } else {
+        setIsReceiptPreviewOpen(false);
+        setScanResult(null);
+      }
+    } catch (err) {
+      console.error('Failed to force-save expense:', err);
+      alert(err.message || 'Failed to save expense.');
+    }
+  };
+
+  const handleDuplicateCancel = () => {
+    setDuplicateWarning(null);
+    // Leave the expense/receipt form open so the user can edit or dismiss it
+  };
+
+  const handleDuplicateViewExisting = () => {
+    setDuplicateWarning(null);
+    // Close whichever form was open and land on the expenses tab
+    setIsExpenseModalOpen(false);
+    setEditingExpense(null);
+    setIsReceiptPreviewOpen(false);
+    setScanResult(null);
+    setActiveTab('expenses');
+  };
+  // ────────────────────────────────────────────────────────────────────────
 
 
 
@@ -748,6 +810,17 @@ export default function App() {
           style={{ display: 'none' }}
           onChange={handleReceiptScan}
         />
+
+        {/* ── Duplicate Expense Warning Popup ── */}
+        {duplicateWarning && (
+          <DuplicateWarning
+            confidence={duplicateWarning.confidence}
+            existing={duplicateWarning.existing}
+            onCancel={handleDuplicateCancel}
+            onAddAnyway={handleDuplicateAddAnyway}
+            onViewExisting={handleDuplicateViewExisting}
+          />
+        )}
 
         {/* ── Camera Capture Preview Overlay ── */}
         {capturePreviewUrl && (

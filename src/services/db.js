@@ -108,6 +108,12 @@ export const dbService = {
       headers: getAuthHeaders(),
       body: JSON.stringify(expenseData)
     });
+    // 409 means a duplicate was detected — return the payload so the caller
+    // can show the warning UI instead of treating it as a hard error.
+    if (res.status === 409) {
+      const data = await res.json().catch(() => ({}));
+      return { isDuplicate: true, confidence: data.confidence, existing: data.existing };
+    }
     return handleResponse(res);
   },
 

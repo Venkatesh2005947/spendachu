@@ -554,9 +554,116 @@ app.get('/api/expenses', authenticateJWT, (req, res) => {
   );
 });
 
+// ── Duplicate Detection Helper ──────────────────────────────────────────────
+/**
+ * Normalize a merchant name for fuzzy comparison:
+ *  - Lowercase
+ *  - Strip trailing generic words (restaurant, outlet, store, shop, cafe, etc.)
+ *  - Collapse extra whitespace
+ */
+const normalizeMerchant = (name) => {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .replace(/\b(restaurant|restaurants|outlet|outlets|store|stores|shop|shops|cafe|cafes|bar|bars|hotel|hotels|express|point|center|centre|branch|velachery|anna\s*nagar|t\.?nagar|adyar|tambaram|porur)\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+/**
+ * Returns the best matching duplicate for the incoming expense, or null.
+ * @param {object} db      - SQLite db instance
+ * @param {string} userId
+ * @param {object} incoming - { amount, date, merchant, time }
+ * @returns Promise<{ confidence: 'exact'|'possible', existing: object }|null>
+ */
+const findDuplicate = (db, userId, incoming) => {
+  return new Promise((resolve, reject) => {
+    const inAmt  = parseFloat(incoming.amount);
+    const inDate = incoming.date;
+    const inMerchantNorm = normalizeMerchant(incoming.merchant);
+    const inTime = incoming.time || null;
+
+    // Fetch same-date expenses for this user
+    db.all(
+      `SELECT * FROM expenses
+       WHERE user_id = ? AND date = ?
+       ORDER BY created_at DESC`,
+      [userId, inDate],
+      (err, rows) => {
+        if (err) return reject(err);
+
+        let bestMatch = null;
+
+        for (const row of rows) {
+          // Amount must match exactly
+          if (Math.abs(parseFloat(row.amount) - inAmt) > 0.001) continue;
+
+          const existingMerchantNorm = normalizeMerchant(row.merchant);
+          let merchantMatch = false;
+
+          if (inMerchantNorm && existingMerchantNorm) {
+            // Exact match after normalization
+            if (inMerchantNorm === existingMerchantNorm) {
+              merchantMatch = true;
+            }
+            // Prefix match: one starts with the other (handles "KFC" vs "KFC Velachery")
+            else if (
+              inMerchantNorm.startsWith(existingMerchantNorm) ||
+              existingMerchantNorm.startsWith(inMerchantNorm)
+            ) {
+              merchantMatch = true;
+            }
+          }
+
+          // Determine confidence
+          let confidence = null;
+          if (merchantMatch) {
+            // Time bonus: if both have time and they match → exact, else still exact (merchant+amount+date)
+            if (inTime && row.time && inTime === row.time) {
+              confidence = 'exact';
+            } else {
+              confidence = 'exact';
+            }
+          } else if (!incoming.merchant && !row.merchant) {
+            // No merchant on either side — amount + date match is "possible"
+            confidence = 'possible';
+          } else {
+            // One has merchant, the other does not, or they differ significantly
+            confidence = 'possible';
+          }
+
+          if (confidence) {
+            bestMatch = {
+              confidence,
+              existing: {
+                id: row.id,
+                date: row.date,
+                amount: row.amount,
+                category: row.category,
+                paymentMethod: row.payment_method,
+                description: row.description,
+                merchant: row.merchant,
+                time: row.time,
+                tax: row.tax,
+                notes: row.notes
+              }
+            };
+            // Prefer exact over possible; take first match found
+            if (confidence === 'exact') break;
+          }
+        }
+
+        resolve(bestMatch);
+      }
+    );
+  });
+};
+// ────────────────────────────────────────────────────────────────────────────
+
 // Add Expense
-app.post('/api/expenses', authenticateJWT, (req, res) => {
-  const { date, amount, category, paymentMethod, description, merchant, time, tax, notes } = req.body;
+app.post('/api/expenses', authenticateJWT, async (req, res) => {
+  const { date, amount, category, paymentMethod, description, merchant, time, tax, notes, forceCreate } = req.body;
   const amtFloat = parseFloat(amount);
   const taxFloat = tax ? parseFloat(tax) : 0;
 
@@ -564,18 +671,43 @@ app.post('/api/expenses', authenticateJWT, (req, res) => {
     return res.status(400).json({ error: 'Amount must be a positive number.' });
   }
 
+  // ── Duplicate check (skip when forceCreate is explicitly true) ──
+  if (!forceCreate) {
+    try {
+      const dup = await findDuplicate(db, req.user.id, {
+        amount: amtFloat,
+        date: date || new Date().toISOString().split('T')[0],
+        merchant,
+        time
+      });
+
+      if (dup) {
+        console.log(`⚠️  [Duplicate] user=${req.user.id} confidence=${dup.confidence} amount=${amtFloat} date=${date} merchant="${merchant}"`);
+        return res.status(409).json({
+          duplicate: true,
+          confidence: dup.confidence,
+          existing: dup.existing
+        });
+      }
+    } catch (dupErr) {
+      // Non-fatal: log and continue with the save
+      console.error('⚠️  [Duplicate check error]:', dupErr.message);
+    }
+  }
+  // ───────────────────────────────────────────────────────────────
+
   const expenseId = `exp_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
   db.run(
     `INSERT INTO expenses (id, user_id, date, amount, category, payment_method, description, created_at, merchant, time, tax, notes) 
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      expenseId, 
-      req.user.id, 
-      date || new Date().toISOString().split('T')[0], 
-      amtFloat, 
-      category || 'Others', 
-      paymentMethod || 'Cash', 
-      description || '', 
+      expenseId,
+      req.user.id,
+      date || new Date().toISOString().split('T')[0],
+      amtFloat,
+      category || 'Others',
+      paymentMethod || 'Cash',
+      description || '',
       Date.now(),
       merchant || null,
       time || null,
