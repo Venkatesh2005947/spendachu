@@ -102,102 +102,104 @@ const sendEmailViaResend = (apiKey, category, message, senderEmail, senderName, 
 
 
 
-// Helper to query Gemini Vision API via HTTPS REST with confidence scoring
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
-const queryGeminiVision = (apiKey, base64Data, mimeType) => {
+// Helper to query self-hosted PaddleOCR service for receipt processing
+const http = require('http');
+const PADDLE_OCR_URL = process.env.PADDLE_OCR_URL || 'http://localhost:8100';
+const OCR_SERVICE_TOKEN = process.env.OCR_SERVICE_TOKEN || 'spendachu-ocr-secret-2024';
+
+/**
+ * Send receipt image to PaddleOCR FastAPI service via multipart/form-data.
+ * Returns structured receipt JSON matching ReceiptPreview expected format.
+ *
+ * @param {string} base64Data - Base64-encoded image data
+ * @param {string} mimeType   - MIME type (e.g. image/jpeg)
+ * @returns {Promise<object>}  Parsed receipt data
+ */
+const queryPaddleOCR = (base64Data, mimeType) => {
   return new Promise((resolve, reject) => {
-    const payload = JSON.stringify({
-      contents: [
-        {
-          parts: [
-            {
-              inlineData: {
-                mimeType: mimeType,
-                data: base64Data
-              }
-            },
-            {
-              text: `Analyze the provided receipt/bill image and extract the following fields in strict JSON format.
-Choose the most appropriate category and payment method from the allowed lists.
-Do not guess values; use null if a field is completely missing or illegible.
-For the confidence map, set true if you are highly confident in the extracted value, or false if it is blurry, guess-work, low-confidence, or completely missing from the receipt.
+    // Convert base64 to Buffer for multipart upload
+    const imageBuffer = Buffer.from(base64Data, 'base64');
 
-Allowed categories: "Food", "Transport", "Rent", "Shopping", "Bills", "Entertainment", "Others"
-Allowed payment methods: "Cash", "Card", "UPI", "Bank Transfer"
+    // Determine file extension from mimeType
+    const extMap = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/jpg': 'jpg' };
+    const ext = extMap[mimeType] || 'jpg';
 
-Expected JSON format:
-{
-  "merchant": "Merchant Name or null",
-  "date": "YYYY-MM-DD format (use current date if missing: ${new Date().toISOString().split('T')[0]})",
-  "time": "HH:MM format or null",
-  "amount": 123.45 (number or null),
-  "tax": 12.34 (number or null),
-  "category": "One of the allowed categories",
-  "paymentMethod": "One of the allowed payment methods",
-  "notes": "Short description of items or note or null",
-  "confidence": {
-    "merchant": true,
-    "date": true,
-    "time": true,
-    "amount": true,
-    "tax": true,
-    "category": true,
-    "paymentMethod": true
-  }
-}
-Return ONLY the raw JSON object inside no markdown block (do not enclose in \`\`\`json or \`\`\`).`
-            }
-          ]
-        }
-      ]
-    });
+    // Build multipart/form-data body
+    const boundary = '----SpendAchuOCR' + Date.now();
+    const CRLF = "\r\n";
+
+    const header = [
+      `--${boundary}`,
+      `Content-Disposition: form-data; name="file"; filename="receipt.${ext}"`,
+      `Content-Type: ${mimeType}`,
+      '',
+      '',
+    ].join(CRLF);
+
+    const footer = `${CRLF}--${boundary}--${CRLF}`;
+
+    const headerBuffer = Buffer.from(header, 'utf-8');
+    const footerBuffer = Buffer.from(footer, 'utf-8');
+    const bodyBuffer = Buffer.concat([headerBuffer, imageBuffer, footerBuffer]);
+
+    // Parse the OCR service URL
+    const url = new URL(PADDLE_OCR_URL);
+    const isHttps = url.protocol === 'https:';
+    const requestModule = isHttps ? https : http;
 
     const options = {
-      hostname: 'generativelanguage.googleapis.com',
-      path: `/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+      hostname: url.hostname,
+      port: url.port || (isHttps ? 443 : 80),
+      path: '/process-receipt',
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(payload)
-      }
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+        'Content-Length': bodyBuffer.length,
+        'x-ocr-token': OCR_SERVICE_TOKEN,
+      },
     };
 
-    const req = https.request(options, (res) => {
+    console.log(`📤 [PaddleOCR] Sending receipt image (${imageBuffer.length} bytes) to ${PADDLE_OCR_URL}/process-receipt`);
+
+    const req = requestModule.request(options, (res) => {
       let body = '';
       res.on('data', (chunk) => body += chunk);
       res.on('end', () => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           try {
-            const data = JSON.parse(body);
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-            let cleanJson = text.trim();
-            if (cleanJson.startsWith('```')) {
-              cleanJson = cleanJson.replace(/^```json\s*/, '').replace(/```$/, '').trim();
-            }
-            resolve(JSON.parse(cleanJson));
+            const result = JSON.parse(body);
+            console.log(`✅ [PaddleOCR] Receipt processed successfully: merchant=${result.merchant}, amount=${result.amount}`);
+            resolve(result);
           } catch (parseErr) {
-            reject(new Error('Gemini returned an unreadable response. Please try again.'));
+            console.error('❌ [PaddleOCR] Failed to parse response:', body.substring(0, 200));
+            reject(new Error('OCR service returned an unreadable response. Please try again.'));
           }
         } else {
-          // Log the full body on the backend for debugging; do NOT forward it to the client
-          console.error(`❌ [Gemini API] HTTP ${res.statusCode}:`, body);
+          console.error(`❌ [PaddleOCR] HTTP ${res.statusCode}:`, body.substring(0, 300));
           let friendlyMsg = `Receipt scanning failed (HTTP ${res.statusCode}).`;
-          if (res.statusCode === 400) friendlyMsg = 'Gemini rejected the image (bad request). Try a clearer photo.';
-          if (res.statusCode === 403) friendlyMsg = 'Gemini API key is invalid or lacks permission.';
-          if (res.statusCode === 404) friendlyMsg = `Gemini model "${GEMINI_MODEL}" is not available. Check GEMINI_MODEL env var.`;
-          if (res.statusCode === 429) friendlyMsg = 'Gemini API rate limit reached. Please wait a moment and try again.';
+          if (res.statusCode === 400) friendlyMsg = 'Image was rejected by OCR service. Try a clearer photo.';
+          if (res.statusCode === 401) friendlyMsg = 'OCR service authentication failed. Check OCR_SERVICE_TOKEN.';
+          if (res.statusCode === 503) friendlyMsg = 'OCR service is still starting up. Please wait a moment and try again.';
           reject(new Error(friendlyMsg));
         }
       });
     });
 
-    // Set 25 seconds request timeout
-    req.setTimeout(25000, () => {
-      req.destroy(new Error('Request to Gemini API timed out after 25 seconds.'));
+    // 90-second timeout to handle PaddleOCR cold starts and large images
+    req.setTimeout(90000, () => {
+      req.destroy(new Error('Receipt scanning timed out. The OCR service may be starting up — please try again.'));
     });
 
-    req.on('error', (e) => reject(e));
-    req.write(payload);
+    req.on('error', (e) => {
+      console.error('❌ [PaddleOCR] Connection error:', e.message);
+      if (e.code === 'ECONNREFUSED') {
+        reject(new Error('OCR service is not running. Please start the PaddleOCR service.'));
+      } else {
+        reject(new Error('Could not connect to OCR service: ' + e.message));
+      }
+    });
+
+    req.write(bodyBuffer);
     req.end();
   });
 };
@@ -420,25 +422,20 @@ app.post('/api/check-email', (req, res) => {
 
 
 // Get Expenses
-// Scan Receipt and Extract Details
+// Scan Receipt and Extract Details via self-hosted PaddleOCR
 app.post('/api/expenses/scan-receipt', authenticateJWT, (req, res) => {
   const { image, mimeType } = req.body;
   if (!image || !mimeType) {
     return res.status(400).json({ error: 'Image and mimeType are required.' });
   }
 
-  const geminiApiKey = process.env.GEMINI_API_KEY;
-  if (!geminiApiKey) {
-    return res.status(503).json({ error: 'Gemini API is not configured on the server. Please set GEMINI_API_KEY.' });
-  }
-
-  queryGeminiVision(geminiApiKey, image, mimeType)
+  queryPaddleOCR(image, mimeType)
     .then(result => {
       res.json(result);
     })
     .catch(err => {
-      // Full error already logged inside queryGeminiVision; just send a clean message
-      console.error('❌ [Gemini Vision Scan Error]:', err.message);
+      // Full error already logged inside queryPaddleOCR; just send a clean message
+      console.error('❌ [PaddleOCR Scan Error]:', err.message);
       res.status(500).json({ error: err.message });
     });
 });

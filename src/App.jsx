@@ -418,7 +418,7 @@ export default function App() {
     } catch (err) {
       setIsScanning(false);
       console.error('Scan Error:', err);
-      alert(err.message || 'Failed to scan receipt. Ensure a valid Gemini API key is configured.');
+      alert(err.message || 'Failed to scan receipt. Please ensure the OCR service is running.');
     }
   };
 

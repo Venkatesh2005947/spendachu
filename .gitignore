@@ -26,3 +26,10 @@ server/database.db
 *.njsproj
 *.sln
 *.sw?
+
+# PaddleOCR Service
+paddle-ocr-service/.env
+paddle-ocr-service/__pycache__/
+paddle-ocr-service/.venv/
+paddle-ocr-service/venv/
+~/.paddleocr/
