@@ -262,6 +262,14 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 const { calculateFinancialHealthScore, getScoreHistory } = require('./services/financialHealthEngine');
+const {
+  notifyAdmin,
+  getAdminNotifications,
+  getNotificationById,
+  markAsRead,
+  dismissNotification,
+  retryNotificationDelivery
+} = require('./services/adminNotificationService');
 
 
 // JWT Authentication Middleware
@@ -278,6 +286,22 @@ function authenticateJWT(req, res, next) {
     });
   } else {
     res.status(401).json({ error: 'Authorization header missing.' });
+  }
+}
+
+// Admin Authorization Middleware
+function requireAdmin(req, res, next) {
+  const adminEmail = (process.env.ADMIN_EMAIL || 'spendachu@gmail.com').toLowerCase();
+  const isUserAdmin = req.user && (
+    (req.user.email && req.user.email.toLowerCase() === adminEmail) ||
+    req.user.is_admin === 1 ||
+    req.user.is_admin === true
+  );
+
+  if (isUserAdmin) {
+    next();
+  } else {
+    res.status(403).json({ error: 'Access denied: Admin privileges required.' });
   }
 }
 
@@ -329,12 +353,25 @@ app.post('/api/register', (req, res) => {
           // Trigger the welcome email webhook asynchronously without blocking registration success
           sendWelcomeWebhook(name, normalizedEmail);
 
+          // Record admin notification for user registration
+          notifyAdmin({
+            eventType: 'new_user_registration',
+            severity: 'low',
+            title: 'New User Registered 🎉',
+            message: `User ${name} (${normalizedEmail}) has created an account.`,
+            userId: userId,
+            metadata: { email: normalizedEmail, name }
+          });
+
           res.status(201).json({ name, email: normalizedEmail });
         }
       );
     }
   );
 });
+
+// Failed login attempts tracker
+const failedLoginMap = new Map();
 
 // Login User
 app.post('/api/login', (req, res) => {
@@ -353,8 +390,21 @@ app.post('/api/login', (req, res) => {
         return res.status(500).json({ error: 'Server error during login.' });
       }
       if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+        const currentFails = (failedLoginMap.get(normalizedEmail) || 0) + 1;
+        failedLoginMap.set(normalizedEmail, currentFails);
+        if (currentFails >= 3) {
+          notifyAdmin({
+            eventType: 'repeated_login_failures',
+            severity: 'high',
+            title: 'Security Alert: Repeated Login Failures 🔐',
+            message: `Multiple failed login attempts (${currentFails}) detected for ${normalizedEmail}.`,
+            metadata: { email: normalizedEmail, attempts: currentFails }
+          });
+        }
         return res.status(400).json({ error: 'Invalid email or password.' });
       }
+
+      failedLoginMap.delete(normalizedEmail);
 
       const sessionToken = jwt.sign(
         { id: user.id, email: user.email, name: user.name },
@@ -597,6 +647,14 @@ app.post('/api/expenses', authenticateJWT, async (req, res) => {
 
       if (dup) {
         console.log(`⚠️  [Duplicate] user=${req.user.id} confidence=${dup.confidence} amount=${amtFloat} date=${date} merchant="${merchant}"`);
+        notifyAdmin({
+          eventType: 'duplicate_expense_blocked',
+          severity: 'low',
+          title: 'Duplicate Expense Blocked 🛑',
+          message: `Duplicate expense of ₹${amtFloat} (${category}) flagged.`,
+          userId: req.user.id,
+          metadata: { amount: amtFloat, category, confidence: dup.confidence }
+        });
         return res.status(409).json({
           duplicate: true,
           confidence: dup.confidence,
@@ -607,6 +665,17 @@ app.post('/api/expenses', authenticateJWT, async (req, res) => {
       // Non-fatal: log and continue with the save
       console.error('⚠️  [Duplicate check error]:', dupErr.message);
     }
+  }
+
+  if (amtFloat >= 50000) {
+    notifyAdmin({
+      eventType: 'high_or_critical_expense_anomaly',
+      severity: 'critical',
+      title: 'Critical Expense Anomaly Alert 🚨',
+      message: `Unusual large expense entry of ₹${amtFloat.toLocaleString()} logged under ${category}.`,
+      userId: req.user.id,
+      metadata: { amount: amtFloat, category, date }
+    });
   }
   // ───────────────────────────────────────────────────────────────
 
@@ -1082,6 +1151,74 @@ app.get('/api/financial-health/history', authenticateJWT, async (req, res) => {
   } catch (err) {
     console.error('Error fetching financial health score history:', err);
     res.status(500).json({ error: 'Failed to fetch score history.' });
+  }
+});
+
+// ==========================================================================
+// Admin Notification System Endpoints
+// ==========================================================================
+
+// GET /api/admin/notifications - Get paginated & filtered notifications
+app.get('/api/admin/notifications', authenticateJWT, requireAdmin, async (req, res) => {
+  try {
+    const result = await getAdminNotifications(req.query);
+    res.status(200).json(result);
+  } catch (err) {
+    console.error('Error fetching admin notifications:', err);
+    res.status(500).json({ error: 'Failed to fetch admin notifications.' });
+  }
+});
+
+// GET /api/admin/notifications/:id - Get single notification details
+app.get('/api/admin/notifications/:id', authenticateJWT, requireAdmin, async (req, res) => {
+  try {
+    const notification = await getNotificationById(req.params.id);
+    if (!notification) {
+      return res.status(404).json({ error: 'Notification not found.' });
+    }
+    res.status(200).json(notification);
+  } catch (err) {
+    console.error('Error fetching admin notification:', err);
+    res.status(500).json({ error: 'Failed to fetch notification.' });
+  }
+});
+
+// PATCH /api/admin/notifications/:id/read - Mark notification as read
+app.patch('/api/admin/notifications/:id/read', authenticateJWT, requireAdmin, async (req, res) => {
+  try {
+    const success = await markAsRead(req.params.id);
+    if (!success) {
+      return res.status(404).json({ error: 'Notification not found.' });
+    }
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('Error marking notification as read:', err);
+    res.status(500).json({ error: 'Failed to mark notification as read.' });
+  }
+});
+
+// PATCH /api/admin/notifications/:id/dismiss - Dismiss notification
+app.patch('/api/admin/notifications/:id/dismiss', authenticateJWT, requireAdmin, async (req, res) => {
+  try {
+    const success = await dismissNotification(req.params.id);
+    if (!success) {
+      return res.status(404).json({ error: 'Notification not found.' });
+    }
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('Error dismissing notification:', err);
+    res.status(500).json({ error: 'Failed to dismiss notification.' });
+  }
+});
+
+// POST /api/admin/notifications/:id/retry - Retry failed delivery
+app.post('/api/admin/notifications/:id/retry', authenticateJWT, requireAdmin, async (req, res) => {
+  try {
+    const success = await retryNotificationDelivery(req.params.id);
+    res.status(200).json({ success, message: success ? 'Webhook delivery succeeded.' : 'Delivery retry failed.' });
+  } catch (err) {
+    console.error('Error retrying notification delivery:', err);
+    res.status(500).json({ error: 'Failed to retry notification delivery.' });
   }
 });
 

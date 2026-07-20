@@ -31,6 +31,7 @@ import AchievementsList from './components/Dashboard/AchievementsList';
 import AchievementUnlockModal from './components/Dashboard/AchievementUnlockModal';
 import FinancialHealthCard from './components/Dashboard/FinancialHealthCard';
 import FinancialHealthModal from './components/Dashboard/FinancialHealthModal';
+import AdminNotifications from './components/Admin/AdminNotifications';
 
 export default function App() {
   // 1. Session and Auth State
@@ -860,6 +861,8 @@ export default function App() {
             onOpenDetails={() => setIsHealthModalOpen(true)} 
           />
         );
+      case 'admin-notifications':
+        return <AdminNotifications />;
       case 'expenses':
         return (
           <>
@@ -927,6 +930,7 @@ export default function App() {
     switch (activeTab) {
       case 'dashboard': return 'Financial Dashboard';
       case 'health': return 'Financial Health Score';
+      case 'admin-notifications': return 'Admin Notifications & Alerts';
       case 'expenses': return 'Expense Management';
       case 'savings': return 'Savings Log';
       case 'achievements': return 'Milestones & Achievements';
@@ -942,6 +946,7 @@ export default function App() {
     switch (activeTab) {
       case 'dashboard': return `Welcome back, ${user.name}! Here is your current month status.`;
       case 'health': return 'Backend-evaluated 5-component financial wellness score and trends.';
+      case 'admin-notifications': return 'Monitor system anomalies, registration events, and Make.com webhooks.';
       case 'expenses': return 'Search, filter, edit, and export your expense records.';
       case 'savings': return 'Keep your backup money safe and track your deposits.';
       case 'achievements': return 'Track your streaks, milestones, and unlock special badges.';

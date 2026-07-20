@@ -324,5 +324,47 @@ export const dbService = {
       headers: getAuthHeaders()
     });
     return handleResponse(res);
+  },
+
+  // 9. Admin Notifications Operations
+  async getAdminNotifications(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const res = await fetch(`/api/admin/notifications?${query}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async getAdminNotificationById(id) {
+    const res = await fetch(`/api/admin/notifications/${id}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async markAdminNotificationRead(id) {
+    const res = await fetch(`/api/admin/notifications/${id}/read`, {
+      method: 'PATCH',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async dismissAdminNotification(id) {
+    const res = await fetch(`/api/admin/notifications/${id}/dismiss`, {
+      method: 'PATCH',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async retryAdminNotification(id) {
+    const res = await fetch(`/api/admin/notifications/${id}/retry`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
   }
 };

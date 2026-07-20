@@ -387,6 +387,29 @@ const MIGRATIONS = [
         )
       `);
     }
+  },
+  {
+    version: '007_create_admin_notifications',
+    up: async (runQuery) => {
+      await runQuery(`
+        CREATE TABLE IF NOT EXISTS admin_notifications (
+          id TEXT PRIMARY KEY,
+          event_key TEXT UNIQUE NOT NULL,
+          event_type TEXT NOT NULL,
+          severity TEXT NOT NULL,
+          title TEXT NOT NULL,
+          message TEXT NOT NULL,
+          user_id TEXT,
+          metadata TEXT,
+          status TEXT NOT NULL DEFAULT 'pending',
+          attempt_count INTEGER NOT NULL DEFAULT 0,
+          last_error TEXT,
+          created_at BIGINT NOT NULL,
+          sent_at BIGINT,
+          read_at BIGINT
+        )
+      `);
+    }
   }
 ];
 
