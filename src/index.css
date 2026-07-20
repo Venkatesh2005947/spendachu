@@ -150,15 +150,15 @@ a {
 }
 
 .glow-btn {
-  background: var(--accent-primary) !important;
-  color: #000000 !important;
+  background: var(--accent-gradient) !important;
+  color: #ffffff !important;
   border: none !important;
-  border-radius: var(--radius-full) !important;
+  border-radius: var(--radius-md) !important;
   padding: 12px 24px;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
-  box-shadow: var(--shadow-md) !important;
-  transition: background-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35) !important;
+  transition: all var(--transition-fast);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -167,18 +167,19 @@ a {
 .glow-btn:hover {
   background: var(--accent-gradient-hover) !important;
   transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45) !important;
 }
 
 .glow-btn:active {
-  opacity: 0.85;
+  opacity: 0.9;
   transform: translateY(0);
 }
 
 .glow-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
-  box-shadow: none;
+  box-shadow: none !important;
 }
 
 .outline-btn {
