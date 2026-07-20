@@ -1,6 +1,6 @@
-opencv-python-headless
 fastapi
 uvicorn[standard]
 python-multipart
-paddlepaddle
-paddleocr
+pytesseract
+Pillow
+numpy

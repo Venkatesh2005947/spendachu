@@ -1,8 +1,11 @@
 """
-SpendAchu PaddleOCR Receipt Processing Service
-================================================
-A self-hosted FastAPI service that uses PaddleOCR to extract receipt details
-from uploaded images. Replaces Gemini Vision API for privacy and cost savings.
+SpendAchu OCR Receipt Processing Service (Tesseract)
+=====================================================
+A self-hosted FastAPI service that uses Tesseract OCR to extract receipt
+details from uploaded images. Lightweight (~50MB RAM), works on Render free tier.
+
+Architecture:
+  React Frontend → Node.js Backend → This FastAPI Service → Structured JSON
 """
 
 import os
@@ -13,8 +16,8 @@ import traceback
 
 from fastapi import FastAPI, File, UploadFile, Header, HTTPException
 from fastapi.responses import JSONResponse
-from PIL import Image
-import numpy as np
+from PIL import Image, ImageFilter, ImageEnhance
+import pytesseract
 
 from receipt_parser import ReceiptParser
 
@@ -26,7 +29,7 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)-7s | %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-logger = logging.getLogger("paddle-ocr-service")
+logger = logging.getLogger("ocr-service")
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -35,69 +38,54 @@ OCR_SERVICE_TOKEN = os.getenv("OCR_SERVICE_TOKEN", "spendachu-ocr-secret-2024")
 HOST = os.getenv("OCR_HOST", "0.0.0.0")
 PORT = int(os.getenv("OCR_PORT", "8100"))
 
-# ---------------------------------------------------------------------------
-# PaddleOCR Singleton — lazy initialized on first request
-# ---------------------------------------------------------------------------
-ocr_engine = None
-ocr_init_error = None
-
-
-def get_ocr_engine():
-    """
-    Lazy-load PaddleOCR on first use.
-    Returns the engine or raises HTTPException if init failed.
-    """
-    global ocr_engine, ocr_init_error
-
-    # Already initialized successfully
-    if ocr_engine is not None:
-        return ocr_engine
-
-    # Previously failed — don't retry on every request
-    if ocr_init_error is not None:
-        raise HTTPException(
-            status_code=503,
-            detail=f"OCR engine failed to initialize: {ocr_init_error}"
-        )
-
-    # First call — attempt initialization
-    logger.info("🚀 Initializing PaddleOCR engine (first request)...")
-    start = time.time()
-    try:
-        from paddleocr import PaddleOCR
-        # Use minimal safe parameters compatible with PaddleOCR 3.x
-        ocr_engine = PaddleOCR(lang="en")
-        elapsed = round(time.time() - start, 2)
-        logger.info(f"✅ PaddleOCR engine ready in {elapsed}s")
-        return ocr_engine
-    except Exception as e:
-        ocr_init_error = str(e)
-        logger.error(f"❌ PaddleOCR init failed: {e}")
-        logger.error(traceback.format_exc())
-        raise HTTPException(
-            status_code=503,
-            detail=f"OCR engine failed to initialize: {e}"
-        )
-
 
 # ---------------------------------------------------------------------------
 # FastAPI App
 # ---------------------------------------------------------------------------
 app = FastAPI(
-    title="SpendAchu PaddleOCR Service",
-    description="Self-hosted receipt OCR processing for SpendAchu",
-    version="1.0.0",
+    title="SpendAchu OCR Service",
+    description="Self-hosted receipt OCR processing for SpendAchu (Tesseract)",
+    version="2.0.0",
 )
 
 
 # ---------------------------------------------------------------------------
-# Auth middleware helper
+# Auth helper
 # ---------------------------------------------------------------------------
 def verify_token(token):
-    """Verify the x-ocr-token header matches the expected service token."""
+    """Verify the x-ocr-token header."""
     if not token or token != OCR_SERVICE_TOKEN:
-        logger.warning("🚫 Unauthorized OCR request (bad or missing x-ocr-token)")
+        logger.warning("🚫 Unauthorized OCR request")
         raise HTTPException(status_code=401, detail="Unauthorized: invalid or missing x-ocr-token")
+
+
+# ---------------------------------------------------------------------------
+# Image preprocessing for better OCR accuracy
+# ---------------------------------------------------------------------------
+def preprocess_image(image: Image.Image) -> Image.Image:
+    """
+    Enhance receipt image for better Tesseract OCR accuracy:
+    - Convert to grayscale
+    - Increase contrast
+    - Sharpen edges
+    - Resize to optimal OCR resolution
+    """
+    # Convert to grayscale
+    img = image.convert("L")
+
+    # Resize to improve OCR (receipts are often small/low-res)
+    w, h = img.size
+    scale = max(1.0, 1800 / max(w, h))
+    if scale > 1.0:
+        img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+
+    # Enhance contrast
+    img = ImageEnhance.Contrast(img).enhance(2.0)
+
+    # Sharpen
+    img = img.filter(ImageFilter.SHARPEN)
+
+    return img
 
 
 # ---------------------------------------------------------------------------
@@ -105,13 +93,12 @@ def verify_token(token):
 # ---------------------------------------------------------------------------
 @app.get("/health")
 async def health_check():
-    """Health check endpoint — does NOT trigger OCR init."""
-    return {
-        "status": "healthy",
-        "engine": "PaddleOCR",
-        "ready": ocr_engine is not None,
-        "init_error": ocr_init_error,
-    }
+    """Health check endpoint."""
+    try:
+        version = pytesseract.get_tesseract_version()
+        return {"status": "healthy", "engine": "Tesseract", "version": str(version), "ready": True}
+    except Exception as e:
+        return {"status": "degraded", "engine": "Tesseract", "error": str(e), "ready": False}
 
 
 @app.post("/process-receipt")
@@ -127,57 +114,55 @@ async def process_receipt(
     """
     verify_token(x_ocr_token)
 
-    # Validate file type
     allowed_types = {"image/jpeg", "image/png", "image/jpg", "image/webp"}
     if file.content_type and file.content_type not in allowed_types:
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported file type: {file.content_type}. Use JPEG, PNG, or WebP.",
+            detail=f"Unsupported file type: {file.content_type}. Use JPEG or PNG.",
         )
 
     raw_bytes = None
     try:
-        # Get OCR engine (lazy init)
-        engine = get_ocr_engine()
-
-        # Read and convert image
         raw_bytes = await file.read()
         if len(raw_bytes) == 0:
             raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
-        logger.info(f"📷 Processing receipt image ({len(raw_bytes)} bytes, type={file.content_type})")
+        logger.info(f"📷 Processing receipt ({len(raw_bytes)} bytes)")
 
+        # Open and preprocess
         image = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
-        img_array = np.array(image)
+        processed = preprocess_image(image)
 
-        # Run OCR
+        # Run Tesseract OCR
         start = time.time()
-        ocr_result = engine.ocr(img_array, cls=True)
-        ocr_elapsed = round(time.time() - start, 2)
+        raw_text = pytesseract.image_to_string(
+            processed,
+            config="--psm 6 --oem 3"   # PSM 6 = assume a uniform block of text
+        )
+        elapsed = round(time.time() - start, 2)
 
-        # Extract text lines with confidence scores
-        lines = []
-        if ocr_result and ocr_result[0]:
-            for entry in ocr_result[0]:
-                try:
-                    text = entry[1][0]
-                    conf = round(float(entry[1][1]), 3)
-                    lines.append({"text": text, "confidence": conf})
-                except (IndexError, TypeError, ValueError):
-                    continue
+        logger.info(f"🔍 OCR completed in {elapsed}s")
+        logger.debug(f"Raw OCR text:\n{raw_text[:500]}")
 
-        logger.info(f"🔍 OCR completed in {ocr_elapsed}s — {len(lines)} text lines detected")
-
-        if not lines:
+        if not raw_text.strip():
             logger.warning("⚠️ No text detected in receipt image")
             return JSONResponse(content=_empty_result())
 
-        # Parse structured data from OCR lines
+        # Convert raw text to line dicts with confidence=1.0 (Tesseract gives plain text)
+        lines = []
+        for line in raw_text.splitlines():
+            line = line.strip()
+            if line:
+                lines.append({"text": line, "confidence": 1.0})
+
+        logger.info(f"📝 {len(lines)} text lines extracted")
+
+        # Parse structured data
         parser = ReceiptParser()
         parsed = parser.parse(lines)
 
         logger.info(
-            f"✅ Receipt parsed: merchant={parsed.get('merchant')}, "
+            f"✅ Parsed: merchant={parsed.get('merchant')}, "
             f"amount={parsed.get('amount')}, date={parsed.get('date')}"
         )
 
@@ -186,7 +171,7 @@ async def process_receipt(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Receipt processing failed: {e}")
+        logger.error(f"❌ Processing failed: {e}")
         logger.error(traceback.format_exc())
         raise HTTPException(
             status_code=500,
@@ -219,7 +204,7 @@ def _empty_result():
 
 
 # ---------------------------------------------------------------------------
-# Run with Uvicorn when executed directly
+# Entry point
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     import uvicorn
