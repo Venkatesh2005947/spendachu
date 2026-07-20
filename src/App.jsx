@@ -42,7 +42,9 @@ export default function App() {
   const [trash, setTrash] = useState([]);
   const [budgets, setBudgets] = useState({});
   const [currencyCode, setCurrencyCode] = useState('INR');
-  const [theme, setTheme] = useState('dark'); // 'dark' | 'light'
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('tracker_theme') || 'dark';
+  });
   
   // 3. UI control states
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);

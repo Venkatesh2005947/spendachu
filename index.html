@@ -1,11 +1,17 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Spend Achu - A modern, secure, AI-powered personal expense tracker to manage budgets, analyze spending trends, and receive smart financial advice." />
     <link rel="icon" type="image/jpeg" href="/logo.jpg" />
     <title>Spend Achu - AI-Powered Personal Expense Tracker</title>
+    <script>
+      (function() {
+        var theme = localStorage.getItem('tracker_theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
