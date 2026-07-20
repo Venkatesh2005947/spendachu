@@ -29,6 +29,8 @@ import AddGoalSavingsModal from './components/Dashboard/AddGoalSavingsModal';
 import GoalCompletedModal from './components/Dashboard/GoalCompletedModal';
 import AchievementsList from './components/Dashboard/AchievementsList';
 import AchievementUnlockModal from './components/Dashboard/AchievementUnlockModal';
+import FinancialHealthCard from './components/Dashboard/FinancialHealthCard';
+import FinancialHealthModal from './components/Dashboard/FinancialHealthModal';
 
 export default function App() {
   // 1. Session and Auth State
@@ -113,6 +115,26 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', nextTheme);
   };
 
+  // 7. Financial Health State
+  const [financialHealth, setFinancialHealth] = useState(null);
+  const [healthLoading, setHealthLoading] = useState(false);
+  const [healthError, setHealthError] = useState(null);
+  const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
+
+  const fetchFinancialHealth = async () => {
+    try {
+      setHealthLoading(true);
+      setHealthError(null);
+      const health = await dbService.getFinancialHealth();
+      setFinancialHealth(health);
+    } catch (err) {
+      console.error('Failed to calculate financial health score:', err);
+      setHealthError('Failed to load Financial Health Score.');
+    } finally {
+      setHealthLoading(false);
+    }
+  };
+
   const handleLoginSuccess = async (loggedInUser) => {
     setUser(loggedInUser);
     
@@ -133,6 +155,8 @@ export default function App() {
       setTrash(trashList);
       setGoals(goalsList);
       setAchievementsData(achs);
+
+      fetchFinancialHealth();
 
       // Queue congratulations for any unlocked but unseen achievements from offline/updates
       const unseenUnlocked = (achs?.achievements || []).filter(a => a.unlocked && !a.seen);
@@ -204,8 +228,9 @@ export default function App() {
       setIsExpenseModalOpen(false);
       setEditingExpense(null);
 
-      // Trigger instant check for budget warnings
+      // Trigger instant check for budget warnings & update score
       checkBudgetAlerts(updatedExpenses, budgets);
+      fetchFinancialHealth();
     } catch (err) {
       console.error('Failed to save expense:', err);
     }
@@ -219,8 +244,9 @@ export default function App() {
       setExpenses(updatedExpenses);
       setTrash(updatedTrash);
 
-      // Trigger instant check for budget warnings
+      // Trigger instant check for budget warnings & update score
       checkBudgetAlerts(updatedExpenses, budgets);
+      fetchFinancialHealth();
     } catch (err) {
       console.error('Failed to delete expense:', err);
     }
@@ -766,6 +792,14 @@ export default function App() {
             {/* 1. Main Spending Card */}
             <StatCards expenses={expenses} budgets={budgets} savings={savings} selectedMonth={selectedMonth} selectedYear={selectedYear} />
 
+            {/* 2. Financial Health Score Widget */}
+            <FinancialHealthCard 
+              healthData={financialHealth} 
+              loading={healthLoading} 
+              error={healthError} 
+              onOpenDetails={() => setIsHealthModalOpen(true)} 
+            />
+
             {/* Spending Analytics Charts */}
             <AnalyticsCharts expenses={expenses} selectedMonth={selectedMonth} selectedYear={selectedYear} />
 
@@ -817,6 +851,15 @@ export default function App() {
           </div>
         );
       }
+      case 'health':
+        return (
+          <FinancialHealthCard 
+            healthData={financialHealth} 
+            loading={healthLoading} 
+            error={healthError} 
+            onOpenDetails={() => setIsHealthModalOpen(true)} 
+          />
+        );
       case 'expenses':
         return (
           <>
@@ -883,6 +926,7 @@ export default function App() {
   const getPageTitle = () => {
     switch (activeTab) {
       case 'dashboard': return 'Financial Dashboard';
+      case 'health': return 'Financial Health Score';
       case 'expenses': return 'Expense Management';
       case 'savings': return 'Savings Log';
       case 'achievements': return 'Milestones & Achievements';
@@ -897,6 +941,7 @@ export default function App() {
   const getPageSubtitle = () => {
     switch (activeTab) {
       case 'dashboard': return `Welcome back, ${user.name}! Here is your current month status.`;
+      case 'health': return 'Backend-evaluated 5-component financial wellness score and trends.';
       case 'expenses': return 'Search, filter, edit, and export your expense records.';
       case 'savings': return 'Keep your backup money safe and track your deposits.';
       case 'achievements': return 'Track your streaks, milestones, and unlock special badges.';
@@ -1285,6 +1330,14 @@ export default function App() {
           <AchievementUnlockModal
             achievements={unlockedAchievementsQueue}
             onClose={handleDismissUnlockModal}
+          />
+        )}
+
+        {/* Financial Health Detailed Breakdown Modal */}
+        {isHealthModalOpen && (
+          <FinancialHealthModal
+            healthData={financialHealth}
+            onClose={() => setIsHealthModalOpen(false)}
           />
         )}
       </main>

@@ -12,7 +12,8 @@ import {
   Coins,
   Trash2,
   MessageSquare,
-  Trophy
+  Trophy,
+  HeartPulse
 } from 'lucide-react';
 
 export default function Sidebar({ 
@@ -28,6 +29,7 @@ export default function Sidebar({
 }) {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'health', label: 'Financial Health', icon: HeartPulse },
     { id: 'expenses', label: 'Expenses', icon: ReceiptText },
     { id: 'savings', label: 'Savings', icon: Coins },
     { id: 'achievements', label: 'Achievements', icon: Trophy },

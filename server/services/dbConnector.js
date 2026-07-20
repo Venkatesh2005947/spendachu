@@ -364,6 +364,29 @@ const MIGRATIONS = [
         );
       }
     }
+  },
+  {
+    version: '006_create_financial_health_score_history',
+    up: async (runQuery) => {
+      await runQuery(`
+        CREATE TABLE IF NOT EXISTS financial_health_score_history (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          total_score INTEGER NOT NULL,
+          level TEXT NOT NULL,
+          budget_control_score DOUBLE PRECISION NOT NULL,
+          savings_habit_score DOUBLE PRECISION NOT NULL,
+          spending_control_score DOUBLE PRECISION NOT NULL,
+          goal_progress_score DOUBLE PRECISION NOT NULL,
+          tracking_consistency_score DOUBLE PRECISION NOT NULL,
+          has_enough_data INTEGER NOT NULL,
+          period_key TEXT NOT NULL,
+          snapshot_date TEXT NOT NULL,
+          created_at BIGINT NOT NULL,
+          UNIQUE(user_id, period_key)
+        )
+      `);
+    }
   }
 ];
 

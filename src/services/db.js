@@ -307,5 +307,22 @@ export const dbService = {
       body: JSON.stringify({ achievementIds })
     });
     return handleResponse(res);
+  },
+
+  // 8. Financial Health Score Operations
+  async getFinancialHealth() {
+    const res = await fetch('/api/financial-health', {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async getFinancialHealthHistory() {
+    const res = await fetch('/api/financial-health/history', {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
   }
 };
