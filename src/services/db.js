@@ -366,5 +366,26 @@ export const dbService = {
       headers: getAuthHeaders()
     });
     return handleResponse(res);
+  },
+
+  // 10. Weekly Admin Analytics Report Operations
+  async getWeeklyReport(weekKey = null, dispatch = false) {
+    const params = new URLSearchParams();
+    if (weekKey) params.append('weekKey', weekKey);
+    if (dispatch) params.append('dispatch', 'true');
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(`/api/admin/weekly-report${query}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async getWeeklyReportHistory() {
+    const res = await fetch('/api/admin/weekly-report/history', {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
   }
 };

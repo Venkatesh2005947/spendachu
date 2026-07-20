@@ -270,6 +270,11 @@ const {
   dismissNotification,
   retryNotificationDelivery
 } = require('./services/adminNotificationService');
+const {
+  generateWeeklyReport,
+  dispatchWeeklyReportEmail,
+  getWeeklyReportsHistory
+} = require('./services/weeklyReportEngine');
 
 
 // JWT Authentication Middleware
@@ -1219,6 +1224,61 @@ app.post('/api/admin/notifications/:id/retry', authenticateJWT, requireAdmin, as
   } catch (err) {
     console.error('Error retrying notification delivery:', err);
     res.status(500).json({ error: 'Failed to retry notification delivery.' });
+  }
+});
+
+// ==========================================================================
+// Weekly Admin Analytics Report Endpoints
+// ==========================================================================
+
+// GET /api/admin/weekly-report - Generate or fetch weekly report
+app.get('/api/admin/weekly-report', async (req, res) => {
+  try {
+    // Authorization check: Admin JWT OR secret header for automated triggers
+    const secretHeader = req.headers['x-report-secret'] || req.headers['x-admin-webhook-secret'];
+    const expectedSecret = process.env.ADMIN_NOTIFICATION_WEBHOOK_SECRET || 'spendachu-admin-webhook-secret';
+    let isAuthorized = secretHeader && secretHeader === expectedSecret;
+
+    if (!isAuthorized) {
+      const authHeader = req.headers.authorization;
+      if (authHeader) {
+        const token = authHeader.split(' ')[1];
+        try {
+          const decoded = jwt.verify(token, JWT_SECRET);
+          const adminEmail = (process.env.ADMIN_EMAIL || 'spendachu@gmail.com').toLowerCase();
+          if (decoded.email && decoded.email.toLowerCase() === adminEmail) {
+            isAuthorized = true;
+          }
+        } catch (e) {}
+      }
+    }
+
+    if (!isAuthorized) {
+      return res.status(403).json({ error: 'Access denied: Valid Admin JWT or X-Report-Secret header required.' });
+    }
+
+    const { weekKey, forceRegenerate, dispatch } = req.query;
+    const report = await generateWeeklyReport(weekKey || null, forceRegenerate === 'true');
+
+    if (dispatch === 'true') {
+      dispatchWeeklyReportEmail(report).catch(err => console.error('Background email dispatch error:', err));
+    }
+
+    res.status(200).json(report);
+  } catch (err) {
+    console.error('Error generating weekly admin report:', err);
+    res.status(500).json({ error: 'Failed to generate weekly report.' });
+  }
+});
+
+// GET /api/admin/weekly-report/history - Get historical weekly reports
+app.get('/api/admin/weekly-report/history', authenticateJWT, requireAdmin, async (req, res) => {
+  try {
+    const history = await getWeeklyReportsHistory();
+    res.status(200).json(history);
+  } catch (err) {
+    console.error('Error fetching weekly report history:', err);
+    res.status(500).json({ error: 'Failed to fetch weekly report history.' });
   }
 });
 

@@ -410,6 +410,42 @@ const MIGRATIONS = [
         )
       `);
     }
+  },
+  {
+    version: '008_create_weekly_admin_reports',
+    up: async (runQuery) => {
+      try {
+        await runQuery(`ALTER TABLE users ADD COLUMN created_at BIGINT`);
+      } catch (e) {
+        console.log('created_at column on users table might already exist, skipping...');
+      }
+
+      await runQuery(`
+        CREATE TABLE IF NOT EXISTS weekly_admin_reports (
+          id TEXT PRIMARY KEY,
+          week_key TEXT UNIQUE NOT NULL,
+          start_date TEXT NOT NULL,
+          end_date TEXT NOT NULL,
+          new_users_count INTEGER NOT NULL DEFAULT 0,
+          active_users_count INTEGER NOT NULL DEFAULT 0,
+          expenses_count INTEGER NOT NULL DEFAULT 0,
+          total_expense_amount DOUBLE PRECISION NOT NULL DEFAULT 0,
+          savings_count INTEGER NOT NULL DEFAULT 0,
+          total_savings_amount DOUBLE PRECISION NOT NULL DEFAULT 0,
+          receipts_scanned_count INTEGER NOT NULL DEFAULT 0,
+          receipt_scan_success_count INTEGER NOT NULL DEFAULT 0,
+          receipt_scan_failure_count INTEGER NOT NULL DEFAULT 0,
+          duplicates_blocked_count INTEGER NOT NULL DEFAULT 0,
+          anomalies_count INTEGER NOT NULL DEFAULT 0,
+          goals_created_count INTEGER NOT NULL DEFAULT 0,
+          feedback_count INTEGER NOT NULL DEFAULT 0,
+          sent_to_email TEXT,
+          email_status TEXT NOT NULL DEFAULT 'pending',
+          created_at BIGINT NOT NULL,
+          sent_at BIGINT
+        )
+      `);
+    }
   }
 ];
 

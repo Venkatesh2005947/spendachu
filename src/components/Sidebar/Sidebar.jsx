@@ -14,7 +14,8 @@ import {
   MessageSquare,
   Trophy,
   HeartPulse,
-  ShieldAlert
+  ShieldAlert,
+  BarChart3
 } from 'lucide-react';
 
 export default function Sidebar({ 
@@ -37,7 +38,10 @@ export default function Sidebar({
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'health', label: 'Financial Health', icon: HeartPulse },
-    ...(isAdmin ? [{ id: 'admin-notifications', label: 'Admin Alerts 🛡️', icon: ShieldAlert }] : []),
+    ...(isAdmin ? [
+      { id: 'admin-notifications', label: 'Admin Alerts 🛡️', icon: ShieldAlert },
+      { id: 'admin-analytics', label: 'Admin Analytics 📊', icon: BarChart3 }
+    ] : []),
     { id: 'expenses', label: 'Expenses', icon: ReceiptText },
     { id: 'savings', label: 'Savings', icon: Coins },
     { id: 'achievements', label: 'Achievements', icon: Trophy },
