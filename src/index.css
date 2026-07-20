@@ -1,87 +1,87 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ==========================================================================
-   CSS Design Tokens (Theme 3: Minimalist Onyx & Platinum)
+   CSS Design Tokens (Theme 4: Emerald Velvet)
    ========================================================================== */
 :root {
   /* Fonts */
-  --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   /* Common Speeds & Radii */
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
   --radius-full: 9999px;
   --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-smooth: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Onyx & Platinum Primary Accents */
-  --accent-primary: #09090b;
-  --accent-gradient: linear-gradient(135deg, #18181b 0%, #09090b 100%);
-  --accent-gradient-hover: linear-gradient(135deg, #27272a 0%, #18181b 100%);
+  /* Emerald Velvet Primary Accents (Neon Mint) */
+  --accent-primary: #10b981;
+  --accent-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #059669 0%, #047857 100%);
 
-  /* Light Theme (Clean Minimalist White) */
-  --bg-primary: #fafafa;
-  --bg-secondary: #f4f4f5;
-  --bg-sidebar: #09090b;
+  /* Light Theme (Clean Mint White) */
+  --bg-primary: #f0fdf4;
+  --bg-secondary: #dcfce7;
+  --bg-sidebar: #061a14;
   --card-bg: #ffffff;
-  --card-border: rgba(9, 9, 11, 0.1);
-  --border-color: rgba(9, 9, 11, 0.1);
+  --card-border: rgba(16, 185, 129, 0.15);
+  --border-color: rgba(16, 185, 129, 0.15);
   
-  --text-primary: #09090b;
-  --text-secondary: #52525b;
-  --text-muted: #a1a1aa;
-  --text-on-sidebar: #fafafa;
+  --text-primary: #064e3b;
+  --text-secondary: #047857;
+  --text-muted: #34d399;
+  --text-on-sidebar: #f0fdf4;
   
-  --accent-secondary: #10b981; /* Emerald Dot */
+  --accent-secondary: #34d399; /* Spring Sage */
   
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
   
-  --success-bg: rgba(16, 185, 129, 0.08);
-  --warning-bg: rgba(245, 158, 11, 0.08);
-  --danger-bg: rgba(239, 68, 68, 0.08);
+  --success-bg: rgba(16, 185, 129, 0.1);
+  --warning-bg: rgba(245, 158, 11, 0.1);
+  --danger-bg: rgba(239, 68, 68, 0.1);
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.08);
+  --shadow-sm: 0 1px 3px rgba(6, 78, 59, 0.06);
+  --shadow-md: 0 4px 12px rgba(16, 185, 129, 0.1);
+  --shadow-lg: 0 12px 24px -4px rgba(16, 185, 129, 0.15);
 
-  --backdrop-blur: blur(20px);
+  --backdrop-blur: blur(16px);
 }
 
 [data-theme="dark"] {
-  /* Minimalist Onyx & Platinum (Pure Black / Zinc & Platinum White) */
-  --bg-primary: #09090b; /* Pure Matte Carbon */
-  --bg-secondary: #18181b; /* Zinc 900 */
-  --bg-sidebar: #050506;
-  --card-bg: #18181b;
-  --card-border: rgba(255, 255, 255, 0.1);
-  --border-color: rgba(255, 255, 255, 0.1);
+  /* Emerald Velvet (Dark Pine Forest & Neon Mint) */
+  --bg-primary: #061a14; /* Dark Pine Forest */
+  --bg-secondary: #0d2820; /* Deep Emerald Bay Card Container */
+  --bg-sidebar: #03100c;
+  --card-bg: #0d2820;
+  --card-border: rgba(0, 245, 160, 0.18);
+  --border-color: rgba(0, 245, 160, 0.18);
   
-  --text-primary: #fafafa;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --text-on-sidebar: #fafafa;
+  --text-primary: #f0fdf4;
+  --text-secondary: #a7f3d0;
+  --text-muted: #6ee7b7;
+  --text-on-sidebar: #f0fdf4;
   
-  --accent-primary: #fafafa; /* Platinum White */
-  --accent-gradient: linear-gradient(135deg, #ffffff 0%, #e4e4e7 100%);
-  --accent-gradient-hover: linear-gradient(135deg, #e4e4e7 0%, #d4d4d8 100%);
-  --accent-secondary: #10b981; /* Neon Emerald Dot */
+  --accent-primary: #00f5a0; /* Neon Mint */
+  --accent-gradient: linear-gradient(135deg, #00f5a0 0%, #10b981 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --accent-secondary: #34d399; /* Spring Sage */
   
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #f43f5e;
+  --success: #00f5a0;
+  --warning: #fbbf24;
+  --danger: #fb7185;
 
-  --success-bg: rgba(16, 185, 129, 0.12);
-  --warning-bg: rgba(245, 158, 11, 0.12);
-  --danger-bg: rgba(244, 63, 94, 0.12);
+  --success-bg: rgba(0, 245, 160, 0.15);
+  --warning-bg: rgba(251, 191, 36, 0.15);
+  --danger-bg: rgba(251, 113, 133, 0.15);
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.6);
-  --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.7);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 20px rgba(0, 245, 160, 0.12);
+  --shadow-lg: 0 16px 32px rgba(0, 245, 160, 0.18);
 }
 
 /* ==========================================================================
@@ -151,13 +151,13 @@ a {
 
 .glow-btn {
   background: var(--accent-gradient) !important;
-  color: #09090b !important;
+  color: #032e27 !important;
   border: none !important;
   border-radius: var(--radius-md) !important;
   padding: 12px 24px;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 4px 16px rgba(0, 245, 160, 0.35) !important;
   transition: all var(--transition-fast);
   display: inline-flex;
   align-items: center;
@@ -166,8 +166,9 @@ a {
 
 .glow-btn:hover {
   background: var(--accent-gradient-hover) !important;
+  color: #ffffff !important;
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.35) !important;
+  box-shadow: 0 6px 22px rgba(0, 245, 160, 0.5) !important;
 }
 
 .glow-btn:active {
