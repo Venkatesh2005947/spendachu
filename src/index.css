@@ -1,11 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ==========================================================================
-   CSS Design Tokens (Theme 5: Cyber Midnight)
+   CSS Design Tokens (Theme 6: Nordic Slate)
    ========================================================================== */
 :root {
   /* Fonts */
-  --font-heading: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   /* Common Speeds & Radii */
@@ -17,71 +17,71 @@
   --transition-smooth: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Cyber Midnight Primary Accents (Violet to Cyan) */
-  --accent-primary: #8b5cf6;
-  --accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
-  --accent-gradient-hover: linear-gradient(135deg, #7c3aed 0%, #0891b2 100%);
+  /* Nordic Slate Primary Accents (Lime Mint) */
+  --accent-primary: #84cc16;
+  --accent-gradient: linear-gradient(135deg, #a3e635 0%, #84cc16 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #84cc16 0%, #65a30d 100%);
 
-  /* Light Theme (Clean Tech White) */
+  /* Light Theme (Clean Nordic White) */
   --bg-primary: #f8fafc;
   --bg-secondary: #f1f5f9;
-  --bg-sidebar: #0f172a;
+  --bg-sidebar: #0f141c;
   --card-bg: #ffffff;
-  --card-border: rgba(139, 92, 246, 0.15);
-  --border-color: rgba(139, 92, 246, 0.15);
+  --card-border: rgba(132, 204, 22, 0.18);
+  --border-color: rgba(132, 204, 22, 0.18);
   
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #94a3b8;
   --text-on-sidebar: #f8fafc;
   
-  --accent-secondary: #06b6d4; /* Cyan */
+  --accent-secondary: #14b8a6; /* Teal */
   
-  --success: #10b981;
+  --success: #84cc16;
   --warning: #f59e0b;
   --danger: #ef4444;
   
-  --success-bg: rgba(16, 185, 129, 0.08);
-  --warning-bg: rgba(245, 158, 11, 0.08);
-  --danger-bg: rgba(239, 68, 68, 0.08);
+  --success-bg: rgba(132, 204, 22, 0.1);
+  --warning-bg: rgba(245, 158, 11, 0.1);
+  --danger-bg: rgba(239, 68, 68, 0.1);
 
   --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 4px 12px rgba(139, 92, 246, 0.1);
-  --shadow-lg: 0 12px 24px -4px rgba(139, 92, 246, 0.18);
+  --shadow-md: 0 4px 12px rgba(132, 204, 22, 0.12);
+  --shadow-lg: 0 12px 24px -4px rgba(132, 204, 22, 0.18);
 
   --backdrop-blur: blur(16px);
 }
 
 [data-theme="dark"] {
-  /* Cyber Midnight (Deep Cosmic Slate & Violet-Cyan Glow) */
-  --bg-primary: #030712; /* Deep Cosmic Obsidian */
-  --bg-secondary: #0f172a; /* Card Container */
-  --bg-sidebar: #02040a;
-  --card-bg: #0f172a;
-  --card-border: rgba(139, 92, 246, 0.22);
-  --border-color: rgba(139, 92, 246, 0.22);
+  /* Nordic Slate (Wise & Klarna Style Lime Mint & Teal) */
+  --bg-primary: #0f141c; /* Nordic Slate Dark */
+  --bg-secondary: #171e29; /* Card Container */
+  --bg-sidebar: #090d14;
+  --card-bg: #171e29;
+  --card-border: rgba(163, 230, 53, 0.18);
+  --border-color: rgba(163, 230, 53, 0.18);
   
   --text-primary: #f8fafc;
   --text-secondary: #cbd5e1;
   --text-muted: #64748b;
   --text-on-sidebar: #f8fafc;
   
-  --accent-primary: #8b5cf6; /* Neon Violet */
-  --accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
-  --accent-gradient-hover: linear-gradient(135deg, #7c3aed 0%, #0891b2 100%);
-  --accent-secondary: #06b6d4; /* Electric Cyan */
+  --accent-primary: #a3e635; /* Bright Lime Mint */
+  --accent-gradient: linear-gradient(135deg, #a3e635 0%, #84cc16 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #84cc16 0%, #65a30d 100%);
+  --accent-secondary: #14b8a6; /* Vibrant Teal */
   
-  --success: #10b981;
-  --warning: #f59e0b;
+  --success: #a3e635;
+  --warning: #fbbf24;
   --danger: #f43f5e;
 
-  --success-bg: rgba(16, 185, 129, 0.15);
-  --warning-bg: rgba(245, 158, 11, 0.15);
+  --success-bg: rgba(163, 230, 53, 0.15);
+  --warning-bg: rgba(251, 191, 36, 0.15);
   --danger-bg: rgba(244, 63, 94, 0.15);
 
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 8px 20px rgba(139, 92, 246, 0.2);
-  --shadow-lg: 0 16px 32px rgba(139, 92, 246, 0.3);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 20px rgba(163, 230, 53, 0.15);
+  --shadow-lg: 0 16px 32px rgba(163, 230, 53, 0.22);
 }
 
 /* ==========================================================================
@@ -151,13 +151,13 @@ a {
 
 .glow-btn {
   background: var(--accent-gradient) !important;
-  color: #ffffff !important;
+  color: #0f172a !important;
   border: none !important;
   border-radius: var(--radius-md) !important;
   padding: 12px 24px;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4) !important;
+  box-shadow: 0 4px 16px rgba(163, 230, 53, 0.35) !important;
   transition: all var(--transition-fast);
   display: inline-flex;
   align-items: center;
@@ -168,7 +168,7 @@ a {
   background: var(--accent-gradient-hover) !important;
   color: #ffffff !important;
   transform: translateY(-1px);
-  box-shadow: 0 6px 22px rgba(139, 92, 246, 0.55) !important;
+  box-shadow: 0 6px 22px rgba(163, 230, 53, 0.45) !important;
 }
 
 .glow-btn:active {
