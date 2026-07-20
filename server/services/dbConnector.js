@@ -446,6 +446,26 @@ const MIGRATIONS = [
         )
       `);
     }
+  },
+  {
+    version: '009_add_inactive_reminder_fields',
+    up: async (runQuery) => {
+      try {
+        await runQuery(`ALTER TABLE users ADD COLUMN last_login BIGINT`);
+      } catch (e) { console.log('last_login column might exist, skipping...'); }
+      try {
+        await runQuery(`ALTER TABLE users ADD COLUMN last_inactive_reminder_sent BIGINT`);
+      } catch (e) { console.log('last_inactive_reminder_sent column might exist, skipping...'); }
+      try {
+        await runQuery(`ALTER TABLE users ADD COLUMN inactive_reminder_count INTEGER DEFAULT 0`);
+      } catch (e) { console.log('inactive_reminder_count column might exist, skipping...'); }
+      try {
+        await runQuery(`ALTER TABLE users ADD COLUMN inactive_reminders_enabled INTEGER DEFAULT 1`);
+      } catch (e) { console.log('inactive_reminders_enabled column might exist, skipping...'); }
+      try {
+        await runQuery(`ALTER TABLE users ADD COLUMN last_reminder_stage TEXT`);
+      } catch (e) { console.log('last_reminder_stage column might exist, skipping...'); }
+    }
   }
 ];
 

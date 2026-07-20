@@ -275,6 +275,12 @@ const {
   dispatchWeeklyReportEmail,
   getWeeklyReportsHistory
 } = require('./services/weeklyReportEngine');
+const {
+  getInactiveUsersRequiringReminders,
+  processAndDispatchInactiveReminders,
+  resetUserLoginState,
+  updateReminderPreference
+} = require('./services/inactiveUserReminderService');
 
 
 // JWT Authentication Middleware
@@ -337,9 +343,10 @@ app.post('/api/register', (req, res) => {
   const userId = `usr_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
   const passwordHash = bcrypt.hashSync(password, 10);
 
+  const regTime = Date.now();
   db.run(
-    `INSERT INTO users (id, name, email, password_hash) VALUES (?, ?, ?, ?)`,
-    [userId, name, normalizedEmail, passwordHash],
+    `INSERT INTO users (id, name, email, password_hash, created_at, last_login) VALUES (?, ?, ?, ?, ?, ?)`,
+    [userId, name, normalizedEmail, passwordHash, regTime, regTime],
     function (err) {
       if (err) {
         if (err.message.includes('UNIQUE constraint failed')) {
@@ -410,6 +417,9 @@ app.post('/api/login', (req, res) => {
       }
 
       failedLoginMap.delete(normalizedEmail);
+
+      // Reset inactivity tracking and update last_login timestamp immediately
+      resetUserLoginState(user.id);
 
       const sessionToken = jwt.sign(
         { id: user.id, email: user.email, name: user.name },
@@ -1279,6 +1289,102 @@ app.get('/api/admin/weekly-report/history', authenticateJWT, requireAdmin, async
   } catch (err) {
     console.error('Error fetching weekly report history:', err);
     res.status(500).json({ error: 'Failed to fetch weekly report history.' });
+  }
+});
+
+// ==========================================================================
+// Inactive User Reminder Endpoints
+// ==========================================================================
+
+// GET /api/admin/inactive-users - Fetch inactive users requiring reminders
+app.get('/api/admin/inactive-users', async (req, res) => {
+  try {
+    const secretHeader = req.headers['x-report-secret'] || req.headers['x-admin-webhook-secret'];
+    const expectedSecret = process.env.ADMIN_NOTIFICATION_WEBHOOK_SECRET || 'spendachu-admin-webhook-secret';
+    let isAuthorized = secretHeader && secretHeader === expectedSecret;
+
+    if (!isAuthorized) {
+      const authHeader = req.headers.authorization;
+      if (authHeader) {
+        const token = authHeader.split(' ')[1];
+        try {
+          const decoded = jwt.verify(token, JWT_SECRET);
+          const adminEmail = (process.env.ADMIN_EMAIL || 'spendachu@gmail.com').toLowerCase();
+          if (decoded.email && decoded.email.toLowerCase() === adminEmail) {
+            isAuthorized = true;
+          }
+        } catch (e) {}
+      }
+    }
+
+    if (!isAuthorized) {
+      return res.status(403).json({ error: 'Access denied: Valid Admin JWT or secret header required.' });
+    }
+
+    const inactiveUsers = await getInactiveUsersRequiringReminders();
+    res.status(200).json(inactiveUsers);
+  } catch (err) {
+    console.error('Error fetching inactive users:', err);
+    res.status(500).json({ error: 'Failed to fetch inactive users.' });
+  }
+});
+
+// POST /api/admin/inactive-users/process - Trigger Make.com webhook dispatch for inactive users
+app.post('/api/admin/inactive-users/process', async (req, res) => {
+  try {
+    const secretHeader = req.headers['x-report-secret'] || req.headers['x-admin-webhook-secret'];
+    const expectedSecret = process.env.ADMIN_NOTIFICATION_WEBHOOK_SECRET || 'spendachu-admin-webhook-secret';
+    let isAuthorized = secretHeader && secretHeader === expectedSecret;
+
+    if (!isAuthorized) {
+      const authHeader = req.headers.authorization;
+      if (authHeader) {
+        const token = authHeader.split(' ')[1];
+        try {
+          const decoded = jwt.verify(token, JWT_SECRET);
+          const adminEmail = (process.env.ADMIN_EMAIL || 'spendachu@gmail.com').toLowerCase();
+          if (decoded.email && decoded.email.toLowerCase() === adminEmail) {
+            isAuthorized = true;
+          }
+        } catch (e) {}
+      }
+    }
+
+    if (!isAuthorized) {
+      return res.status(403).json({ error: 'Access denied: Valid Admin JWT or secret header required.' });
+    }
+
+    const result = await processAndDispatchInactiveReminders();
+    res.status(200).json(result);
+  } catch (err) {
+    console.error('Error processing inactive user reminders:', err);
+    res.status(500).json({ error: 'Failed to process inactive user reminders.' });
+  }
+});
+
+// GET /api/user/settings - Fetch current user settings (e.g. reminder preferences)
+app.get('/api/user/settings', authenticateJWT, (req, res) => {
+  db.get(
+    `SELECT inactive_reminders_enabled FROM users WHERE id = ?`,
+    [req.user.id],
+    (err, userRow) => {
+      if (err) return res.status(500).json({ error: 'Failed to fetch user settings.' });
+      res.status(200).json({
+        inactiveRemindersEnabled: userRow ? (userRow.inactive_reminders_enabled !== 0) : true
+      });
+    }
+  );
+});
+
+// PATCH /api/user/settings/reminders - Toggle user's reminder opt-in/opt-out
+app.patch('/api/user/settings/reminders', authenticateJWT, async (req, res) => {
+  try {
+    const { enabled } = req.body;
+    const success = await updateReminderPreference(req.user.id, !!enabled);
+    res.status(200).json({ success, inactiveRemindersEnabled: !!enabled });
+  } catch (err) {
+    console.error('Error updating reminder settings:', err);
+    res.status(500).json({ error: 'Failed to update reminder settings.' });
   }
 });
 

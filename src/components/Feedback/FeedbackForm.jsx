@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Send, AlertCircle, CheckCircle, Mail } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Send, AlertCircle, CheckCircle, Mail, Bell, BellOff } from 'lucide-react';
 import { dbService } from '../../services/db';
 
 export default function FeedbackForm() {
@@ -8,6 +8,41 @@ export default function FeedbackForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+
+  // Reminder Settings State
+  const [remindersEnabled, setRemindersEnabled] = useState(true);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [settingsMessage, setSettingsMessage] = useState('');
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      setSettingsLoading(true);
+      const data = await dbService.getUserSettings();
+      setRemindersEnabled(data.inactiveRemindersEnabled !== false);
+    } catch (err) {
+      console.warn('Failed to load user settings:', err);
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  const handleToggleReminders = async (e) => {
+    const newValue = e.target.checked;
+    setRemindersEnabled(newValue);
+    setSettingsMessage('');
+    try {
+      await dbService.updateReminderSettings(newValue);
+      setSettingsMessage(newValue ? 'Inactivity email reminders enabled 🔔' : 'Inactivity email reminders disabled 🔕');
+      setTimeout(() => setSettingsMessage(''), 4000);
+    } catch (err) {
+      setRemindersEnabled(!newValue);
+      alert('Failed to update email preferences.');
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,8 +67,46 @@ export default function FeedbackForm() {
   };
 
   return (
-    <div className="tab-pane active" style={{ maxWidth: '600px', margin: '0 auto', padding: '20px 0' }}>
-      <div className="glass-card" style={{ padding: '30px' }}>
+    <div className="tab-pane active" style={{ maxWidth: '600px', margin: '0 auto', padding: '20px 0', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      
+      {/* Email Notification Settings Card */}
+      <div className="glass-card" style={{ padding: '24px', borderRadius: '20px', background: 'var(--card-bg)', border: '1px solid var(--card-border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ background: 'rgba(99, 102, 241, 0.15)', padding: '10px', borderRadius: '12px', color: 'var(--accent-primary)', display: 'flex' }}>
+              {remindersEnabled ? <Bell size={20} /> : <BellOff size={20} />}
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                Inactive User Reminder Emails
+              </h3>
+              <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                Receive helpful nudges if you haven't logged in for 7, 14, or 30 days
+              </p>
+            </div>
+          </div>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '13px', color: 'var(--text-primary)' }}>
+            <input 
+              type="checkbox" 
+              checked={remindersEnabled}
+              onChange={handleToggleReminders}
+              disabled={settingsLoading}
+              style={{ width: '18px', height: '18px', accentColor: 'var(--accent-primary)', cursor: 'pointer' }}
+            />
+            <span>{remindersEnabled ? 'Enabled' : 'Disabled'}</span>
+          </label>
+        </div>
+
+        {settingsMessage && (
+          <div style={{ marginTop: '12px', fontSize: '12px', color: 'var(--success)', fontWeight: '700' }}>
+            {settingsMessage}
+          </div>
+        )}
+      </div>
+
+      {/* Feedback Form Card */}
+      <div className="glass-card" style={{ padding: '30px', borderRadius: '24px' }}>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
           <div style={{

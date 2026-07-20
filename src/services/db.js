@@ -387,5 +387,39 @@ export const dbService = {
       headers: getAuthHeaders()
     });
     return handleResponse(res);
+  },
+
+  // 11. Inactive User & Settings Operations
+  async getInactiveUsersAdmin() {
+    const res = await fetch('/api/admin/inactive-users', {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async processInactiveRemindersAdmin() {
+    const res = await fetch('/api/admin/inactive-users/process', {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async getUserSettings() {
+    const res = await fetch('/api/user/settings', {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async updateReminderSettings(enabled) {
+    const res = await fetch('/api/user/settings/reminders', {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ enabled })
+    });
+    return handleResponse(res);
   }
 };
