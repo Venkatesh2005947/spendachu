@@ -3,21 +3,13 @@ SpendAchu PaddleOCR Receipt Processing Service
 ================================================
 A self-hosted FastAPI service that uses PaddleOCR to extract receipt details
 from uploaded images. Replaces Gemini Vision API for privacy and cost savings.
-
-Architecture:
-  React Frontend → Node.js Backend → This FastAPI Service → Structured JSON
-
-The service:
-  1. Receives receipt images via multipart/form-data
-  2. Runs PaddleOCR text detection + recognition (initialized once at startup)
-  3. Uses rule-based parsing to extract merchant, date, time, amount, tax, etc.
-  4. Returns JSON in the exact format the SpendAchu frontend expects
 """
 
 import os
 import io
 import logging
 import time
+import traceback
 
 from fastapi import FastAPI, File, UploadFile, Header, HTTPException
 from fastapi.responses import JSONResponse
@@ -44,27 +36,48 @@ HOST = os.getenv("OCR_HOST", "0.0.0.0")
 PORT = int(os.getenv("OCR_PORT", "8100"))
 
 # ---------------------------------------------------------------------------
-# PaddleOCR Singleton — initialized once at startup
+# PaddleOCR Singleton — lazy initialized on first request
 # ---------------------------------------------------------------------------
 ocr_engine = None
+ocr_init_error = None
 
 
-def init_ocr():
-    """Initialize PaddleOCR engine once. Called on startup."""
-    global ocr_engine
-    logger.info("🚀 Initializing PaddleOCR engine (this may take 30-60 seconds on first run)...")
+def get_ocr_engine():
+    """
+    Lazy-load PaddleOCR on first use.
+    Returns the engine or raises HTTPException if init failed.
+    """
+    global ocr_engine, ocr_init_error
+
+    # Already initialized successfully
+    if ocr_engine is not None:
+        return ocr_engine
+
+    # Previously failed — don't retry on every request
+    if ocr_init_error is not None:
+        raise HTTPException(
+            status_code=503,
+            detail=f"OCR engine failed to initialize: {ocr_init_error}"
+        )
+
+    # First call — attempt initialization
+    logger.info("🚀 Initializing PaddleOCR engine (first request)...")
     start = time.time()
-
-    from paddleocr import PaddleOCR
-
-    ocr_engine = PaddleOCR(
-        use_angle_cls=True,    # Handle rotated text
-        lang="en",             # English receipts
-        use_gpu=False,         # CPU-only
-        show_log=False         # Suppress PaddleOCR internal logs
-    )
-    elapsed = round(time.time() - start, 2)
-    logger.info(f"✅ PaddleOCR engine ready in {elapsed}s")
+    try:
+        from paddleocr import PaddleOCR
+        # Use minimal safe parameters compatible with PaddleOCR 3.x
+        ocr_engine = PaddleOCR(lang="en")
+        elapsed = round(time.time() - start, 2)
+        logger.info(f"✅ PaddleOCR engine ready in {elapsed}s")
+        return ocr_engine
+    except Exception as e:
+        ocr_init_error = str(e)
+        logger.error(f"❌ PaddleOCR init failed: {e}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=503,
+            detail=f"OCR engine failed to initialize: {e}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -77,16 +90,10 @@ app = FastAPI(
 )
 
 
-@app.on_event("startup")
-async def startup_event():
-    """Load OCR model into memory once when the service starts."""
-    init_ocr()
-
-
 # ---------------------------------------------------------------------------
 # Auth middleware helper
 # ---------------------------------------------------------------------------
-def verify_token(token: str | None):
+def verify_token(token):
     """Verify the x-ocr-token header matches the expected service token."""
     if not token or token != OCR_SERVICE_TOKEN:
         logger.warning("🚫 Unauthorized OCR request (bad or missing x-ocr-token)")
@@ -98,18 +105,19 @@ def verify_token(token: str | None):
 # ---------------------------------------------------------------------------
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for monitoring and load balancer probes."""
+    """Health check endpoint — does NOT trigger OCR init."""
     return {
         "status": "healthy",
         "engine": "PaddleOCR",
         "ready": ocr_engine is not None,
+        "init_error": ocr_init_error,
     }
 
 
 @app.post("/process-receipt")
 async def process_receipt(
     file: UploadFile = File(..., description="Receipt image (JPEG/PNG)"),
-    x_ocr_token: str | None = Header(None, alias="x-ocr-token"),
+    x_ocr_token: str = Header(None, alias="x-ocr-token"),
 ):
     """
     Process a receipt image and return structured expense data.
@@ -127,7 +135,11 @@ async def process_receipt(
             detail=f"Unsupported file type: {file.content_type}. Use JPEG, PNG, or WebP.",
         )
 
+    raw_bytes = None
     try:
+        # Get OCR engine (lazy init)
+        engine = get_ocr_engine()
+
         # Read and convert image
         raw_bytes = await file.read()
         if len(raw_bytes) == 0:
@@ -140,40 +152,25 @@ async def process_receipt(
 
         # Run OCR
         start = time.time()
-        ocr_result = ocr_engine.ocr(img_array, cls=True)
+        ocr_result = engine.ocr(img_array, cls=True)
         ocr_elapsed = round(time.time() - start, 2)
 
         # Extract text lines with confidence scores
         lines = []
         if ocr_result and ocr_result[0]:
             for entry in ocr_result[0]:
-                text = entry[1][0]           # detected text
-                conf = round(entry[1][1], 3) # confidence score 0-1
-                lines.append({"text": text, "confidence": conf})
+                try:
+                    text = entry[1][0]
+                    conf = round(float(entry[1][1]), 3)
+                    lines.append({"text": text, "confidence": conf})
+                except (IndexError, TypeError, ValueError):
+                    continue
 
         logger.info(f"🔍 OCR completed in {ocr_elapsed}s — {len(lines)} text lines detected")
 
         if not lines:
             logger.warning("⚠️ No text detected in receipt image")
-            return JSONResponse(content={
-                "merchant": None,
-                "date": None,
-                "time": None,
-                "amount": None,
-                "tax": None,
-                "category": "Others",
-                "paymentMethod": "Cash",
-                "notes": None,
-                "confidence": {
-                    "merchant": False,
-                    "date": False,
-                    "time": False,
-                    "amount": False,
-                    "tax": False,
-                    "category": False,
-                    "paymentMethod": False,
-                },
-            })
+            return JSONResponse(content=_empty_result())
 
         # Parse structured data from OCR lines
         parser = ReceiptParser()
@@ -189,14 +186,36 @@ async def process_receipt(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Receipt processing failed: {e}", exc_info=True)
+        logger.error(f"❌ Receipt processing failed: {e}")
+        logger.error(traceback.format_exc())
         raise HTTPException(
             status_code=500,
             detail="Receipt processing failed. Please try again with a clearer image.",
         )
     finally:
-        # Never persist receipt images in memory
         raw_bytes = None
+
+
+def _empty_result():
+    return {
+        "merchant": None,
+        "date": None,
+        "time": None,
+        "amount": None,
+        "tax": None,
+        "category": "Others",
+        "paymentMethod": "Cash",
+        "notes": None,
+        "confidence": {
+            "merchant": False,
+            "date": False,
+            "time": False,
+            "amount": False,
+            "tax": False,
+            "category": False,
+            "paymentMethod": False,
+        },
+    }
 
 
 # ---------------------------------------------------------------------------
