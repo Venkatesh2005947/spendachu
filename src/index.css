@@ -1,11 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ==========================================================================
-   CSS Design Tokens (Theme 7: Crimson Executive)
+   CSS Design Tokens (Theme 8: Titanium Cyan)
    ========================================================================== */
 :root {
   /* Fonts */
-  --font-heading: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   /* Common Speeds & Radii */
@@ -17,59 +17,59 @@
   --transition-smooth: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Crimson Executive Primary Accents (Imperial Ruby) */
-  --accent-primary: #e11d48;
-  --accent-gradient: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
-  --accent-gradient-hover: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+  /* Titanium Cyan Primary Accents (Electric Cyan) */
+  --accent-primary: #0284c7;
+  --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
 
-  /* Light Theme (Clean Ruby White) */
-  --bg-primary: #fff1f2;
-  --bg-secondary: #ffe4e6;
-  --bg-sidebar: #0f0507;
+  /* Light Theme (Clean Cyan White) */
+  --bg-primary: #f0f9ff;
+  --bg-secondary: #e0f2fe;
+  --bg-sidebar: #0a0f1d;
   --card-bg: #ffffff;
-  --card-border: rgba(225, 29, 72, 0.15);
-  --border-color: rgba(225, 29, 72, 0.15);
+  --card-border: rgba(6, 182, 212, 0.15);
+  --border-color: rgba(6, 182, 212, 0.15);
   
-  --text-primary: #881337;
-  --text-secondary: #9f1239;
-  --text-muted: #f43f5e;
-  --text-on-sidebar: #fff1f2;
+  --text-primary: #0369a1;
+  --text-secondary: #0284c7;
+  --text-muted: #38bdf8;
+  --text-on-sidebar: #f0f9ff;
   
-  --accent-secondary: #fda4af; /* Rose Gold */
+  --accent-secondary: #38bdf8; /* Azure Sky */
   
   --success: #10b981;
   --warning: #f59e0b;
-  --danger: #e11d48;
+  --danger: #ef4444;
   
   --success-bg: rgba(16, 185, 129, 0.1);
   --warning-bg: rgba(245, 158, 11, 0.1);
-  --danger-bg: rgba(225, 29, 72, 0.1);
+  --danger-bg: rgba(239, 68, 68, 0.1);
 
-  --shadow-sm: 0 1px 3px rgba(136, 19, 55, 0.06);
-  --shadow-md: 0 4px 12px rgba(225, 29, 72, 0.1);
-  --shadow-lg: 0 12px 24px -4px rgba(225, 29, 72, 0.15);
+  --shadow-sm: 0 1px 3px rgba(3, 105, 161, 0.06);
+  --shadow-md: 0 4px 12px rgba(6, 182, 212, 0.1);
+  --shadow-lg: 0 12px 24px -4px rgba(6, 182, 212, 0.15);
 
   --backdrop-blur: blur(16px);
 }
 
 [data-theme="dark"] {
-  /* Crimson Executive (Deep Bordeaux & Imperial Ruby Luxury) */
-  --bg-primary: #0f0507; /* Deep Bordeaux Slate */
-  --bg-secondary: #1c0a0e; /* Dark Wine Card Container */
-  --bg-sidebar: #090304;
-  --card-bg: #1c0a0e;
-  --card-border: rgba(244, 63, 94, 0.2);
-  --border-color: rgba(244, 63, 94, 0.2);
+  /* Titanium Cyan (Titanium Charcoal & Electric Cyan Exchange) */
+  --bg-primary: #0a0f1d; /* Titanium Charcoal Blue */
+  --bg-secondary: #111827; /* Gray 900 Pro Card Container */
+  --bg-sidebar: #060913;
+  --card-bg: #111827;
+  --card-border: rgba(6, 182, 212, 0.2);
+  --border-color: rgba(6, 182, 212, 0.2);
   
-  --text-primary: #fff1f2;
-  --text-secondary: #fecdd3;
-  --text-muted: #fda4af;
-  --text-on-sidebar: #fff1f2;
+  --text-primary: #f0f9ff;
+  --text-secondary: #bae6fd;
+  --text-muted: #7dd3fc;
+  --text-on-sidebar: #f0f9ff;
   
-  --accent-primary: #f43f5e; /* Imperial Ruby */
-  --accent-gradient: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
-  --accent-gradient-hover: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
-  --accent-secondary: #fda4af; /* Rose Gold */
+  --accent-primary: #06b6d4; /* Electric Cyan */
+  --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  --accent-secondary: #38bdf8; /* Azure Sky */
   
   --success: #10b981;
   --warning: #fbbf24;
@@ -80,8 +80,8 @@
   --danger-bg: rgba(244, 63, 94, 0.18);
 
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 8px 20px rgba(244, 63, 94, 0.15);
-  --shadow-lg: 0 16px 32px rgba(244, 63, 94, 0.25);
+  --shadow-md: 0 8px 20px rgba(6, 182, 212, 0.15);
+  --shadow-lg: 0 16px 32px rgba(6, 182, 212, 0.25);
 }
 
 /* ==========================================================================
@@ -151,13 +151,13 @@ a {
 
 .glow-btn {
   background: var(--accent-gradient) !important;
-  color: #ffffff !important;
+  color: #060913 !important;
   border: none !important;
   border-radius: var(--radius-md) !important;
   padding: 12px 24px;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(244, 63, 94, 0.4) !important;
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.35) !important;
   transition: all var(--transition-fast);
   display: inline-flex;
   align-items: center;
@@ -168,7 +168,7 @@ a {
   background: var(--accent-gradient-hover) !important;
   color: #ffffff !important;
   transform: translateY(-1px);
-  box-shadow: 0 6px 22px rgba(244, 63, 94, 0.55) !important;
+  box-shadow: 0 6px 22px rgba(6, 182, 212, 0.5) !important;
 }
 
 .glow-btn:active {
