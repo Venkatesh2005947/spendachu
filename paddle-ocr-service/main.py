@@ -36,7 +36,7 @@ logger = logging.getLogger("ocr-service")
 # ---------------------------------------------------------------------------
 OCR_SERVICE_TOKEN = os.getenv("OCR_SERVICE_TOKEN", "spendachu-ocr-secret-2024")
 HOST = os.getenv("OCR_HOST", "0.0.0.0")
-PORT = int(os.getenv("OCR_PORT", "8100"))
+PORT = int(os.getenv("PORT", os.getenv("OCR_PORT", "8100")))
 
 
 # ---------------------------------------------------------------------------
