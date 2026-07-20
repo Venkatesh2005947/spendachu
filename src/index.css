@@ -1,11 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ==========================================================================
-   CSS Design Tokens (Theme 6: Nordic Slate)
+   CSS Design Tokens (Theme 7: Crimson Executive)
    ========================================================================== */
 :root {
   /* Fonts */
-  --font-heading: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   /* Common Speeds & Radii */
@@ -17,71 +17,71 @@
   --transition-smooth: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Nordic Slate Primary Accents (Lime Mint) */
-  --accent-primary: #84cc16;
-  --accent-gradient: linear-gradient(135deg, #a3e635 0%, #84cc16 100%);
-  --accent-gradient-hover: linear-gradient(135deg, #84cc16 0%, #65a30d 100%);
+  /* Crimson Executive Primary Accents (Imperial Ruby) */
+  --accent-primary: #e11d48;
+  --accent-gradient: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
 
-  /* Light Theme (Clean Nordic White) */
-  --bg-primary: #f8fafc;
-  --bg-secondary: #f1f5f9;
-  --bg-sidebar: #0f141c;
+  /* Light Theme (Clean Ruby White) */
+  --bg-primary: #fff1f2;
+  --bg-secondary: #ffe4e6;
+  --bg-sidebar: #0f0507;
   --card-bg: #ffffff;
-  --card-border: rgba(132, 204, 22, 0.18);
-  --border-color: rgba(132, 204, 22, 0.18);
+  --card-border: rgba(225, 29, 72, 0.15);
+  --border-color: rgba(225, 29, 72, 0.15);
   
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --text-on-sidebar: #f8fafc;
+  --text-primary: #881337;
+  --text-secondary: #9f1239;
+  --text-muted: #f43f5e;
+  --text-on-sidebar: #fff1f2;
   
-  --accent-secondary: #14b8a6; /* Teal */
+  --accent-secondary: #fda4af; /* Rose Gold */
   
-  --success: #84cc16;
+  --success: #10b981;
   --warning: #f59e0b;
-  --danger: #ef4444;
+  --danger: #e11d48;
   
-  --success-bg: rgba(132, 204, 22, 0.1);
+  --success-bg: rgba(16, 185, 129, 0.1);
   --warning-bg: rgba(245, 158, 11, 0.1);
-  --danger-bg: rgba(239, 68, 68, 0.1);
+  --danger-bg: rgba(225, 29, 72, 0.1);
 
-  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 4px 12px rgba(132, 204, 22, 0.12);
-  --shadow-lg: 0 12px 24px -4px rgba(132, 204, 22, 0.18);
+  --shadow-sm: 0 1px 3px rgba(136, 19, 55, 0.06);
+  --shadow-md: 0 4px 12px rgba(225, 29, 72, 0.1);
+  --shadow-lg: 0 12px 24px -4px rgba(225, 29, 72, 0.15);
 
   --backdrop-blur: blur(16px);
 }
 
 [data-theme="dark"] {
-  /* Nordic Slate (Wise & Klarna Style Lime Mint & Teal) */
-  --bg-primary: #0f141c; /* Nordic Slate Dark */
-  --bg-secondary: #171e29; /* Card Container */
-  --bg-sidebar: #090d14;
-  --card-bg: #171e29;
-  --card-border: rgba(163, 230, 53, 0.18);
-  --border-color: rgba(163, 230, 53, 0.18);
+  /* Crimson Executive (Deep Bordeaux & Imperial Ruby Luxury) */
+  --bg-primary: #0f0507; /* Deep Bordeaux Slate */
+  --bg-secondary: #1c0a0e; /* Dark Wine Card Container */
+  --bg-sidebar: #090304;
+  --card-bg: #1c0a0e;
+  --card-border: rgba(244, 63, 94, 0.2);
+  --border-color: rgba(244, 63, 94, 0.2);
   
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #64748b;
-  --text-on-sidebar: #f8fafc;
+  --text-primary: #fff1f2;
+  --text-secondary: #fecdd3;
+  --text-muted: #fda4af;
+  --text-on-sidebar: #fff1f2;
   
-  --accent-primary: #a3e635; /* Bright Lime Mint */
-  --accent-gradient: linear-gradient(135deg, #a3e635 0%, #84cc16 100%);
-  --accent-gradient-hover: linear-gradient(135deg, #84cc16 0%, #65a30d 100%);
-  --accent-secondary: #14b8a6; /* Vibrant Teal */
+  --accent-primary: #f43f5e; /* Imperial Ruby */
+  --accent-gradient: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+  --accent-secondary: #fda4af; /* Rose Gold */
   
-  --success: #a3e635;
+  --success: #10b981;
   --warning: #fbbf24;
   --danger: #f43f5e;
 
-  --success-bg: rgba(163, 230, 53, 0.15);
+  --success-bg: rgba(16, 185, 129, 0.15);
   --warning-bg: rgba(251, 191, 36, 0.15);
-  --danger-bg: rgba(244, 63, 94, 0.15);
+  --danger-bg: rgba(244, 63, 94, 0.18);
 
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 8px 20px rgba(163, 230, 53, 0.15);
-  --shadow-lg: 0 16px 32px rgba(163, 230, 53, 0.22);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 8px 20px rgba(244, 63, 94, 0.15);
+  --shadow-lg: 0 16px 32px rgba(244, 63, 94, 0.25);
 }
 
 /* ==========================================================================
@@ -151,13 +151,13 @@ a {
 
 .glow-btn {
   background: var(--accent-gradient) !important;
-  color: #0f172a !important;
+  color: #ffffff !important;
   border: none !important;
   border-radius: var(--radius-md) !important;
   padding: 12px 24px;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(163, 230, 53, 0.35) !important;
+  box-shadow: 0 4px 16px rgba(244, 63, 94, 0.4) !important;
   transition: all var(--transition-fast);
   display: inline-flex;
   align-items: center;
@@ -168,7 +168,7 @@ a {
   background: var(--accent-gradient-hover) !important;
   color: #ffffff !important;
   transform: translateY(-1px);
-  box-shadow: 0 6px 22px rgba(163, 230, 53, 0.45) !important;
+  box-shadow: 0 6px 22px rgba(244, 63, 94, 0.55) !important;
 }
 
 .glow-btn:active {
