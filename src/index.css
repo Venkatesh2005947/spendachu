@@ -1,11 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ==========================================================================
-   CSS Design Tokens (Theme 4: Emerald Velvet)
+   CSS Design Tokens (Theme 5: Cyber Midnight)
    ========================================================================== */
 :root {
   /* Fonts */
-  --font-heading: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   /* Common Speeds & Radii */
@@ -17,71 +17,71 @@
   --transition-smooth: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Emerald Velvet Primary Accents (Neon Mint) */
-  --accent-primary: #10b981;
-  --accent-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  --accent-gradient-hover: linear-gradient(135deg, #059669 0%, #047857 100%);
+  /* Cyber Midnight Primary Accents (Violet to Cyan) */
+  --accent-primary: #8b5cf6;
+  --accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #7c3aed 0%, #0891b2 100%);
 
-  /* Light Theme (Clean Mint White) */
-  --bg-primary: #f0fdf4;
-  --bg-secondary: #dcfce7;
-  --bg-sidebar: #061a14;
+  /* Light Theme (Clean Tech White) */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-sidebar: #0f172a;
   --card-bg: #ffffff;
-  --card-border: rgba(16, 185, 129, 0.15);
-  --border-color: rgba(16, 185, 129, 0.15);
+  --card-border: rgba(139, 92, 246, 0.15);
+  --border-color: rgba(139, 92, 246, 0.15);
   
-  --text-primary: #064e3b;
-  --text-secondary: #047857;
-  --text-muted: #34d399;
-  --text-on-sidebar: #f0fdf4;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-on-sidebar: #f8fafc;
   
-  --accent-secondary: #34d399; /* Spring Sage */
+  --accent-secondary: #06b6d4; /* Cyan */
   
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
   
-  --success-bg: rgba(16, 185, 129, 0.1);
-  --warning-bg: rgba(245, 158, 11, 0.1);
-  --danger-bg: rgba(239, 68, 68, 0.1);
+  --success-bg: rgba(16, 185, 129, 0.08);
+  --warning-bg: rgba(245, 158, 11, 0.08);
+  --danger-bg: rgba(239, 68, 68, 0.08);
 
-  --shadow-sm: 0 1px 3px rgba(6, 78, 59, 0.06);
-  --shadow-md: 0 4px 12px rgba(16, 185, 129, 0.1);
-  --shadow-lg: 0 12px 24px -4px rgba(16, 185, 129, 0.15);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(139, 92, 246, 0.1);
+  --shadow-lg: 0 12px 24px -4px rgba(139, 92, 246, 0.18);
 
   --backdrop-blur: blur(16px);
 }
 
 [data-theme="dark"] {
-  /* Emerald Velvet (Dark Pine Forest & Neon Mint) */
-  --bg-primary: #061a14; /* Dark Pine Forest */
-  --bg-secondary: #0d2820; /* Deep Emerald Bay Card Container */
-  --bg-sidebar: #03100c;
-  --card-bg: #0d2820;
-  --card-border: rgba(0, 245, 160, 0.18);
-  --border-color: rgba(0, 245, 160, 0.18);
+  /* Cyber Midnight (Deep Cosmic Slate & Violet-Cyan Glow) */
+  --bg-primary: #030712; /* Deep Cosmic Obsidian */
+  --bg-secondary: #0f172a; /* Card Container */
+  --bg-sidebar: #02040a;
+  --card-bg: #0f172a;
+  --card-border: rgba(139, 92, 246, 0.22);
+  --border-color: rgba(139, 92, 246, 0.22);
   
-  --text-primary: #f0fdf4;
-  --text-secondary: #a7f3d0;
-  --text-muted: #6ee7b7;
-  --text-on-sidebar: #f0fdf4;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --text-on-sidebar: #f8fafc;
   
-  --accent-primary: #00f5a0; /* Neon Mint */
-  --accent-gradient: linear-gradient(135deg, #00f5a0 0%, #10b981 100%);
-  --accent-gradient-hover: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  --accent-secondary: #34d399; /* Spring Sage */
+  --accent-primary: #8b5cf6; /* Neon Violet */
+  --accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #7c3aed 0%, #0891b2 100%);
+  --accent-secondary: #06b6d4; /* Electric Cyan */
   
-  --success: #00f5a0;
-  --warning: #fbbf24;
-  --danger: #fb7185;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #f43f5e;
 
-  --success-bg: rgba(0, 245, 160, 0.15);
-  --warning-bg: rgba(251, 191, 36, 0.15);
-  --danger-bg: rgba(251, 113, 133, 0.15);
+  --success-bg: rgba(16, 185, 129, 0.15);
+  --warning-bg: rgba(245, 158, 11, 0.15);
+  --danger-bg: rgba(244, 63, 94, 0.15);
 
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 8px 20px rgba(0, 245, 160, 0.12);
-  --shadow-lg: 0 16px 32px rgba(0, 245, 160, 0.18);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 8px 20px rgba(139, 92, 246, 0.2);
+  --shadow-lg: 0 16px 32px rgba(139, 92, 246, 0.3);
 }
 
 /* ==========================================================================
@@ -151,13 +151,13 @@ a {
 
 .glow-btn {
   background: var(--accent-gradient) !important;
-  color: #032e27 !important;
+  color: #ffffff !important;
   border: none !important;
   border-radius: var(--radius-md) !important;
   padding: 12px 24px;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 245, 160, 0.35) !important;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4) !important;
   transition: all var(--transition-fast);
   display: inline-flex;
   align-items: center;
@@ -168,7 +168,7 @@ a {
   background: var(--accent-gradient-hover) !important;
   color: #ffffff !important;
   transform: translateY(-1px);
-  box-shadow: 0 6px 22px rgba(0, 245, 160, 0.5) !important;
+  box-shadow: 0 6px 22px rgba(139, 92, 246, 0.55) !important;
 }
 
 .glow-btn:active {
