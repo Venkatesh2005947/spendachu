@@ -1,11 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ==========================================================================
-   CSS Design Tokens (Theme 1: Executive Obsidian)
+   CSS Design Tokens (Theme 2: Sapphire Corporate)
    ========================================================================== */
 :root {
   /* Fonts */
-  --font-heading: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   /* Common Speeds & Radii */
@@ -17,25 +17,25 @@
   --transition-smooth: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Executive Obsidian Primary Accents */
-  --accent-primary: #10b981; /* Emerald Green */
-  --accent-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  --accent-gradient-hover: linear-gradient(135deg, #059669 0%, #047857 100%);
+  /* Sapphire Corporate Primary Accents (Electric Indigo) */
+  --accent-primary: #6366f1;
+  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
 
-  /* Light Theme (Clean Executive Slate) */
+  /* Light Theme (Clean SaaS Enterprise) */
   --bg-primary: #f8fafc;
   --bg-secondary: #f1f5f9;
   --bg-sidebar: #0f172a;
   --card-bg: #ffffff;
-  --card-border: rgba(15, 23, 42, 0.08);
-  --border-color: rgba(15, 23, 42, 0.08);
+  --card-border: rgba(99, 102, 241, 0.12);
+  --border-color: rgba(99, 102, 241, 0.12);
   
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #94a3b8;
   --text-on-sidebar: #f8fafc;
   
-  --accent-secondary: #d97706; /* Gold/Amber */
+  --accent-secondary: #06b6d4; /* Cyan */
   
   --success: #10b981;
   --warning: #f59e0b;
@@ -46,42 +46,42 @@
   --danger-bg: rgba(239, 68, 68, 0.08);
 
   --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
-  --shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.12);
+  --shadow-md: 0 4px 12px rgba(99, 102, 241, 0.08);
+  --shadow-lg: 0 12px 24px -4px rgba(99, 102, 241, 0.12);
 
   --backdrop-blur: blur(16px);
 }
 
 [data-theme="dark"] {
-  /* Executive Obsidian (Midnight Navy & Emerald Gold) */
-  --bg-primary: #0b1329; /* Deep Midnight Slate */
-  --bg-secondary: #131c38; /* Navy Card Container */
-  --bg-sidebar: #070d1e;
-  --card-bg: #131c38;
-  --card-border: rgba(255, 255, 255, 0.08);
-  --border-color: rgba(255, 255, 255, 0.08);
+  /* Sapphire Corporate (Electric Indigo & Vibrant Cyan) */
+  --bg-primary: #0f172a; /* Deep Slate 900 */
+  --bg-secondary: #1e293b; /* Slate 800 */
+  --bg-sidebar: #090d16;
+  --card-bg: #1e293b;
+  --card-border: rgba(99, 102, 241, 0.18);
+  --border-color: rgba(99, 102, 241, 0.18);
   
   --text-primary: #f8fafc;
   --text-secondary: #cbd5e1;
   --text-muted: #64748b;
   --text-on-sidebar: #f8fafc;
   
-  --accent-primary: #10b981; /* Emerald Green */
-  --accent-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  --accent-gradient-hover: linear-gradient(135deg, #059669 0%, #047857 100%);
-  --accent-secondary: #f59e0b; /* Champagne Gold */
+  --accent-primary: #6366f1; /* Electric Indigo */
+  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+  --accent-secondary: #06b6d4; /* Vibrant Cyan */
   
   --success: #10b981;
   --warning: #f59e0b;
-  --danger: #f43f5e;
+  --danger: #ef4444;
 
   --success-bg: rgba(16, 185, 129, 0.15);
   --warning-bg: rgba(245, 158, 11, 0.15);
-  --danger-bg: rgba(244, 63, 94, 0.15);
+  --danger-bg: rgba(239, 68, 68, 0.15);
 
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 8px 20px rgba(15, 23, 42, 0.4);
+  --shadow-lg: 0 16px 32px rgba(15, 23, 42, 0.5);
 }
 
 /* ==========================================================================
@@ -157,7 +157,7 @@ a {
   padding: 12px 24px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35) !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
   transition: all var(--transition-fast);
   display: inline-flex;
   align-items: center;
@@ -167,7 +167,7 @@ a {
 .glow-btn:hover {
   background: var(--accent-gradient-hover) !important;
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45) !important;
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45) !important;
 }
 
 .glow-btn:active {
