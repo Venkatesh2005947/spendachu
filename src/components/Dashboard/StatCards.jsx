@@ -56,9 +56,9 @@ export default function StatCards({ expenses, budgets, savings = [], selectedMon
         className="glass-card" 
         style={{ 
           padding: '24px 30px', 
-          background: 'var(--accent-primary)', 
-          color: '#000000', 
-          border: '1px solid var(--border-color)', 
+          background: 'var(--card-bg)', 
+          color: 'var(--text-primary)', 
+          border: '1px solid var(--card-border)', 
           borderRadius: '24px', 
           boxShadow: 'var(--shadow-md)',
           position: 'relative',
@@ -68,18 +68,18 @@ export default function StatCards({ expenses, budgets, savings = [], selectedMon
         {/* Top row */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <h3 style={{ fontSize: '14px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px', color: '#000000', marginBottom: '4px' }}>
+            <h3 style={{ fontSize: '13px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)', marginBottom: '6px' }}>
               {isCurrentMonth ? 'Monthly Damage 💸' : `${MONTH_NAMES[viewMonth]} ${viewYear} 📅`}
             </h3>
-            <p style={{ fontSize: '42px', fontWeight: '900', margin: 0, lineHeight: '1', fontFamily: 'var(--font-heading)' }}>
+            <p style={{ fontSize: '42px', fontWeight: '900', margin: 0, lineHeight: '1', fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>
               {formatCurrency(monthlySpent)}
             </p>
           </div>
 
           {/* Traffic Light Indicator Pill */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#000000', padding: '8px 16px', borderRadius: '99px', border: 'none' }}>
-            <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: trafficBg, boxShadow: `0 0 8px ${trafficBg}` }}></div>
-            <span style={{ color: '#ffffff', fontSize: '13px', fontWeight: '800', textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-secondary)', padding: '8px 16px', borderRadius: '99px', border: '1px solid var(--card-border)' }}>
+            <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: trafficBg, boxShadow: `0 0 10px ${trafficBg}` }}></div>
+            <span style={{ color: 'var(--text-primary)', fontSize: '13px', fontWeight: '800', textTransform: 'uppercase' }}>
               {trafficText}
             </span>
           </div>
@@ -87,43 +87,53 @@ export default function StatCards({ expenses, budgets, savings = [], selectedMon
 
         {/* Budget Progress Bar */}
         <div style={{ marginTop: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: '800', marginBottom: '6px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: '800', marginBottom: '6px', color: 'var(--text-secondary)' }}>
             <span>Limit: {formatCurrency(globalBudget)}</span>
-            <span>{budgetPercentage.toFixed(0)}% Used</span>
+            <span style={{ color: 'var(--text-primary)' }}>{budgetPercentage.toFixed(0)}% Used</span>
           </div>
-          <div style={{ height: '18px', background: '#ffffff', borderRadius: '99px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${budgetPercentage}%`, backgroundColor: trafficBg, transition: 'width 0.3s ease' }}></div>
+          <div style={{ height: '12px', background: 'var(--bg-secondary)', borderRadius: '99px', border: '1px solid var(--card-border)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${budgetPercentage}%`, backgroundColor: trafficBg, transition: 'width 0.3s ease', borderRadius: '99px' }}></div>
           </div>
         </div>
 
         {/* Sub-damage breakdown */}
-        <div className="dashboard-stats-grid">
+        <div className="dashboard-stats-grid" style={{ alignItems: 'center' }}>
           {isCurrentMonth ? (
             <>
               <div>
-                <h4 style={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', color: '#333333', marginBottom: '2px' }}>Today's Loss 💸</h4>
-                <p style={{ fontSize: '16px', fontWeight: '900', margin: 0 }}>{formatCurrency(todaySpent)}</p>
+                <h4 style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>Today's Loss 💸</h4>
+                <p style={{ fontSize: '18px', fontWeight: '900', margin: 0, color: 'var(--text-primary)' }}>{formatCurrency(todaySpent)}</p>
               </div>
               <div>
-                <h4 style={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', color: '#333333', marginBottom: '2px' }}>Weekly Damage 📉</h4>
-                <p style={{ fontSize: '16px', fontWeight: '900', margin: 0 }}>{formatCurrency(weeklySpent)}</p>
+                <h4 style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>Weekly Damage 📉</h4>
+                <p style={{ fontSize: '18px', fontWeight: '900', margin: 0, color: 'var(--text-primary)' }}>{formatCurrency(weeklySpent)}</p>
               </div>
             </>
           ) : (
             <>
               <div>
-                <h4 style={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', color: '#333333', marginBottom: '2px' }}>Total Spent 📊</h4>
-                <p style={{ fontSize: '16px', fontWeight: '900', margin: 0 }}>{formatCurrency(monthlySpent)}</p>
+                <h4 style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>Total Spent 📊</h4>
+                <p style={{ fontSize: '18px', fontWeight: '900', margin: 0, color: 'var(--text-primary)' }}>{formatCurrency(monthlySpent)}</p>
               </div>
               <div>
-                <h4 style={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', color: '#333333', marginBottom: '2px' }}>Budget Left 📉</h4>
-                <p style={{ fontSize: '16px', fontWeight: '900', margin: 0 }}>{formatCurrency(Math.max(budgetRemaining, 0))}</p>
+                <h4 style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>Budget Left 📉</h4>
+                <p style={{ fontSize: '18px', fontWeight: '900', margin: 0, color: 'var(--text-primary)' }}>{formatCurrency(Math.max(budgetRemaining, 0))}</p>
               </div>
             </>
           )}
-          <div>
-            <h4 style={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', color: '#333333', marginBottom: '2px' }}>Saved 🐷</h4>
-            <p style={{ fontSize: '16px', fontWeight: '900', margin: 0, color: 'var(--success)' }}>{formatCurrency(monthlySavings)}</p>
+          <div style={{ 
+            background: 'rgba(16, 185, 129, 0.12)', 
+            padding: '10px 14px', 
+            borderRadius: '14px', 
+            border: '1px solid rgba(16, 185, 129, 0.3)',
+            boxShadow: '0 2px 8px rgba(16, 185, 129, 0.15)'
+          }}>
+            <h4 style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', color: 'var(--success)', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span>Saved</span> 🐷
+            </h4>
+            <p style={{ fontSize: '20px', fontWeight: '900', margin: 0, color: 'var(--success)', lineHeight: '1.2' }}>
+              {formatCurrency(monthlySavings)}
+            </p>
           </div>
         </div>
       </div>

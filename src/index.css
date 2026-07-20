@@ -1198,7 +1198,7 @@ a {
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin-top: 20px;
-  border-top: 3px dashed #000000;
+  border-top: 1px dashed var(--card-border);
   padding-top: 16px;
 }
 
