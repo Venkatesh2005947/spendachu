@@ -1165,7 +1165,7 @@ export default function App() {
           title="Add Expense"
         >
           <Plus size={20} />
-          <span>Sema Spending! 💸</span>
+          <span>Add Spending 💸</span>
         </button>
 
         <button 
