@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
 const { Pool } = require('pg');
+const { createPreMigrationBackup, runDailyBackup } = require('./backupService');
 
 const isProduction = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
 
@@ -466,6 +467,22 @@ const MIGRATIONS = [
         await runQuery(`ALTER TABLE users ADD COLUMN last_reminder_stage TEXT`);
       } catch (e) { console.log('last_reminder_stage column might exist, skipping...'); }
     }
+  },
+  {
+    version: '010_create_backup_audit_log',
+    up: async (runQuery) => {
+      await runQuery(`
+        CREATE TABLE IF NOT EXISTS backup_audit_logs (
+          id TEXT PRIMARY KEY,
+          action_type TEXT NOT NULL,
+          file_path TEXT NOT NULL,
+          size_bytes BIGINT,
+          status TEXT NOT NULL,
+          created_at BIGINT NOT NULL,
+          details TEXT
+        )
+      `);
+    }
   }
 ];
 
@@ -714,6 +731,13 @@ async function initializeDatabase() {
     if (!executedList.includes(m.version)) {
       console.log(`⚙️ [Migrations] Running pending migration: "${m.version}"`);
       
+      // Automatic pre-migration snapshot before applying schema changes
+      try {
+        await createPreMigrationBackup(m.version);
+      } catch (backupErr) {
+        console.warn(`⚠️ Pre-migration backup warning: ${backupErr.message}`);
+      }
+
       if (isProduction) {
         // Run migration in PostgreSQL Transaction
         const pgClient = await pgPool.connect();

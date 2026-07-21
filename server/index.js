@@ -281,6 +281,10 @@ const {
   resetUserLoginState,
   updateReminderPreference
 } = require('./services/inactiveUserReminderService');
+const {
+  runDailyBackup,
+  listBackups
+} = require('./services/backupService');
 
 
 // JWT Authentication Middleware
@@ -1388,6 +1392,32 @@ app.patch('/api/user/settings/reminders', authenticateJWT, async (req, res) => {
   }
 });
 
+// ==========================================================================
+// Database Backup & Recovery Admin Endpoints
+// ==========================================================================
+
+// GET /api/admin/backups - List database backups & retention status
+app.get('/api/admin/backups', authenticateJWT, requireAdmin, (req, res) => {
+  try {
+    const backups = listBackups();
+    res.status(200).json(backups);
+  } catch (err) {
+    console.error('Error fetching backups:', err);
+    res.status(500).json({ error: 'Failed to fetch database backups.' });
+  }
+});
+
+// POST /api/admin/backups/create - Trigger manual backup
+app.post('/api/admin/backups/create', authenticateJWT, requireAdmin, async (req, res) => {
+  try {
+    const result = await runDailyBackup();
+    res.status(200).json({ success: true, result });
+  } catch (err) {
+    console.error('Error creating manual backup:', err);
+    res.status(500).json({ error: 'Failed to create manual backup.' });
+  }
+});
+
 
 
 // ==========================================================================
@@ -1742,6 +1772,12 @@ initializeDatabase().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Backend server listening on host 0.0.0.0:${PORT}`);
     checkSMTPSetup();
+
+    // Trigger initial daily backup on startup and schedule 24-hour backup runner
+    runDailyBackup().catch(err => console.error('Startup daily backup error:', err));
+    setInterval(() => {
+      runDailyBackup().catch(err => console.error('Scheduled daily backup error:', err));
+    }, 24 * 60 * 60 * 1000);
   });
 }).catch(err => {
   console.error("❌ FAILED to initialize database and run migrations. Aborting server startup.", err);
