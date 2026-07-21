@@ -162,32 +162,18 @@ export default function NotificationCenter({ onNavigateTab }) {
       {/* Dropdown Panel */}
       {isOpen && (
         <div 
-          className="glass-card"
-          style={{
-            position: 'absolute',
-            top: 'calc(100% + 10px)',
-            right: 0,
-            width: '360px',
-            maxHeight: '480px',
-            borderRadius: '20px',
-            background: 'var(--card-bg)',
-            border: '1px solid var(--card-border)',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
-            zIndex: 9999,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
-          }}
+          className="glass-card notification-dropdown-panel"
         >
           {/* Dropdown Header */}
           <div 
             style={{ 
-              padding: '14px 18px', 
+              padding: '14px 16px', 
               borderBottom: '1px solid var(--card-border)', 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'space-between',
-              background: 'var(--bg-secondary)'
+              background: 'var(--bg-secondary)',
+              flexShrink: 0
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -210,14 +196,14 @@ export default function NotificationCenter({ onNavigateTab }) {
             )}
           </div>
 
-          {/* Notifications List */}
-          <div style={{ overflowY: 'auto', flex: 1, padding: '8px 0' }}>
+          {/* Notifications List (Only list is scrollable) */}
+          <div style={{ overflowY: 'auto', flex: 1, padding: '4px 0' }}>
             {loading && notifications.length === 0 ? (
-              <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+              <div style={{ padding: '30px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
                 Loading notifications...
               </div>
             ) : notifications.length === 0 ? (
-              <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>
                 <Bell size={28} style={{ opacity: 0.3, marginBottom: '8px' }} />
                 <div style={{ fontSize: '13px', fontWeight: '700' }}>All caught up!</div>
                 <div style={{ fontSize: '11px', marginTop: '2px' }}>No new notifications</div>
@@ -228,7 +214,7 @@ export default function NotificationCenter({ onNavigateTab }) {
                   key={item.id}
                   onClick={() => handleNotificationClick(item)}
                   style={{
-                    padding: '12px 16px',
+                    padding: '14px 16px',
                     borderBottom: '1px solid var(--card-border)',
                     background: item.isRead ? 'transparent' : 'rgba(99, 102, 241, 0.08)',
                     cursor: 'pointer',
@@ -238,31 +224,37 @@ export default function NotificationCenter({ onNavigateTab }) {
                     transition: 'background 0.15s ease'
                   }}
                 >
-                  <div style={{ background: 'var(--bg-secondary)', padding: '8px', borderRadius: '10px', display: 'flex' }}>
+                  <div style={{ background: 'var(--bg-secondary)', padding: '8px', borderRadius: '10px', display: 'flex', flexShrink: 0 }}>
                     {getCategoryIcon(item.type)}
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
-                      <strong style={{ fontSize: '12.5px', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
+                      <strong 
+                        className="notification-item-text"
+                        style={{ fontSize: '12.5px', color: 'var(--text-primary)', fontWeight: '800', lineHeight: '1.3' }}
+                      >
                         {item.title}
                       </strong>
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', flexShrink: 0, marginTop: '1px' }}>
                         {formatTimeAgo(item.createdAt)}
                       </span>
                     </div>
 
-                    <p style={{ margin: '3px 0 0 0', fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    <p 
+                      className="notification-item-text"
+                      style={{ margin: '4px 0 0 0', fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: '1.4' }}
+                    >
                       {item.message}
                     </p>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 }}>
                     {!item.isRead && (
                       <button
                         onClick={(e) => handleMarkRead(item.id, e)}
                         title="Mark as read"
-                        style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '2px' }}
+                        style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '3px' }}
                       >
                         <CheckCheck size={14} />
                       </button>
@@ -270,7 +262,7 @@ export default function NotificationCenter({ onNavigateTab }) {
                     <button
                       onClick={(e) => handleDelete(item.id, e)}
                       title="Delete notification"
-                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '3px' }}
                     >
                       <X size={13} />
                     </button>
@@ -283,10 +275,11 @@ export default function NotificationCenter({ onNavigateTab }) {
           {/* Dropdown Footer */}
           <div 
             style={{ 
-              padding: '10px 16px', 
+              padding: '12px 16px', 
               borderTop: '1px solid var(--card-border)', 
               background: 'var(--bg-secondary)', 
-              textAlign: 'center' 
+              textAlign: 'center',
+              flexShrink: 0 
             }}
           >
             <button

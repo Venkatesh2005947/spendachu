@@ -1368,3 +1368,46 @@ a {
   display: none;
 }
 
+/* ==========================================================================
+   User Notification Center Mobile & Responsive Layout Fix
+   ========================================================================== */
+.notification-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(90vw, 360px);
+  max-width: 90vw;
+  max-height: min(75vh, 480px);
+  border-radius: 20px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Mobile Viewport Positioning (Clamped & Centered to prevent overflow) */
+@media (max-width: 600px) {
+  .notification-dropdown-panel {
+    position: fixed !important;
+    top: max(64px, env(safe-area-inset-top) + 54px) !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    width: min(90vw, 360px) !important;
+    max-width: 90vw !important;
+    max-height: min(70vh, 440px) !important;
+  }
+}
+
+.notification-item-text {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+
