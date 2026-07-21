@@ -285,6 +285,13 @@ const {
   runDailyBackup,
   listBackups
 } = require('./services/backupService');
+const {
+  notifyUser,
+  getUserNotifications,
+  markUserNotificationRead,
+  markAllUserNotificationsRead,
+  deleteUserNotification
+} = require('./services/userNotificationService');
 
 
 // JWT Authentication Middleware
@@ -377,6 +384,16 @@ app.post('/api/register', (req, res) => {
             message: `User ${name} (${normalizedEmail}) has created an account.`,
             userId: userId,
             metadata: { email: normalizedEmail, name }
+          });
+
+          // Record in-app welcome notification for user
+          notifyUser({
+            userId: userId,
+            type: 'system',
+            title: 'Welcome to SpendAchu! 🎉',
+            message: `Welcome, ${name}! Your smart expense tracker and savings hub is ready.`,
+            relatedPage: 'dashboard',
+            eventKey: `welcome_${userId}`
           });
 
           res.status(201).json({ name, email: normalizedEmail });
@@ -694,6 +711,16 @@ app.post('/api/expenses', authenticateJWT, async (req, res) => {
       message: `Unusual large expense entry of ₹${amtFloat.toLocaleString()} logged under ${category}.`,
       userId: req.user.id,
       metadata: { amount: amtFloat, category, date }
+    });
+
+    notifyUser({
+      userId: req.user.id,
+      type: 'unusual_expense',
+      title: 'Unusual Expense Detected 🚨',
+      message: `A large transaction of ₹${amtFloat.toLocaleString()} under "${category}" was added.`,
+      relatedId: expenseId,
+      relatedPage: 'expenses',
+      eventKey: `anom_usr_${req.user.id}_${Date.now()}`
     });
   }
   // ───────────────────────────────────────────────────────────────
@@ -1119,6 +1146,38 @@ app.post('/api/goals/:id/add-savings', authenticateJWT, (req, res) => {
             } catch (achErr) {
               console.error('Non-fatal achievements check error:', achErr);
             }
+            notifyUser({
+              userId: req.user.id,
+              type: 'goal_completed',
+              title: 'Financial Goal Achieved! 🎉',
+              message: `Congratulations! You have reached your target for "${goal.name}".`,
+              relatedId: req.params.id,
+              relatedPage: 'budgeting',
+              eventKey: `goal_comp_${req.params.id}`
+            });
+          } else {
+            const pct = (newSaved / goal.target_amount) * 100;
+            if (pct >= 75 && ((goal.saved_amount / goal.target_amount) * 100 < 75)) {
+              notifyUser({
+                userId: req.user.id,
+                type: 'goal_progress',
+                title: 'Goal Progress (75%) 🎯',
+                message: `Great progress! You have saved 75% of your target for "${goal.name}".`,
+                relatedId: req.params.id,
+                relatedPage: 'budgeting',
+                eventKey: `goal_75_${req.params.id}`
+              });
+            } else if (pct >= 50 && ((goal.saved_amount / goal.target_amount) * 100 < 50)) {
+              notifyUser({
+                userId: req.user.id,
+                type: 'goal_progress',
+                title: 'Goal Milestone (50%) 🎯',
+                message: `Halfway there! You have saved 50% of your target for "${goal.name}".`,
+                relatedId: req.params.id,
+                relatedPage: 'budgeting',
+                eventKey: `goal_50_${req.params.id}`
+              });
+            }
           }
 
           res.status(200).json({
@@ -1389,6 +1448,62 @@ app.patch('/api/user/settings/reminders', authenticateJWT, async (req, res) => {
   } catch (err) {
     console.error('Error updating reminder settings:', err);
     res.status(500).json({ error: 'Failed to update reminder settings.' });
+  }
+});
+
+// ==========================================================================
+// User Notification Endpoints
+// ==========================================================================
+
+// GET /api/user/notifications - Fetch authenticated user's notifications
+app.get('/api/user/notifications', authenticateJWT, async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit || '50');
+    const offset = parseInt(req.query.offset || '0');
+    const result = await getUserNotifications(req.user.id, limit, offset);
+    res.status(200).json(result);
+  } catch (err) {
+    console.error('Error fetching user notifications:', err);
+    res.status(500).json({ error: 'Failed to fetch notifications.' });
+  }
+});
+
+// PATCH /api/user/notifications/read-all - Mark all user notifications as read
+app.patch('/api/user/notifications/read-all', authenticateJWT, async (req, res) => {
+  try {
+    const updatedCount = await markAllUserNotificationsRead(req.user.id);
+    res.status(200).json({ success: true, updatedCount });
+  } catch (err) {
+    console.error('Error marking all notifications read:', err);
+    res.status(500).json({ error: 'Failed to mark all notifications read.' });
+  }
+});
+
+// PATCH /api/user/notifications/:id/read - Mark single user notification as read
+app.patch('/api/user/notifications/:id/read', authenticateJWT, async (req, res) => {
+  try {
+    const success = await markUserNotificationRead(req.user.id, req.params.id);
+    if (!success) {
+      return res.status(404).json({ error: 'Notification not found.' });
+    }
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('Error marking notification read:', err);
+    res.status(500).json({ error: 'Failed to mark notification read.' });
+  }
+});
+
+// DELETE /api/user/notifications/:id - Delete a user notification
+app.delete('/api/user/notifications/:id', authenticateJWT, async (req, res) => {
+  try {
+    const success = await deleteUserNotification(req.user.id, req.params.id);
+    if (!success) {
+      return res.status(404).json({ error: 'Notification not found.' });
+    }
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('Error deleting notification:', err);
+    res.status(500).json({ error: 'Failed to delete notification.' });
   }
 });
 

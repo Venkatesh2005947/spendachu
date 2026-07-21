@@ -483,6 +483,26 @@ const MIGRATIONS = [
         )
       `);
     }
+  },
+  {
+    version: '011_create_user_notifications',
+    up: async (runQuery) => {
+      await runQuery(`
+        CREATE TABLE IF NOT EXISTS user_notifications (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          type TEXT NOT NULL,
+          title TEXT NOT NULL,
+          message TEXT NOT NULL,
+          related_id TEXT,
+          related_page TEXT,
+          is_read INTEGER NOT NULL DEFAULT 0,
+          event_key TEXT UNIQUE,
+          created_at BIGINT NOT NULL,
+          read_at BIGINT
+        )
+      `);
+    }
   }
 ];
 

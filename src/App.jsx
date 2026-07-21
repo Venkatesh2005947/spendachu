@@ -33,6 +33,8 @@ import FinancialHealthCard from './components/Dashboard/FinancialHealthCard';
 import FinancialHealthModal from './components/Dashboard/FinancialHealthModal';
 import AdminNotifications from './components/Admin/AdminNotifications';
 import AdminAnalytics from './components/Admin/AdminAnalytics';
+import NotificationCenter from './components/Notifications/NotificationCenter';
+import NotificationsPage from './components/Notifications/NotificationsPage';
 
 export default function App() {
   // 1. Session and Auth State
@@ -862,6 +864,8 @@ export default function App() {
             onOpenDetails={() => setIsHealthModalOpen(true)} 
           />
         );
+      case 'notifications':
+        return <NotificationsPage onNavigateTab={setActiveTab} />;
       case 'admin-notifications':
         return <AdminNotifications />;
       case 'admin-analytics':
@@ -933,6 +937,7 @@ export default function App() {
     switch (activeTab) {
       case 'dashboard': return 'Financial Dashboard';
       case 'health': return 'Financial Health Score';
+      case 'notifications': return 'User Notifications';
       case 'admin-notifications': return 'Admin Notifications & Alerts';
       case 'admin-analytics': return 'Weekly Admin Analytics Report';
       case 'expenses': return 'Expense Management';
@@ -950,6 +955,7 @@ export default function App() {
     switch (activeTab) {
       case 'dashboard': return `Welcome back, ${user.name}! Here is your current month status.`;
       case 'health': return 'Backend-evaluated 5-component financial wellness score and trends.';
+      case 'notifications': return 'Real-time alerts for budget limits, goal milestones, and system updates.';
       case 'admin-notifications': return 'Monitor system anomalies, registration events, and Make.com webhooks.';
       case 'admin-analytics': return 'Backend-aggregated weekly KPI metrics and Monday email dispatches.';
       case 'expenses': return 'Search, filter, edit, and export your expense records.';
@@ -1004,16 +1010,8 @@ export default function App() {
           </div>
           
           <div className="header-actions">
-            {/* Quick Alert Bell */}
-            {notifications.length > 0 && (
-              <div 
-                style={{ position: 'relative', cursor: 'pointer', color: 'var(--danger)', padding: '8px', background: 'var(--danger-bg)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '12px', boxShadow: 'var(--shadow-sm)' }} 
-                title="Active budget warning alerts"
-                onClick={() => setActiveTab('insights')}
-              >
-                <Bell size={18} style={{ padding: 0 }} />
-              </div>
-            )}
+            {/* User Notification Center Bell & Dropdown */}
+            <NotificationCenter onNavigateTab={setActiveTab} />
             
             {/* Toggle light/dark */}
             <button className="theme-toggle-btn" onClick={toggleTheme} title="Toggle screen theme" style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '6px 10px', background: 'var(--card-bg)', boxShadow: 'var(--shadow-sm)', fontWeight: 'bold', cursor: 'pointer' }}>

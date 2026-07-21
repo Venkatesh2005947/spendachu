@@ -421,5 +421,38 @@ export const dbService = {
       body: JSON.stringify({ enabled })
     });
     return handleResponse(res);
+  },
+
+  // 12. User Notification Operations
+  async getUserNotifications(limit = 50, offset = 0) {
+    const res = await fetch(`/api/user/notifications?limit=${limit}&offset=${offset}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async markUserNotificationRead(id) {
+    const res = await fetch(`/api/user/notifications/${id}/read`, {
+      method: 'PATCH',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async markAllUserNotificationsRead() {
+    const res = await fetch('/api/user/notifications/read-all', {
+      method: 'PATCH',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async deleteUserNotification(id) {
+    const res = await fetch(`/api/user/notifications/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
   }
 };
