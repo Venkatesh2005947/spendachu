@@ -298,7 +298,7 @@ const { sanitizeInput, classifyIntent, validateIntent, extractCategory, extractM
 const { formatResponse, getProviderStatus } = require('./services/financialChatAIProvider');
 const rateLimiter = require('./services/financialChatRateLimiter');
 const sessionService = require('./services/financialChatSessionService');
-
+const mockDataService = require('./services/mockDataService');
 
 // JWT Authentication Middleware
 function authenticateJWT(req, res, next) {
@@ -2187,6 +2187,43 @@ app.delete('/api/financial-assistant/history', authenticateJWT, async (req, res)
   } catch (err) {
     console.error('[FinancialChat] History delete error:', err.message);
     res.status(500).json({ success: false, error: 'Failed to delete history.' });
+  }
+});
+
+// ==========================================================================
+// Mock Test Data Endpoints (Testing Mode)
+// ==========================================================================
+
+// POST /api/mock-data/generate — Generate 1 month of mock test data for testing
+app.post('/api/mock-data/generate', authenticateJWT, async (req, res) => {
+  try {
+    const result = await mockDataService.generateMockData(req.user.id);
+    res.status(200).json(result);
+  } catch (err) {
+    console.error('Failed to generate mock data:', err);
+    res.status(500).json({ success: false, error: 'Failed to generate mock test data: ' + err.message });
+  }
+});
+
+// DELETE /api/mock-data/cleanup — Safely delete all mock test data for user
+app.delete('/api/mock-data/cleanup', authenticateJWT, async (req, res) => {
+  try {
+    const result = await mockDataService.cleanupMockData(req.user.id);
+    res.status(200).json(result);
+  } catch (err) {
+    console.error('Failed to cleanup mock data:', err);
+    res.status(500).json({ success: false, error: 'Failed to delete mock test data: ' + err.message });
+  }
+});
+
+// GET /api/mock-data/status — Check if mock test data is currently active
+app.get('/api/mock-data/status', authenticateJWT, async (req, res) => {
+  try {
+    const status = await mockDataService.getMockDataStatus(req.user.id);
+    res.status(200).json({ success: true, ...status });
+  } catch (err) {
+    console.error('Failed to check mock data status:', err);
+    res.status(500).json({ success: false, error: 'Failed to check mock data status.' });
   }
 });
 
