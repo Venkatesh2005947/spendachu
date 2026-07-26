@@ -454,5 +454,53 @@ export const dbService = {
       headers: getAuthHeaders()
     });
     return handleResponse(res);
+  },
+
+  // ── Financial Assistant (Ask SpendAchu) ───────────────────────────────────
+
+  async sendChatMessage(question) {
+    const res = await fetch('/api/financial-assistant/chat', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ question })
+    });
+    return handleResponse(res);
+  },
+
+  async getChatSuggestions() {
+    const res = await fetch('/api/financial-assistant/suggestions', {
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async clearChatSession() {
+    const res = await fetch('/api/financial-assistant/session', {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async getAssistantStatus() {
+    const res = await fetch('/api/financial-assistant/status', {
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async getChatHistory() {
+    const res = await fetch('/api/financial-assistant/history', {
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async deleteChatHistory() {
+    const res = await fetch('/api/financial-assistant/history', {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
   }
 };

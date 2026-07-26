@@ -503,6 +503,35 @@ const MIGRATIONS = [
         )
       `);
     }
+  },
+  {
+    version: '012_create_financial_chat_sessions',
+    up: async (runQuery) => {
+      await runQuery(`
+        CREATE TABLE IF NOT EXISTS financial_chat_sessions (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          created_at BIGINT NOT NULL,
+          last_active BIGINT NOT NULL
+        )
+      `);
+    }
+  },
+  {
+    version: '013_create_financial_chat_messages',
+    up: async (runQuery) => {
+      await runQuery(`
+        CREATE TABLE IF NOT EXISTS financial_chat_messages (
+          id TEXT PRIMARY KEY,
+          session_id TEXT NOT NULL,
+          user_id TEXT NOT NULL,
+          role TEXT NOT NULL,
+          content TEXT NOT NULL,
+          intent TEXT,
+          created_at BIGINT NOT NULL
+        )
+      `);
+    }
   }
 ];
 

@@ -292,6 +292,12 @@ const {
   markAllUserNotificationsRead,
   deleteUserNotification
 } = require('./services/userNotificationService');
+const financialAnalytics = require('./services/financialChatAnalyticsService');
+const { resolveDateExpression, getCurrentMonthYear, getPreviousMonthYear } = require('./services/financialChatDateResolver');
+const { sanitizeInput, classifyIntent, validateIntent, extractCategory, extractMerchant, getSuggestedQuestions } = require('./services/financialChatIntentClassifier');
+const { formatResponse, getProviderStatus } = require('./services/financialChatAIProvider');
+const rateLimiter = require('./services/financialChatRateLimiter');
+const sessionService = require('./services/financialChatSessionService');
 
 
 // JWT Authentication Middleware
@@ -1871,6 +1877,318 @@ setInterval(() => {
     if (err) console.error('Failed to auto-purge trash:', err);
   });
 }, 24 * 60 * 60 * 1000); // Once every 24 hours
+
+// ==========================================================================
+// Financial Assistant (Ask SpendAchu) Endpoints
+// ==========================================================================
+
+// POST /api/financial-assistant/chat — Main chat endpoint
+app.post('/api/financial-assistant/chat', authenticateJWT, async (req, res) => {
+  const userId = req.user.id; // ALWAYS from JWT, never from req.body
+  const startTime = Date.now();
+  let currentIntent = 'unsupported';
+
+  try {
+    // Step 1: Validate and sanitize input
+    const { isValid, sanitized, error, isInjectionAttempt } = sanitizeInput(req.body.question);
+    if (!isValid) {
+      return res.status(400).json({
+        success: false,
+        error: error || 'Invalid question.',
+        isInjectionAttempt: !!isInjectionAttempt
+      });
+    }
+
+    // Step 2: Rate limiting
+    const rateCheck = rateLimiter.checkRateLimit(userId);
+    if (!rateCheck.allowed) {
+      return res.status(429).json({ success: false, error: rateCheck.reason });
+    }
+    rateLimiter.startRequest(userId);
+
+    try {
+      // Step 3: Get conversation context for follow-up support
+      const context = sessionService.getContext(userId);
+
+      // Step 4: Classify intent
+      const { intent: rawIntent, params: rawParams, inheritedContext } = classifyIntent(sanitized, context);
+      currentIntent = validateIntent(rawIntent);
+
+      // Step 5: Resolve date parameters
+      const { month: currMonth, year: currYear } = getCurrentMonthYear();
+      const { month: prevMonth, year: prevYear } = getPreviousMonthYear();
+
+      let period = resolveDateExpression(sanitized);
+
+      // Step 6: Merge inherited context params
+      const params = { ...rawParams };
+      if (inheritedContext) {
+        if (!params.category && context.previousCategory) params.category = context.previousCategory;
+        if (!params.merchant && context.previousMerchant) params.merchant = context.previousMerchant;
+        if (!params.goalId && context.previousGoalId) params.goalId = context.previousGoalId;
+        // Inherit date only if question contains date keyword
+        if (context.previousDatePeriod && /\b(last|this|month|week|year|today|yesterday|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/i.test(sanitized)) {
+          // Use newly resolved period from current question
+        }
+      }
+
+      // Step 7: Call allowlisted analytics function
+      let financialResult = null;
+
+      switch (currentIntent) {
+        case 'expense_total':
+          financialResult = await financialAnalytics.getExpenseTotal(userId, period.startDate, period.endDate);
+          break;
+
+        case 'expense_by_category':
+          if (params.category) {
+            // Single category query
+            const allCats = await financialAnalytics.getExpensesByCategory(userId, period.startDate, period.endDate);
+            const match = allCats.categories?.find(c => c.category.toLowerCase() === params.category.toLowerCase());
+            if (match) {
+              financialResult = {
+                hasEnoughData: true,
+                category: match.category,
+                total: match.total,
+                totalFormatted: match.totalFormatted,
+                transactionCount: match.count,
+                percentageOfTotal: match.percentage,
+                currency: 'INR'
+              };
+            } else {
+              financialResult = {
+                hasEnoughData: false,
+                missingData: [`${params.category} expenses`],
+                friendlyMessage: `No ${params.category} expenses found in ${period.label}.`,
+                categories: allCats.categories || []
+              };
+            }
+          } else {
+            financialResult = await financialAnalytics.getExpensesByCategory(userId, period.startDate, period.endDate);
+          }
+          break;
+
+        case 'expense_by_merchant':
+          financialResult = await financialAnalytics.getExpensesByMerchant(userId, params.merchant, period.startDate, period.endDate);
+          break;
+
+        case 'expense_highest':
+          financialResult = await financialAnalytics.getHighestExpense(userId, period.startDate, period.endDate);
+          break;
+
+        case 'expense_recent':
+          financialResult = await financialAnalytics.getRecentExpenses(userId, params.limit || 5);
+          break;
+
+        case 'expense_comparison': {
+          const prevPeriod = resolveDateExpression('last month');
+          const currPeriod = resolveDateExpression('this month');
+          financialResult = await financialAnalytics.compareExpensePeriods(userId, currPeriod, prevPeriod);
+          break;
+        }
+
+        case 'expense_day_breakdown':
+          financialResult = await financialAnalytics.getExpenseDayBreakdown(userId, period.startDate, period.endDate);
+          break;
+
+        case 'savings_summary':
+          financialResult = await financialAnalytics.getSavingsSummary(userId, period.startDate, period.endDate);
+          break;
+
+        case 'budget_summary':
+          financialResult = await financialAnalytics.getBudgetSummary(userId, currMonth, currYear);
+          period = {
+            startDate: `${currYear}-${String(currMonth).padStart(2, '0')}-01`,
+            endDate: `${currYear}-${String(currMonth).padStart(2, '0')}-${new Date(currYear, currMonth, 0).getDate()}`,
+            label: new Date(currYear, currMonth - 1, 1).toLocaleString('en-IN', { month: 'long', year: 'numeric' })
+          };
+          break;
+
+        case 'goal_progress':
+          financialResult = await financialAnalytics.getGoalProgress(userId, params.goalId || null);
+          break;
+
+        case 'financial_health':
+          financialResult = await financialAnalytics.getFinancialHealthSummary(userId);
+          break;
+
+        case 'saving_challenge':
+          financialResult = await financialAnalytics.getSavingChallengeSummary(userId);
+          break;
+
+        case 'anomaly_summary':
+          financialResult = await financialAnalytics.getAnomalySummary(userId, period.startDate, period.endDate);
+          break;
+
+        case 'monthly_summary':
+          financialResult = await financialAnalytics.getMonthlyFinancialSummary(userId, currMonth, currYear);
+          break;
+
+        case 'saving_recommendations':
+          financialResult = await financialAnalytics.generateRuleBasedSavingRecommendations(
+            userId,
+            period.startDate,
+            period.endDate
+          );
+          break;
+
+        case 'unsupported':
+        default:
+          financialResult = { hasEnoughData: false, unsupported: true };
+          break;
+      }
+
+      // Step 8: Format response with AI (with deterministic fallback)
+      const answer = await formatResponse(currentIntent, financialResult, period, sanitized);
+
+      // Step 9: Build suggested questions
+      const suggestedQuestions = getSuggestedQuestions(currentIntent, params.category);
+
+      // Step 10: Update conversation context
+      sessionService.updateContext(userId, {
+        intent: currentIntent,
+        period,
+        category: params.category || null,
+        merchant: params.merchant || null,
+        goalId: params.goalId || null
+      });
+
+      // Step 11: Save to history (non-blocking, optional)
+      if (sessionService.isSaveHistoryEnabled()) {
+        sessionService.getOrCreateSessionId(userId).then(sessionId => {
+          sessionService.saveMessage(userId, sessionId, 'user', sanitized, null);
+          sessionService.saveMessage(userId, sessionId, 'assistant', answer, currentIntent);
+        }).catch(() => {}); // Non-blocking
+      }
+
+      // Step 12: Safe operational log (no financial data logged)
+      const processingMs = Date.now() - startTime;
+      console.log(`[FinancialChat] user=${userId.substring(0, 8)}... intent=${currentIntent} ms=${processingMs} success=true`);
+
+      // Step 13: Return structured response
+      return res.status(200).json({
+        success: true,
+        data: {
+          intent: currentIntent,
+          answer,
+          period,
+          metrics: financialResult?.hasEnoughData ? extractMetrics(currentIntent, financialResult) : null,
+          hasEnoughData: financialResult?.hasEnoughData ?? false,
+          missingData: financialResult?.missingData || [],
+          suggestedQuestions,
+          processingMs
+        }
+      });
+
+    } finally {
+      rateLimiter.endRequest(userId);
+    }
+
+  } catch (err) {
+    rateLimiter.endRequest(userId);
+    const processingMs = Date.now() - startTime;
+    console.error(`[FinancialChat] user=${userId?.substring(0, 8)}... intent=${currentIntent} ms=${processingMs} error=${err.message}`);
+
+    return res.status(500).json({
+      success: false,
+      error: 'Something went wrong while processing your question. Please try again.',
+      intent: currentIntent
+    });
+  }
+});
+
+// Helper: extract key metrics from financial result for frontend summary cards
+function extractMetrics(intent, result) {
+  if (!result) return null;
+  try {
+    switch (intent) {
+      case 'expense_total':
+        return { amount: result.total, currency: 'INR', transactionCount: result.transactionCount };
+      case 'expense_by_category':
+        return { amount: result.total || result.grandTotal, currency: 'INR', transactionCount: result.transactionCount };
+      case 'savings_summary':
+        return { amount: result.totalSavings, currency: 'INR', savingsRate: result.savingsRate };
+      case 'budget_summary':
+        return { remaining: result.remaining, globalBudget: result.globalBudget, usedPercent: result.budgetUsedPercent, currency: 'INR' };
+      case 'goal_progress':
+        return { activeGoals: result.activeCount, completedGoals: result.completedCount };
+      case 'financial_health':
+        return { score: result.totalScore, level: result.level };
+      case 'expense_comparison':
+        return result.comparison ? { ...result.comparison, currency: 'INR' } : null;
+      default:
+        return null;
+    }
+  } catch {
+    return null;
+  }
+}
+
+// GET /api/financial-assistant/suggestions — Get default suggested questions
+app.get('/api/financial-assistant/suggestions', authenticateJWT, (req, res) => {
+  res.status(200).json({
+    success: true,
+    suggestions: [
+      'How much did I spend this month?',
+      'What is my highest spending category?',
+      'How much budget is remaining?',
+      'What is my savings rate?',
+      'How are my financial goals progressing?',
+      'Compare this month with last month.'
+    ]
+  });
+});
+
+// DELETE /api/financial-assistant/session — Clear conversation context
+app.delete('/api/financial-assistant/session', authenticateJWT, async (req, res) => {
+  try {
+    await sessionService.deleteHistory(req.user.id);
+    sessionService.clearContext(req.user.id);
+    res.status(200).json({ success: true, message: 'Conversation cleared.' });
+  } catch (err) {
+    console.error('[FinancialChat] Session clear error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to clear conversation.' });
+  }
+});
+
+// GET /api/financial-assistant/status — Assistant status and config
+app.get('/api/financial-assistant/status', authenticateJWT, (req, res) => {
+  const providerInfo = getProviderStatus();
+  const rateLimitInfo = rateLimiter.getRateLimitStatus(req.user.id);
+  res.status(200).json({
+    success: true,
+    status: 'operational',
+    provider: providerInfo.provider,
+    aiEnabled: providerInfo.aiEnabled,
+    rateLimits: rateLimitInfo,
+    historyEnabled: sessionService.isSaveHistoryEnabled()
+  });
+});
+
+// GET /api/financial-assistant/history — Get chat history (when enabled)
+app.get('/api/financial-assistant/history', authenticateJWT, async (req, res) => {
+  try {
+    if (!sessionService.isSaveHistoryEnabled()) {
+      return res.status(200).json({ success: true, messages: [], historyEnabled: false });
+    }
+    const messages = await sessionService.getHistory(req.user.id);
+    res.status(200).json({ success: true, messages, historyEnabled: true });
+  } catch (err) {
+    console.error('[FinancialChat] History fetch error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to fetch history.' });
+  }
+});
+
+// DELETE /api/financial-assistant/history — Delete chat history
+app.delete('/api/financial-assistant/history', authenticateJWT, async (req, res) => {
+  try {
+    await sessionService.deleteHistory(req.user.id);
+    res.status(200).json({ success: true, message: 'Chat history deleted.' });
+  } catch (err) {
+    console.error('[FinancialChat] History delete error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to delete history.' });
+  }
+});
 
 // Serve static frontend files in production
 app.use(express.static(path.join(__dirname, '../dist')));

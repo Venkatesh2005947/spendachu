@@ -35,6 +35,7 @@ import AdminNotifications from './components/Admin/AdminNotifications';
 import AdminAnalytics from './components/Admin/AdminAnalytics';
 import NotificationCenter from './components/Notifications/NotificationCenter';
 import NotificationsPage from './components/Notifications/NotificationsPage';
+import AskSpendAchu from './components/Assistant/AskSpendAchu';
 
 export default function App() {
   // 1. Session and Auth State
@@ -866,6 +867,8 @@ export default function App() {
         );
       case 'notifications':
         return <NotificationsPage onNavigateTab={setActiveTab} />;
+      case 'assistant':
+        return <AskSpendAchu />;
       case 'admin-notifications':
         return <AdminNotifications />;
       case 'admin-analytics':
@@ -938,6 +941,7 @@ export default function App() {
       case 'dashboard': return 'Financial Dashboard';
       case 'health': return 'Financial Health Score';
       case 'notifications': return 'User Notifications';
+      case 'assistant': return 'Ask SpendAchu — AI Assistant';
       case 'admin-notifications': return 'Admin Notifications & Alerts';
       case 'admin-analytics': return 'Weekly Admin Analytics Report';
       case 'expenses': return 'Expense Management';
@@ -956,6 +960,7 @@ export default function App() {
       case 'dashboard': return `Welcome back, ${user.name}! Here is your current month status.`;
       case 'health': return 'Backend-evaluated 5-component financial wellness score and trends.';
       case 'notifications': return 'Real-time alerts for budget limits, goal milestones, and system updates.';
+      case 'assistant': return 'Accurate financial answers from your real data — no guessing.';
       case 'admin-notifications': return 'Monitor system anomalies, registration events, and Make.com webhooks.';
       case 'admin-analytics': return 'Backend-aggregated weekly KPI metrics and Monday email dispatches.';
       case 'expenses': return 'Search, filter, edit, and export your expense records.';
