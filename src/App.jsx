@@ -778,7 +778,7 @@ export default function App() {
   // Render Auth views if session is empty
   if (!user) {
     if (authScreen === 'signup') {
-      return <Signup onSignupSuccess={() => setAuthScreen('login')} onLoginClick={() => setAuthScreen('login')} />;
+      return <Signup onSignupSuccess={(newUser) => handleLoginSuccess(newUser)} onLoginClick={() => setAuthScreen('login')} />;
     }
     if (authScreen === 'forgot') {
       return <ForgotPassword onBackToLogin={() => setAuthScreen('login')} />;

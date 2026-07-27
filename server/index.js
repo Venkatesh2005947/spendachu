@@ -402,7 +402,16 @@ app.post('/api/register', (req, res) => {
             eventKey: `welcome_${userId}`
           });
 
-          res.status(201).json({ name, email: normalizedEmail });
+          const sessionToken = jwt.sign(
+            { id: userId, email: normalizedEmail, name: name },
+            JWT_SECRET,
+            { expiresIn: '30d' }
+          );
+
+          res.status(201).json({
+            user: { name, email: normalizedEmail },
+            token: sessionToken
+          });
         }
       );
     }

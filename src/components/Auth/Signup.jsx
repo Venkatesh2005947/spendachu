@@ -36,11 +36,11 @@ export default function Signup({ onSignupSuccess, onLoginClick }) {
     setLoading(true);
 
     try {
-      await dbService.registerUser(email, name, password);
-      setSuccess('Registration successful! Redirecting to login...');
+      const user = await dbService.registerUser(email, name, password);
+      setSuccess('Registration successful! Logging you in...');
       setTimeout(() => {
-        onSignupSuccess();
-      }, 1500);
+        onSignupSuccess(user);
+      }, 1000);
     } catch (err) {
       setError(err.message || 'Registration failed.');
     } finally {

@@ -30,10 +30,15 @@ export const dbService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, name, password })
     });
-    return handleResponse(res);
+    const data = await handleResponse(res);
+    if (data.token) {
+      localStorage.setItem('tracker_token', data.token);
+      localStorage.setItem('tracker_user', JSON.stringify(data.user));
+    }
+    return data.user;
   },
 
-  async loginUser(email, password, rememberMe = false) {
+  async loginUser(email, password, rememberMe = true) {
     const res = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -43,20 +48,19 @@ export const dbService = {
     const data = await handleResponse(res);
     
     if (data.token) {
-      if (rememberMe) {
-        localStorage.setItem('tracker_token', data.token);
-        localStorage.setItem('tracker_user', JSON.stringify(data.user));
-      } else {
-        sessionStorage.setItem('tracker_token', data.token);
-        sessionStorage.setItem('tracker_user', JSON.stringify(data.user));
-      }
+      // Always store session in localStorage for permanent login
+      localStorage.setItem('tracker_token', data.token);
+      localStorage.setItem('tracker_user', JSON.stringify(data.user));
+      // Backup in sessionStorage as fallback
+      sessionStorage.setItem('tracker_token', data.token);
+      sessionStorage.setItem('tracker_user', JSON.stringify(data.user));
     }
     
     return data.user;
   },
 
   getCurrentUser() {
-    // Check if token exists in session
+    // Check if token exists in localStorage or sessionStorage
     const token = localStorage.getItem('tracker_token') || sessionStorage.getItem('tracker_token');
     if (!token) return null;
     
