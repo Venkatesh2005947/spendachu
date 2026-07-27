@@ -72,6 +72,42 @@ export const dbService = {
     }
   },
 
+  // Verify the stored JWT token against the backend (server is the source of truth)
+  async verifySession() {
+    const token = localStorage.getItem('tracker_token') || sessionStorage.getItem('tracker_token');
+    if (!token) return null;
+
+    try {
+      const res = await fetch('/api/verify', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!res.ok) {
+        // Token is expired or invalid — clear all auth storage
+        localStorage.removeItem('tracker_token');
+        localStorage.removeItem('tracker_user');
+        sessionStorage.removeItem('tracker_token');
+        sessionStorage.removeItem('tracker_user');
+        return null;
+      }
+      const data = await res.json();
+      return data.user || null;
+    } catch (e) {
+      // Network error — don't log out, user may be offline
+      // Fall back to cached user data so they can see their data
+      console.warn('Token verification failed (network issue). Using cached session.');
+      const userStr = localStorage.getItem('tracker_user') || sessionStorage.getItem('tracker_user');
+      try {
+        return userStr ? JSON.parse(userStr) : null;
+      } catch {
+        return null;
+      }
+    }
+  },
+
   logout() {
     localStorage.removeItem('tracker_token');
     localStorage.removeItem('tracker_user');

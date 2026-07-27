@@ -6,6 +6,39 @@ const { createPreMigrationBackup, runDailyBackup } = require('./backupService');
 
 const isProduction = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
 
+// ============================================================
+// CRITICAL PRODUCTION GUARD
+// If running on Render (or any production env) without a
+// DATABASE_URL, refuse to start with ephemeral SQLite.
+// Render's disk is wiped on every restart — SQLite would
+// lose ALL user data permanently on every deploy/restart.
+// ============================================================
+if (process.env.RENDER || process.env.NODE_ENV === 'production') {
+  if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
+    console.error('');
+    console.error('╔══════════════════════════════════════════════════════════╗');
+    console.error('║  FATAL: DATABASE_URL environment variable is NOT set.    ║');
+    console.error('║                                                          ║');
+    console.error('║  On Render, you MUST create a PostgreSQL database and    ║');
+    console.error('║  set DATABASE_URL in the Environment Variables section.  ║');
+    console.error('║                                                          ║');
+    console.error('║  Without this, the app would use SQLite on an           ║');
+    console.error('║  ephemeral disk that is wiped on every restart,          ║');
+    console.error('║  causing ALL user data to be permanently deleted.        ║');
+    console.error('║                                                          ║');
+    console.error('║  Steps to fix:                                           ║');
+    console.error('║  1. Go to Render dashboard → New → PostgreSQL           ║');
+    console.error('║  2. Create a database (free tier available)              ║');
+    console.error('║  3. Copy the "Internal Database URL"                     ║');
+    console.error('║  4. Go to your Web Service → Environment                 ║');
+    console.error('║  5. Add DATABASE_URL = <paste the URL here>              ║');
+    console.error('║  6. Redeploy                                             ║');
+    console.error('╚══════════════════════════════════════════════════════════╝');
+    console.error('');
+    process.exit(1);
+  }
+}
+
 let sqliteDb = null;
 let pgPool = null;
 

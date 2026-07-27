@@ -166,13 +166,31 @@ export default function App() {
     }
   };
 
-  // Verify and load active session on startup
+  // Auth loading state — prevents flash of login screen while verifying
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Verify session against backend on startup (backend is source of truth, not localStorage)
   useEffect(() => {
-    const activeUser = dbService.getCurrentUser();
-    if (activeUser) {
-      handleLoginSuccess(activeUser);
-    }
-    
+    const restoreSession = async () => {
+      try {
+        // verifySession() calls GET /api/verify to validate the JWT server-side.
+        // If token is expired or invalid, it clears localStorage and returns null.
+        // If network is down, it falls back to cached localStorage data.
+        const verifiedUser = await dbService.verifySession();
+        if (verifiedUser) {
+          await handleLoginSuccess(verifiedUser);
+        }
+      } catch (err) {
+        console.error('Session restore error:', err);
+        // On any unexpected error, clear stale auth and show login
+        dbService.logout();
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    restoreSession();
+
     // Load preferred theme
     const savedTheme = localStorage.getItem('tracker_theme') || 'dark';
     setTheme(savedTheme);
@@ -702,6 +720,34 @@ export default function App() {
   // ────────────────────────────────────────────────────────────────────────
 
 
+
+  // Show loading screen while verifying session against backend on startup
+  if (authLoading) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        background: 'var(--bg-primary, #0f0f1a)',
+        color: 'var(--text-primary, #ffffff)',
+        gap: '16px'
+      }}>
+        <img src="/logo.jpg" alt="SpendAchu" style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover' }} />
+        <div style={{ fontSize: '1.25rem', fontWeight: '700', fontFamily: 'var(--font-heading, sans-serif)' }}>SpendAchu</div>
+        <div style={{
+          width: '36px', height: '36px',
+          border: '3px solid rgba(255,255,255,0.15)',
+          borderTop: '3px solid #6c63ff',
+          borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite'
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <div style={{ fontSize: '0.875rem', opacity: 0.5 }}>Verifying your session…</div>
+      </div>
+    );
+  }
 
   // Render Auth views if session is empty
   if (!user) {

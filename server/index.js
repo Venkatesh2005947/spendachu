@@ -249,11 +249,12 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const nodemailer = require('nodemailer');
+const { sendWelcomeWebhook } = require('./services/webhook');
 const { db } = require('./services/dbConnector');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = 'secret_spendachu_9923';
+const JWT_SECRET = process.env.JWT_SECRET || 'secret_spendachu_9923';
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
