@@ -295,24 +295,6 @@ export const dbService = {
     return handleResponse(res);
   },
 
-  // 7. Achievements Operations
-  async getAchievements() {
-    const res = await fetch('/api/achievements', {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
-  },
-
-  async markAchievementsSeen(achievementIds) {
-    const res = await fetch('/api/achievements/seen', {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ achievementIds })
-    });
-    return handleResponse(res);
-  },
-
   // 8. Financial Health Score Operations
   async getFinancialHealth() {
     const res = await fetch('/api/financial-health', {

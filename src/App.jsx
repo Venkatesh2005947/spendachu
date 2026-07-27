@@ -27,8 +27,6 @@ import FinancialGoals from './components/Dashboard/FinancialGoals';
 import GoalForm from './components/Dashboard/GoalForm';
 import AddGoalSavingsModal from './components/Dashboard/AddGoalSavingsModal';
 import GoalCompletedModal from './components/Dashboard/GoalCompletedModal';
-import AchievementsList from './components/Dashboard/AchievementsList';
-import AchievementUnlockModal from './components/Dashboard/AchievementUnlockModal';
 import FinancialHealthCard from './components/Dashboard/FinancialHealthCard';
 import FinancialHealthModal from './components/Dashboard/FinancialHealthModal';
 import AdminNotifications from './components/Admin/AdminNotifications';
@@ -78,11 +76,6 @@ export default function App() {
   const [selectedGoalForSavings, setSelectedGoalForSavings] = useState(null);
   const [completedGoalCelebration, setCompletedGoalCelebration] = useState(null);
 
-  // 6. Achievements State
-  const [achievementsData, setAchievementsData] = useState({ achievements: [], totalPoints: 0 });
-  const [achievementsLoading, setAchievementsLoading] = useState(false);
-  const [unlockedAchievementsQueue, setUnlockedAchievementsQueue] = useState([]);
-
   // Dashboard month selector (defaults to current month)
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
@@ -116,20 +109,18 @@ export default function App() {
 
   const refreshAllData = async () => {
     try {
-      const [records, limits, savingsList, trashList, goalsList, achs] = await Promise.all([
+      const [records, limits, savingsList, trashList, goalsList] = await Promise.all([
         dbService.getExpenses(),
         dbService.getBudgets(),
         dbService.getSavings(),
         dbService.getTrash(),
-        dbService.getGoals().catch(() => []),
-        dbService.getAchievements().catch(() => ({ achievements: [], totalPoints: 0 }))
+        dbService.getGoals().catch(() => [])
       ]);
       setExpenses(records || []);
       setBudgets(limits || {});
       setSavings(savingsList || []);
       setTrash(trashList || []);
       setGoals(goalsList || []);
-      setAchievementsData(achs || { achievements: [], totalPoints: 0 });
       fetchFinancialHealth();
       checkMockStatus();
     } catch (err) {
@@ -221,13 +212,12 @@ export default function App() {
     
     try {
       // Fetch user-isolated financial data
-      const [records, limits, savingsList, trashList, goalsList, achs] = await Promise.all([
+      const [records, limits, savingsList, trashList, goalsList] = await Promise.all([
         dbService.getExpenses(),
         dbService.getBudgets(),
         dbService.getSavings(),
         dbService.getTrash(),
-        dbService.getGoals().catch(() => []),
-        dbService.getAchievements().catch(() => ({ achievements: [], totalPoints: 0 }))
+        dbService.getGoals().catch(() => [])
       ]);
       
       setExpenses(records);
@@ -235,16 +225,9 @@ export default function App() {
       setSavings(savingsList);
       setTrash(trashList);
       setGoals(goalsList);
-      setAchievementsData(achs);
 
       fetchFinancialHealth();
       checkMockStatus();
-
-      // Queue congratulations for any unlocked but unseen achievements from offline/updates
-      const unseenUnlocked = (achs?.achievements || []).filter(a => a.unlocked && !a.seen);
-      if (unseenUnlocked.length > 0) {
-        setUnlockedAchievementsQueue(unseenUnlocked);
-      }
 
       // Fetch user currency setting if saved
       const savedCurrency = localStorage.getItem(`tracker_currency_${loggedInUser.email}`) || 'INR';
@@ -273,44 +256,30 @@ export default function App() {
     setBudgets({});
     setNotifications([]);
     setGoals([]);
-    setAchievementsData({ achievements: [], totalPoints: 0 });
-    setUnlockedAchievementsQueue([]);
   };
 
   const handleSaveExpense = async (payload) => {
     try {
       if (editingExpense && editingExpense.id) {
-        // Update action — no duplicate check needed for edits
         await dbService.updateExpense(editingExpense.id, payload);
       } else {
-        // Add action — check for duplicates
         const result = await dbService.addExpense(payload);
         if (result && result.isDuplicate) {
-          // Pause and ask the user what to do
           setDuplicateWarning({
             confidence: result.confidence,
             existing: result.existing,
             pendingPayload: payload,
             source: 'manual'
           });
-          return; // Do NOT close the expense modal yet
-        }
-        
-        // Intercept any newly unlocked achievements
-        if (result && result.unlockedAchievements && result.unlockedAchievements.length > 0) {
-          setUnlockedAchievementsQueue(prev => [...prev, ...result.unlockedAchievements]);
-          const updatedAchs = await dbService.getAchievements();
-          setAchievementsData(updatedAchs);
+          return;
         }
       }
 
-      // Reload database states
       const updatedExpenses = await dbService.getExpenses();
       setExpenses(updatedExpenses);
       setIsExpenseModalOpen(false);
       setEditingExpense(null);
 
-      // Trigger instant check for budget warnings & update score
       checkBudgetAlerts(updatedExpenses, budgets);
       fetchFinancialHealth();
     } catch (err) {
@@ -326,7 +295,6 @@ export default function App() {
       setExpenses(updatedExpenses);
       setTrash(updatedTrash);
 
-      // Trigger instant check for budget warnings & update score
       checkBudgetAlerts(updatedExpenses, budgets);
       fetchFinancialHealth();
     } catch (err) {
@@ -358,17 +326,10 @@ export default function App() {
 
   const handleSaveSaving = async (payload) => {
     try {
-      const res = await dbService.addSaving(payload);
+      await dbService.addSaving(payload);
       const updatedSavings = await dbService.getSavings();
       setSavings(updatedSavings);
       setIsSavingModalOpen(false);
-
-      // Check for newly unlocked achievements
-      if (res && res.unlockedAchievements && res.unlockedAchievements.length > 0) {
-        setUnlockedAchievementsQueue(prev => [...prev, ...res.unlockedAchievements]);
-        const updatedAchs = await dbService.getAchievements();
-        setAchievementsData(updatedAchs);
-      }
     } catch (err) {
       console.error('Failed to save saving:', err);
     }
@@ -607,13 +568,6 @@ export default function App() {
       setExpenses(updated);
       setIsReceiptPreviewOpen(false);
       setScanResult(null);
-
-      // Check for newly unlocked achievements
-      if (result && result.unlockedAchievements && result.unlockedAchievements.length > 0) {
-        setUnlockedAchievementsQueue(prev => [...prev, ...result.unlockedAchievements]);
-        const updatedAchs = await dbService.getAchievements();
-        setAchievementsData(updatedAchs);
-      }
     } catch (err) {
       console.error('Failed to save scanned expense:', err);
       alert(err.message || 'Failed to save expense.');
@@ -643,13 +597,6 @@ export default function App() {
       setGoals(updatedGoals);
       setIsGoalFormOpen(false);
       setEditingGoal(null);
-
-      // Check for newly unlocked achievements
-      if (res && res.unlockedAchievements && res.unlockedAchievements.length > 0) {
-        setUnlockedAchievementsQueue(prev => [...prev, ...res.unlockedAchievements]);
-        const updatedAchs = await dbService.getAchievements();
-        setAchievementsData(updatedAchs);
-      }
     } catch (err) {
       console.error('Failed to save goal:', err);
       alert(err.message || 'Failed to save goal.');
@@ -708,28 +655,9 @@ export default function App() {
       setGoals(updatedGoals);
       setIsAddGoalSavingsOpen(false);
       setSelectedGoalForSavings(null);
-
-      // Check for newly unlocked achievements
-      if (res && res.unlockedAchievements && res.unlockedAchievements.length > 0) {
-        setUnlockedAchievementsQueue(prev => [...prev, ...res.unlockedAchievements]);
-        const updatedAchs = await dbService.getAchievements();
-        setAchievementsData(updatedAchs);
-      }
     } catch (err) {
       console.error('Failed to deposit savings to goal:', err);
       alert(err.message || 'Failed to deposit savings.');
-    }
-  };
-
-  const handleDismissUnlockModal = async (id) => {
-    // Remove from active modal queue
-    setUnlockedAchievementsQueue(prev => prev.filter(a => a.id !== id));
-    try {
-      await dbService.markAchievementsSeen([id]);
-      const updatedAchs = await dbService.getAchievements();
-      setAchievementsData(updatedAchs);
-    } catch (err) {
-      console.error('Failed to mark achievement as seen:', err);
     }
   };
   // ────────────────────────────────────────────────────────────────────────
@@ -990,13 +918,6 @@ export default function App() {
             currencyCode={currencyCode} 
           />
         );
-      case 'achievements':
-        return (
-          <AchievementsList 
-            achievementsData={achievementsData}
-            loading={achievementsLoading}
-          />
-        );
       case 'trash':
         return (
           <RecentlyDeleted 
@@ -1023,7 +944,6 @@ export default function App() {
       case 'admin-analytics': return 'Weekly Admin Analytics Report';
       case 'expenses': return 'Expense Management';
       case 'savings': return 'Savings Log';
-      case 'achievements': return 'Milestones & Achievements';
       case 'budgeting': return 'Budget Settings';
       case 'insights': return 'AI Smart Insights';
       case 'trash': return 'Recently Deleted';
@@ -1042,7 +962,6 @@ export default function App() {
       case 'admin-analytics': return 'Backend-aggregated weekly KPI metrics and Monday email dispatches.';
       case 'expenses': return 'Search, filter, edit, and export your expense records.';
       case 'savings': return 'Keep your backup money safe and track your deposits.';
-      case 'achievements': return 'Track your streaks, milestones, and unlock special badges.';
       case 'budgeting': return 'Configure your monthly budget limits and alerts.';
       case 'insights': return 'Review natural language breakdowns and savings suggestions.';
       case 'trash': return 'Recover deleted expenses and savings within 30 days.';
@@ -1497,14 +1416,6 @@ export default function App() {
           <GoalCompletedModal
             goal={completedGoalCelebration}
             onClose={() => setCompletedGoalCelebration(null)}
-          />
-        )}
-
-        {/* Achievement Unlock Congratulations Modal */}
-        {unlockedAchievementsQueue.length > 0 && (
-          <AchievementUnlockModal
-            achievements={unlockedAchievementsQueue}
-            onClose={handleDismissUnlockModal}
           />
         )}
 
