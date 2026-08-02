@@ -924,57 +924,6 @@ export default function App() {
           </div>
           
           <div className="header-actions">
-            {/* Mock Test Data Button */}
-            {hasMockData ? (
-              <button
-                className="mock-data-btn active"
-                onClick={handleCleanupMockData}
-                disabled={mockLoading}
-                title="Delete all 1-month mock test data"
-                style={{
-                  background: 'rgba(239, 68, 68, 0.15)',
-                  border: '1px solid rgba(239, 68, 68, 0.35)',
-                  color: '#f87171',
-                  borderRadius: '12px',
-                  padding: '6px 14px',
-                  fontWeight: '700',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                {mockLoading ? '⏳ Deleting...' : '🗑️ Delete Mock Test Data'}
-              </button>
-            ) : (
-              <button
-                className="mock-data-btn"
-                onClick={handleGenerateMockData}
-                disabled={mockLoading}
-                title="Add 1 month of test expenses, savings, goals & budget"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.2))',
-                  border: '1px solid rgba(99,102,241,0.4)',
-                  color: '#a5b4fc',
-                  borderRadius: '12px',
-                  padding: '6px 14px',
-                  fontWeight: '700',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                {mockLoading ? '⏳ Generating...' : '🧪 Add 1 Month Mock Data'}
-              </button>
-            )}
-
-
-            
             {/* Quick Profile Badge */}
             {user && (
               <button 
@@ -1023,42 +972,6 @@ export default function App() {
             </button>
           </div>
         </div>
-
-        {/* Testing Mode Banner when mock data is present */}
-        {hasMockData && (
-          <div style={{
-            background: 'linear-gradient(90deg, rgba(99,102,241,0.18), rgba(168,85,247,0.18))',
-            borderBottom: '1px solid rgba(99,102,241,0.3)',
-            padding: '10px 20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            fontSize: '13px',
-            color: '#a5b4fc',
-            fontWeight: '600',
-            gap: '12px',
-            flexWrap: 'wrap'
-          }}>
-            <span>⚡ <strong>Testing Mode Active:</strong> 1 month of realistic test data is loaded (expenses, savings, goals, budget). Feel free to test every feature!</span>
-            <button
-              onClick={handleCleanupMockData}
-              disabled={mockLoading}
-              style={{
-                background: 'rgba(239, 68, 68, 0.2)',
-                border: '1px solid rgba(239, 68, 68, 0.4)',
-                color: '#f87171',
-                borderRadius: '8px',
-                padding: '4px 12px',
-                fontSize: '12px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              🗑️ Delete Mock Data Now
-            </button>
-          </div>
-        )}
 
         {/* Tab body content */}
         <div className="tab-content-wrapper">
