@@ -1417,7 +1417,7 @@ export default function App() {
             onClose={() => setIsProfileModalOpen(false)}
             onLogout={handleLogout}
             currencyCode={currencyCode}
-            onCurrencyChange={handleCurrencyChange}
+            onCurrencyChange={handleSaveCurrency}
             expensesCount={expenses.length}
             savingsCount={savings.length}
             goalsCount={goals.length}
