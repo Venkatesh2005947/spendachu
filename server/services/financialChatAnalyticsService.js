@@ -13,7 +13,6 @@
 'use strict';
 
 const { db } = require('./dbConnector');
-const { calculateFinancialHealthScore } = require('./financialHealthEngine');
 
 const TIMEZONE = 'Asia/Kolkata';
 
@@ -581,24 +580,16 @@ async function getGoalProgress(userId, goalId = null) {
 }
 
 /**
- * 10. Get financial health summary (reuses existing engine).
+ * 10. Get financial health summary.
  */
 async function getFinancialHealthSummary(userId) {
-  try {
-    const result = await calculateFinancialHealthScore(userId);
-    return {
-      hasEnoughData: result.hasEnoughData,
-      totalScore: result.totalScore,
-      level: result.level,
-      components: result.components,
-      suggestions: result.suggestions,
-      missingData: result.missingData || [],
-      friendlyMessage: result.message || null
-    };
-  } catch (err) {
-    console.error('[FinancialChat] getFinancialHealthSummary error:', err.message);
-    throw err;
-  }
+  return {
+    hasEnoughData: false,
+    missingData: [],
+    friendlyMessage: 'Financial health evaluation is not active.',
+    totalScore: 0,
+    level: 'N/A'
+  };
 }
 
 /**
