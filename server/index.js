@@ -2090,11 +2090,33 @@ app.get('/api/mock-data/status', authenticateJWT, async (req, res) => {
 });
 
 // Serve static frontend files in production
-app.use(express.static(path.join(__dirname, '../dist')));
+const distPath = path.join(__dirname, '../dist');
+const indexPath = path.join(distPath, 'index.html');
+app.use(express.static(distPath));
 
 // Wildcard fallback route to support SPA client-side routing
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/index.html'));
+  const fs = require('fs');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    // dist/ was not built — show a helpful message instead of blank screen
+    res.status(503).send(`
+      <!DOCTYPE html>
+      <html><head><title>SpendAchu</title>
+      <style>
+        body { font-family: -apple-system, sans-serif; background: #0a0f1d; color: #f0f9ff;
+               display: flex; align-items: center; justify-content: center; min-height: 100vh;
+               flex-direction: column; gap: 12px; margin: 0; }
+        h1 { font-size: 1.5rem; color: #06b6d4; }
+        p { opacity: 0.7; font-size: 0.95rem; max-width: 400px; text-align: center; }
+      </style></head>
+      <body>
+        <h1>🚀 SpendAchu is starting up...</h1>
+        <p>The server is running but the frontend build is missing. Please refresh in a moment, or check the Render build logs.</p>
+      </body></html>
+    `);
+  }
 });
 
 // Start server after initializing database
