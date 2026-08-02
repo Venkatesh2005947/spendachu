@@ -247,7 +247,6 @@ export default function App() {
     setSavings([]);
     setTrash([]);
     setBudgets({});
-    setNotifications([]);
     setGoals([]);
   };
 
@@ -272,9 +271,6 @@ export default function App() {
       setExpenses(updatedExpenses);
       setIsExpenseModalOpen(false);
       setEditingExpense(null);
-
-      checkBudgetAlerts(updatedExpenses, budgets);
-      fetchFinancialHealth();
     } catch (err) {
       console.error('Failed to save expense:', err);
     }
@@ -287,9 +283,6 @@ export default function App() {
       const updatedTrash = await dbService.getTrash();
       setExpenses(updatedExpenses);
       setTrash(updatedTrash);
-
-      checkBudgetAlerts(updatedExpenses, budgets);
-      fetchFinancialHealth();
     } catch (err) {
       console.error('Failed to delete expense:', err);
     }
@@ -299,7 +292,6 @@ export default function App() {
     try {
       const limits = await dbService.updateBudgets(updatedBudgets);
       setBudgets(limits);
-      checkBudgetAlerts(expenses, limits);
     } catch (err) {
       console.error('Failed to save budgets:', err);
     }
@@ -311,7 +303,6 @@ export default function App() {
       const updatedTrash = await dbService.getTrash();
       setExpenses(cleared);
       setTrash(updatedTrash);
-      checkBudgetAlerts(cleared, budgets);
     } catch (err) {
       console.error('Failed to clear expenses:', err);
     }
@@ -396,39 +387,7 @@ export default function App() {
     }
   };
 
-  // Inspect expense summaries and budget constraints to issue user alerts
-  const checkBudgetAlerts = (records, limits) => {
-    if (!limits || records.length === 0) return;
-    
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
 
-    const thisMonthSpent = records
-      .filter(e => {
-        const d = new Date(e.date);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-      })
-      .reduce((sum, e) => sum + e.amount, 0);
-
-    const alerts = [];
-    const globalLimit = limits.global || 50000;
-    
-    if (thisMonthSpent >= globalLimit) {
-      alerts.push(`🚨 Critical: You have exceeded your overall monthly budget limit of ₹${globalLimit}!`);
-    } else if (thisMonthSpent >= globalLimit * 0.8) {
-      alerts.push(`⚠️ Warning: You have utilized over 80% of your global monthly budget!`);
-    }
-
-    setNotifications(alerts);
-  };
-
-  // Run alerts evaluation when expenses or budgets update
-  useEffect(() => {
-    if (user && expenses.length > 0 && Object.keys(budgets).length > 0) {
-      checkBudgetAlerts(expenses, budgets);
-    }
-  }, [expenses, budgets, user]);
 
   const openAddModal = () => {
     setEditingExpense(null);
