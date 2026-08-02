@@ -151,13 +151,13 @@ a {
 
 .glow-btn {
   background: var(--accent-gradient) !important;
-  color: #060913 !important;
+  color: #ffffff !important;
   border: none !important;
   border-radius: var(--radius-md) !important;
   padding: 12px 24px;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.35) !important;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3) !important;
   transition: all var(--transition-fast);
   display: inline-flex;
   align-items: center;
@@ -168,7 +168,7 @@ a {
   background: var(--accent-gradient-hover) !important;
   color: #ffffff !important;
   transform: translateY(-1px);
-  box-shadow: 0 6px 22px rgba(6, 182, 212, 0.5) !important;
+  box-shadow: 0 6px 22px rgba(37, 99, 235, 0.45) !important;
 }
 
 .glow-btn:active {
@@ -199,8 +199,9 @@ a {
 }
 
 .outline-btn:hover {
-  background-color: var(--bg-secondary) !important;
-  border-color: var(--text-muted) !important;
+  background-color: var(--accent-primary) !important;
+  color: #ffffff !important;
+  border-color: var(--accent-primary) !important;
 }
 
 .outline-btn:active {
@@ -961,29 +962,29 @@ a {
   border-radius: var(--radius-md);
   font-size: 14.5px;
   font-weight: 700;
-  color: var(--text-on-sidebar);
+  color: rgba(248, 250, 252, 0.75);
   cursor: pointer;
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  transition: all var(--transition-fast);
   white-space: nowrap;
-  border: 2px solid transparent;
+  border: 1px solid transparent;
 }
 
 .sidebar-item:hover {
-  background-color: var(--bg-secondary);
-  color: var(--text-on-sidebar);
-  border: 2px solid #000000;
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .sidebar-item.active {
-  background-color: var(--accent-primary);
-  color: #000000;
-  border: 2px solid #000000;
-  box-shadow: 2px 2px 0px #000000;
+  background: var(--accent-gradient);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
 }
 
 .sidebar-user {
   padding: 20px;
-  border-top: 3px solid #000000;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -993,9 +994,9 @@ a {
 .sidebar-user-avatar {
   width: 36px;
   height: 36px;
-  background: var(--accent-primary);
-  color: #000000;
-  border: 2px solid #000000;
+  background: var(--accent-gradient);
+  color: #ffffff;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
