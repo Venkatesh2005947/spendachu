@@ -229,7 +229,7 @@ export default function App() {
       setTrash(trashList);
       setGoals(goalsList);
 
-      fetchFinancialHealth();
+
       checkMockStatus();
 
       // Fetch user currency setting if saved
@@ -1012,8 +1012,7 @@ export default function App() {
               </button>
             )}
 
-            {/* User Notification Center Bell & Dropdown */}
-            <NotificationCenter onNavigateTab={setActiveTab} />
+
             
             {/* Toggle light/dark */}
             <button className="theme-toggle-btn" onClick={toggleTheme} title="Toggle screen theme" style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '6px 10px', background: 'var(--card-bg)', boxShadow: 'var(--shadow-sm)', fontWeight: 'bold', cursor: 'pointer' }}>
