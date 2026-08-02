@@ -12,10 +12,7 @@ import {
   Coins,
   Trash2,
   MessageSquare,
-  HeartPulse,
-  ShieldAlert,
   BarChart3,
-  Bell,
   Bot
 } from 'lucide-react';
 
@@ -38,11 +35,8 @@ export default function Sidebar({
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'health', label: 'Financial Health', icon: HeartPulse },
-    { id: 'notifications', label: 'Notifications 🔔', icon: Bell },
     { id: 'assistant', label: 'Ask SpendAchu 🤖', icon: Bot },
     ...(isAdmin ? [
-      { id: 'admin-notifications', label: 'Admin Alerts 🛡️', icon: ShieldAlert },
       { id: 'admin-analytics', label: 'Admin Analytics 📊', icon: BarChart3 }
     ] : []),
     { id: 'expenses', label: 'Expenses', icon: ReceiptText },

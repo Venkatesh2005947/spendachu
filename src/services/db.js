@@ -331,65 +331,6 @@ export const dbService = {
     return handleResponse(res);
   },
 
-  // 8. Financial Health Score Operations
-  async getFinancialHealth() {
-    const res = await fetch('/api/financial-health', {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
-  },
-
-  async getFinancialHealthHistory() {
-    const res = await fetch('/api/financial-health/history', {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
-  },
-
-  // 9. Admin Notifications Operations
-  async getAdminNotifications(params = {}) {
-    const query = new URLSearchParams(params).toString();
-    const res = await fetch(`/api/admin/notifications?${query}`, {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
-  },
-
-  async getAdminNotificationById(id) {
-    const res = await fetch(`/api/admin/notifications/${id}`, {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
-  },
-
-  async markAdminNotificationRead(id) {
-    const res = await fetch(`/api/admin/notifications/${id}/read`, {
-      method: 'PATCH',
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
-  },
-
-  async dismissAdminNotification(id) {
-    const res = await fetch(`/api/admin/notifications/${id}/dismiss`, {
-      method: 'PATCH',
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
-  },
-
-  async retryAdminNotification(id) {
-    const res = await fetch(`/api/admin/notifications/${id}/retry`, {
-      method: 'POST',
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
-  },
-
   // 10. Weekly Admin Analytics Report Operations
   async getWeeklyReport(weekKey = null, dispatch = false) {
     const params = new URLSearchParams();
@@ -441,39 +382,6 @@ export const dbService = {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify({ enabled })
-    });
-    return handleResponse(res);
-  },
-
-  // 12. User Notification Operations
-  async getUserNotifications(limit = 50, offset = 0) {
-    const res = await fetch(`/api/user/notifications?limit=${limit}&offset=${offset}`, {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
-  },
-
-  async markUserNotificationRead(id) {
-    const res = await fetch(`/api/user/notifications/${id}/read`, {
-      method: 'PATCH',
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
-  },
-
-  async markAllUserNotificationsRead() {
-    const res = await fetch('/api/user/notifications/read-all', {
-      method: 'PATCH',
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
-  },
-
-  async deleteUserNotification(id) {
-    const res = await fetch(`/api/user/notifications/${id}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders()
     });
     return handleResponse(res);
   },

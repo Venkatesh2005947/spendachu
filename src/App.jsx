@@ -27,12 +27,7 @@ import FinancialGoals from './components/Dashboard/FinancialGoals';
 import GoalForm from './components/Dashboard/GoalForm';
 import AddGoalSavingsModal from './components/Dashboard/AddGoalSavingsModal';
 import GoalCompletedModal from './components/Dashboard/GoalCompletedModal';
-import FinancialHealthCard from './components/Dashboard/FinancialHealthCard';
-import FinancialHealthModal from './components/Dashboard/FinancialHealthModal';
-import AdminNotifications from './components/Admin/AdminNotifications';
 import AdminAnalytics from './components/Admin/AdminAnalytics';
-import NotificationCenter from './components/Notifications/NotificationCenter';
-import NotificationsPage from './components/Notifications/NotificationsPage';
 import AskSpendAchu from './components/Assistant/AskSpendAchu';
 
 export default function App() {
@@ -57,7 +52,6 @@ export default function App() {
   const [editingExpense, setEditingExpense] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]); // Dynamic budget alerts
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [isReceiptPreviewOpen, setIsReceiptPreviewOpen] = useState(false);
@@ -121,7 +115,6 @@ export default function App() {
       setSavings(savingsList || []);
       setTrash(trashList || []);
       setGoals(goalsList || []);
-      fetchFinancialHealth();
       checkMockStatus();
     } catch (err) {
       console.error('Failed to refresh data:', err);
@@ -205,25 +198,7 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', nextTheme);
   };
 
-  // 7. Financial Health State
-  const [financialHealth, setFinancialHealth] = useState(null);
-  const [healthLoading, setHealthLoading] = useState(false);
-  const [healthError, setHealthError] = useState(null);
-  const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
 
-  const fetchFinancialHealth = async () => {
-    try {
-      setHealthLoading(true);
-      setHealthError(null);
-      const health = await dbService.getFinancialHealth();
-      setFinancialHealth(health);
-    } catch (err) {
-      console.error('Failed to calculate financial health score:', err);
-      setHealthError('Failed to load Financial Health Score.');
-    } finally {
-      setHealthLoading(false);
-    }
-  };
 
   const handleLoginSuccess = async (loggedInUser) => {
     setUser(loggedInUser);
@@ -848,14 +823,6 @@ export default function App() {
             {/* 1. Main Spending Card */}
             <StatCards expenses={expenses} budgets={budgets} savings={savings} selectedMonth={selectedMonth} selectedYear={selectedYear} />
 
-            {/* 2. Financial Health Score Widget */}
-            <FinancialHealthCard 
-              healthData={financialHealth} 
-              loading={healthLoading} 
-              error={healthError} 
-              onOpenDetails={() => setIsHealthModalOpen(true)} 
-            />
-
             {/* Spending Analytics Charts */}
             <AnalyticsCharts expenses={expenses} selectedMonth={selectedMonth} selectedYear={selectedYear} />
 
@@ -869,17 +836,6 @@ export default function App() {
                 </p>
               </div>
             </div>
-
-            {/* Dynamic Alert Banner */}
-            {notifications.length > 0 && isCurrentMonth && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {notifications.map((note, idx) => (
-                  <div key={idx} className="alert-pill danger" style={{ fontSize: '13px', padding: '12px 16px', borderRadius: '12px', background: 'var(--danger-bg)', color: 'var(--danger)', fontWeight: 'bold', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                    <span>{note}</span>
-                  </div>
-                ))}
-              </div>
-            )}
 
             {/* Financial Goals Section */}
             <FinancialGoals 
@@ -907,21 +863,8 @@ export default function App() {
           </div>
         );
       }
-      case 'health':
-        return (
-          <FinancialHealthCard 
-            healthData={financialHealth} 
-            loading={healthLoading} 
-            error={healthError} 
-            onOpenDetails={() => setIsHealthModalOpen(true)} 
-          />
-        );
-      case 'notifications':
-        return <NotificationsPage onNavigateTab={setActiveTab} />;
       case 'assistant':
         return <AskSpendAchu />;
-      case 'admin-notifications':
-        return <AdminNotifications />;
       case 'admin-analytics':
         return <AdminAnalytics />;
       case 'expenses':
@@ -983,10 +926,7 @@ export default function App() {
   const getPageTitle = () => {
     switch (activeTab) {
       case 'dashboard': return 'Financial Dashboard';
-      case 'health': return 'Financial Health Score';
-      case 'notifications': return 'User Notifications';
       case 'assistant': return 'Ask SpendAchu — AI Assistant';
-      case 'admin-notifications': return 'Admin Notifications & Alerts';
       case 'admin-analytics': return 'Weekly Admin Analytics Report';
       case 'expenses': return 'Expense Management';
       case 'savings': return 'Savings Log';
@@ -1001,10 +941,7 @@ export default function App() {
   const getPageSubtitle = () => {
     switch (activeTab) {
       case 'dashboard': return `Welcome, ${user.name}!`;
-      case 'health': return 'Your financial wellness score & breakdown.';
-      case 'notifications': return 'Your alerts and system updates.';
       case 'assistant': return 'Ask anything about your expenses or budget.';
-      case 'admin-notifications': return 'System alerts and events.';
       case 'admin-analytics': return 'Weekly KPI analytics report.';
       case 'expenses': return 'Manage and track your expenses.';
       case 'savings': return 'Track your backup savings.';

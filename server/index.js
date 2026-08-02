@@ -260,15 +260,6 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-const { calculateFinancialHealthScore, getScoreHistory } = require('./services/financialHealthEngine');
-const {
-  notifyAdmin,
-  getAdminNotifications,
-  getNotificationById,
-  markAsRead,
-  dismissNotification,
-  retryNotificationDelivery
-} = require('./services/adminNotificationService');
 const {
   generateWeeklyReport,
   dispatchWeeklyReportEmail,
@@ -284,13 +275,6 @@ const {
   runDailyBackup,
   listBackups
 } = require('./services/backupService');
-const {
-  notifyUser,
-  getUserNotifications,
-  markUserNotificationRead,
-  markAllUserNotificationsRead,
-  deleteUserNotification
-} = require('./services/userNotificationService');
 const financialAnalytics = require('./services/financialChatAnalyticsService');
 const { resolveDateExpression, getCurrentMonthYear, getPreviousMonthYear } = require('./services/financialChatDateResolver');
 const { sanitizeInput, classifyIntent, validateIntent, extractCategory, extractMerchant, getSuggestedQuestions } = require('./services/financialChatIntentClassifier');
@@ -380,26 +364,6 @@ app.post('/api/register', (req, res) => {
           
           // Trigger the welcome email webhook asynchronously without blocking registration success
           sendWelcomeWebhook(name, normalizedEmail);
-
-          // Record admin notification for user registration
-          notifyAdmin({
-            eventType: 'new_user_registration',
-            severity: 'low',
-            title: 'New User Registered 🎉',
-            message: `User ${name} (${normalizedEmail}) has created an account.`,
-            userId: userId,
-            metadata: { email: normalizedEmail, name }
-          });
-
-          // Record in-app welcome notification for user
-          notifyUser({
-            userId: userId,
-            type: 'system',
-            title: 'Welcome to SpendAchu! 🎉',
-            message: `Welcome, ${name}! Your smart expense tracker and savings hub is ready.`,
-            relatedPage: 'dashboard',
-            eventKey: `welcome_${userId}`
-          });
 
           const sessionToken = jwt.sign(
             { id: userId, email: normalizedEmail, name: name },
