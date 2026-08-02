@@ -447,30 +447,5 @@ export const dbService = {
       headers: getAuthHeaders()
     });
     return handleResponse(res);
-  },
-
-  // ── Mock Test Data (Testing Mode) ─────────────────────────────────────────
-
-  async generateMockData() {
-    const res = await fetch('/api/mock-data/generate', {
-      method: 'POST',
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
-  },
-
-  async cleanupMockData() {
-    const res = await fetch('/api/mock-data/cleanup', {
-      method: 'DELETE',
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
-  },
-
-  async getMockDataStatus() {
-    const res = await fetch('/api/mock-data/status', {
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
   }
 };

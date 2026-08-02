@@ -88,21 +88,6 @@ export default function App() {
     maxAmount: ''
   });
 
-  // 8. Mock Data State
-  const [hasMockData, setHasMockData] = useState(false);
-  const [mockLoading, setMockLoading] = useState(false);
-
-  const checkMockStatus = async () => {
-    try {
-      const res = await dbService.getMockDataStatus();
-      if (res.success) {
-        setHasMockData(res.hasMockData);
-      }
-    } catch (err) {
-      console.error('Failed to check mock data status:', err);
-    }
-  };
-
   const refreshAllData = async () => {
     try {
       const [records, limits, savingsList, trashList, goalsList] = await Promise.all([
@@ -117,47 +102,8 @@ export default function App() {
       setSavings(savingsList || []);
       setTrash(trashList || []);
       setGoals(goalsList || []);
-      checkMockStatus();
     } catch (err) {
       console.error('Failed to refresh data:', err);
-    }
-  };
-
-  const handleGenerateMockData = async () => {
-    if (mockLoading) return;
-    setMockLoading(true);
-    try {
-      const res = await dbService.generateMockData();
-      if (res.success) {
-        await refreshAllData();
-        alert(`🎉 Mock Test Data Created!\n\n${res.message}\n\nYou can now test all features (Dashboard, Health Score, Ask SpendAchu AI, Budgets, Goals). Click "Delete Mock Test Data" anytime to delete it.`);
-      } else {
-        alert(res.error || 'Failed to generate mock data');
-      }
-    } catch (err) {
-      alert(err.message || 'Failed to generate mock test data');
-    } finally {
-      setMockLoading(false);
-    }
-  };
-
-  const handleCleanupMockData = async () => {
-    if (mockLoading) return;
-    if (!window.confirm('Are you sure you want to delete all 1-month mock test data? Your real data will be preserved.')) return;
-
-    setMockLoading(true);
-    try {
-      const res = await dbService.cleanupMockData();
-      if (res.success) {
-        await refreshAllData();
-        alert(`✅ Mock Test Data Deleted!\n\n${res.message}`);
-      } else {
-        alert(res.error || 'Failed to cleanup mock data');
-      }
-    } catch (err) {
-      alert(err.message || 'Failed to cleanup mock test data');
-    } finally {
-      setMockLoading(false);
     }
   };
 
@@ -231,8 +177,6 @@ export default function App() {
       setTrash(trashList);
       setGoals(goalsList);
 
-
-      checkMockStatus();
 
       // Fetch user currency setting if saved
       const savedCurrency = localStorage.getItem(`tracker_currency_${loggedInUser.email}`) || 'INR';
