@@ -5,7 +5,7 @@
       "destination": "https://spendachu-1.onrender.com/api/:path*"
     },
     {
-      "source": "/((?!assets/).*)",
+      "source": "/:path*",
       "destination": "/index.html"
     }
   ]
