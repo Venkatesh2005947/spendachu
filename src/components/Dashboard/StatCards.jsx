@@ -41,10 +41,10 @@ export default function StatCards({ expenses, budgets, savings = [], selectedMon
   const budgetPercentage = Math.min((monthlySpent / globalBudget) * 100, 100);
 
   // Traffic light
-  let trafficText = 'Safe Zone 🛡️';
+  let trafficText = 'On Track 🟢';
   let trafficBg   = '#10b981';
-  if (monthlySpent >= globalBudget) { trafficText = 'Ayyayo Kaasu Pochu! 🚨'; trafficBg = '#ef4444'; }
-  else if (monthlySpent >= globalBudget * 0.8) { trafficText = 'Danger Zone! ⚠️'; trafficBg = '#f59e0b'; }
+  if (monthlySpent >= globalBudget) { trafficText = 'Budget Exceeded 🚨'; trafficBg = '#ef4444'; }
+  else if (monthlySpent >= globalBudget * 0.8) { trafficText = 'Near Limit ⚠️'; trafficBg = '#f59e0b'; }
 
   const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -69,7 +69,7 @@ export default function StatCards({ expenses, budgets, savings = [], selectedMon
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <h3 style={{ fontSize: '13px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-              {isCurrentMonth ? 'Monthly Damage 💸' : `${MONTH_NAMES[viewMonth]} ${viewYear} 📅`}
+              {isCurrentMonth ? 'Spent This Month 💳' : `${MONTH_NAMES[viewMonth]} ${viewYear} 📅`}
             </h3>
             <p style={{ fontSize: '42px', fontWeight: '900', margin: 0, lineHeight: '1', fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>
               {formatCurrency(monthlySpent)}
@@ -101,11 +101,11 @@ export default function StatCards({ expenses, budgets, savings = [], selectedMon
           {isCurrentMonth ? (
             <>
               <div>
-                <h4 style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>Today's Loss 💸</h4>
+                <h4 style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>Today 📅</h4>
                 <p style={{ fontSize: '18px', fontWeight: '900', margin: 0, color: 'var(--text-primary)' }}>{formatCurrency(todaySpent)}</p>
               </div>
               <div>
-                <h4 style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>Weekly Damage 📉</h4>
+                <h4 style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>This Week 📉</h4>
                 <p style={{ fontSize: '18px', fontWeight: '900', margin: 0, color: 'var(--text-primary)' }}>{formatCurrency(weeklySpent)}</p>
               </div>
             </>

@@ -51,7 +51,7 @@ export default function FinancialHealthCard({ healthData, loading, error, onOpen
             <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
               Financial Health Score 🩺
             </h3>
-            <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Backend-evaluated financial wellness indicator</p>
+            <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Overall score based on your monthly cashflow</p>
           </div>
         </div>
 

@@ -1000,18 +1000,18 @@ export default function App() {
 
   const getPageSubtitle = () => {
     switch (activeTab) {
-      case 'dashboard': return `Welcome back, ${user.name}! Here is your current month status.`;
-      case 'health': return 'Backend-evaluated 5-component financial wellness score and trends.';
-      case 'notifications': return 'Real-time alerts for budget limits, goal milestones, and system updates.';
-      case 'assistant': return 'Accurate financial answers from your real data — no guessing.';
-      case 'admin-notifications': return 'Monitor system anomalies, registration events, and Make.com webhooks.';
-      case 'admin-analytics': return 'Backend-aggregated weekly KPI metrics and Monday email dispatches.';
-      case 'expenses': return 'Search, filter, edit, and export your expense records.';
-      case 'savings': return 'Keep your backup money safe and track your deposits.';
-      case 'budgeting': return 'Configure your monthly budget limits and alerts.';
-      case 'insights': return 'Review natural language breakdowns and savings suggestions.';
-      case 'trash': return 'Recover deleted expenses and savings within 30 days.';
-      case 'feedback': return 'Tell us what you think or report bugs to spendachu@gmail.com.';
+      case 'dashboard': return `Welcome, ${user.name}!`;
+      case 'health': return 'Your financial wellness score & breakdown.';
+      case 'notifications': return 'Your alerts and system updates.';
+      case 'assistant': return 'Ask anything about your expenses or budget.';
+      case 'admin-notifications': return 'System alerts and events.';
+      case 'admin-analytics': return 'Weekly KPI analytics report.';
+      case 'expenses': return 'Manage and track your expenses.';
+      case 'savings': return 'Track your backup savings.';
+      case 'budgeting': return 'Configure your monthly budget limits.';
+      case 'insights': return 'Smart AI analysis of your spending.';
+      case 'trash': return 'Recover deleted items.';
+      case 'feedback': return 'Share your suggestions or report bugs.';
       default: return '';
     }
   };
