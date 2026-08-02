@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://spendachu-1.onrender.com/api/:path*"
+    },
+    {
+      "source": "/((?!assets/).*)",
+      "destination": "/index.html"
     }
   ]
 }
