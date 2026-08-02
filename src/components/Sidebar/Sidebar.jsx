@@ -21,6 +21,7 @@ export default function Sidebar({
   setActiveTab, 
   user, 
   onLogout, 
+  onOpenProfile,
   theme, 
   toggleTheme, 
   collapsed, 
@@ -106,9 +107,11 @@ export default function Sidebar({
 
       </ul>
 
-      {/* User profile section */}
+      {/* Professional User profile section */}
       <div 
         className="sidebar-user" 
+        onClick={onOpenProfile}
+        title="Click to view & manage account profile"
         style={{ 
           display: 'flex', 
           flexDirection: collapsed ? 'column' : 'row',
@@ -116,19 +119,31 @@ export default function Sidebar({
           justifyContent: collapsed ? 'center' : 'space-between', 
           gap: '10px',
           width: '100%',
-          padding: collapsed ? '20px 10px' : '20px'
+          padding: collapsed ? '16px 10px' : '14px 16px',
+          cursor: 'pointer',
+          borderRadius: '14px',
+          background: 'rgba(255, 255, 255, 0.04)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          transition: 'all 0.2s ease',
+          margin: '8px 0 0'
         }}
       >
-        <div style={{ display: 'flex', flexDirection: collapsed ? 'column' : 'row', alignItems: 'center', gap: '12px', overflow: 'hidden', width: collapsed ? 'auto' : '80%' }}>
-          <div className="sidebar-user-avatar" title={collapsed ? user?.name : ''}>
+        <div style={{ display: 'flex', flexDirection: collapsed ? 'column' : 'row', alignItems: 'center', gap: '10px', overflow: 'hidden', flex: 1, minWidth: 0 }}>
+          <div className="sidebar-user-avatar" title={collapsed ? user?.name : ''} style={{ position: 'relative', flexShrink: 0 }}>
             {getInitials(user?.name)}
+            <div style={{ position: 'absolute', bottom: '-1px', right: '-1px', width: '10px', height: '10px', background: '#10b981', borderRadius: '50%', border: '2px solid var(--bg-sidebar)' }} />
           </div>
           {!collapsed && (
             <div className="sidebar-user-info" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%' }}>
-              <span className="sidebar-user-name" style={{ fontSize: '14px', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {user?.name || 'User'}
-              </span>
-              <span className="sidebar-user-email" style={{ fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span className="sidebar-user-name" style={{ fontSize: '13.5px', fontWeight: '700', color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {user?.name || 'User'}
+                </span>
+                <span style={{ fontSize: '9.5px', background: 'rgba(59, 130, 246, 0.25)', color: '#60a5fa', padding: '1px 6px', borderRadius: '6px', fontWeight: '800', letterSpacing: '0.5px' }}>
+                  {isAdmin ? 'ADMIN' : 'PRO'}
+                </span>
+              </div>
+              <span className="sidebar-user-email" style={{ fontSize: '11.5px', color: 'rgba(255, 255, 255, 0.5)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user?.email || 'user@example.com'}
               </span>
             </div>
@@ -136,26 +151,26 @@ export default function Sidebar({
         </div>
         
         <button 
-          onClick={onLogout}
+          onClick={(e) => { e.stopPropagation(); onLogout(); }}
           title="Log Out"
           className="sidebar-logout-btn"
           style={{
-            background: 'none',
-            border: 'none',
+            background: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
             color: '#f87171',
             cursor: 'pointer',
-            padding: '6px',
-            borderRadius: '8px',
+            padding: '7px',
+            borderRadius: '10px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             transition: 'all 0.2s ease',
-            marginTop: collapsed ? '6px' : '0'
+            flexShrink: 0
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(248, 113, 113, 0.15)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)'; }}
         >
-          <LogOut size={collapsed ? 16 : 18} />
+          <LogOut size={collapsed ? 15 : 16} />
         </button>
       </div>
     </div>

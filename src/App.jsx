@@ -29,6 +29,7 @@ import AddGoalSavingsModal from './components/Dashboard/AddGoalSavingsModal';
 import GoalCompletedModal from './components/Dashboard/GoalCompletedModal';
 import AdminAnalytics from './components/Admin/AdminAnalytics';
 import AskSpendAchu from './components/Assistant/AskSpendAchu';
+import UserProfileModal from './components/Profile/UserProfileModal';
 
 export default function App() {
   // 1. Session and Auth State
@@ -52,6 +53,7 @@ export default function App() {
   const [editingExpense, setEditingExpense] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [isReceiptPreviewOpen, setIsReceiptPreviewOpen] = useState(false);
@@ -947,6 +949,7 @@ export default function App() {
         }} 
         user={user} 
         onLogout={handleLogout} 
+        onOpenProfile={() => setIsProfileModalOpen(true)}
         theme={theme}
         toggleTheme={toggleTheme}
         collapsed={sidebarCollapsed}
@@ -1014,6 +1017,43 @@ export default function App() {
 
 
             
+            {/* Quick Profile Badge */}
+            {user && (
+              <button 
+                onClick={() => setIsProfileModalOpen(true)}
+                title="View Account Profile"
+                style={{
+                  background: 'var(--card-bg)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  padding: '5px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+              >
+                <div style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  background: 'var(--accent-gradient)',
+                  color: '#fff',
+                  fontSize: '11px',
+                  fontWeight: '800',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {user.name ? user.name[0].toUpperCase() : 'U'}
+                </div>
+                <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                  {user.name ? user.name.split(' ')[0] : 'Profile'}
+                </span>
+              </button>
+            )}
+
             {/* Toggle light/dark */}
             <button className="theme-toggle-btn" onClick={toggleTheme} title="Toggle screen theme" style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '6px 10px', background: 'var(--card-bg)', boxShadow: 'var(--shadow-sm)', fontWeight: 'bold', cursor: 'pointer' }}>
               {theme === 'dark' ? '☀' : '🌙'}
@@ -1370,7 +1410,19 @@ export default function App() {
           />
         )}
 
-
+        {/* Professional User Profile Modal */}
+        {isProfileModalOpen && (
+          <UserProfileModal
+            user={user}
+            onClose={() => setIsProfileModalOpen(false)}
+            onLogout={handleLogout}
+            currencyCode={currencyCode}
+            onCurrencyChange={handleCurrencyChange}
+            expensesCount={expenses.length}
+            savingsCount={savings.length}
+            goalsCount={goals.length}
+          />
+        )}
       </main>
     </div>
   );
