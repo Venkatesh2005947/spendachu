@@ -565,6 +565,16 @@ const MIGRATIONS = [
         )
       `);
     }
+  },
+  {
+    version: '014_add_profile_picture_to_users',
+    up: async (runQuery) => {
+      try {
+        await runQuery(`ALTER TABLE users ADD COLUMN profile_picture TEXT`);
+      } catch (err) {
+        // Ignored if column already exists
+      }
+    }
   }
 ];
 

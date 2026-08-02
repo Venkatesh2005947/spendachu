@@ -139,6 +139,15 @@ export const dbService = {
     return handleResponse(res);
   },
 
+  async updateProfilePicture(profile_picture) {
+    const res = await fetch('/api/user/profile-picture', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ profile_picture })
+    });
+    return handleResponse(res);
+  },
+
   // 2. Expense Operations
   async getExpenses() {
     const res = await fetch('/api/expenses', {

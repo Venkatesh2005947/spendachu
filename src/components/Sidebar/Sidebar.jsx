@@ -129,8 +129,12 @@ export default function Sidebar({
         }}
       >
         <div style={{ display: 'flex', flexDirection: collapsed ? 'column' : 'row', alignItems: 'center', gap: '10px', overflow: 'hidden', flex: 1, minWidth: 0 }}>
-          <div className="sidebar-user-avatar" title={collapsed ? user?.name : ''} style={{ position: 'relative', flexShrink: 0 }}>
-            {getInitials(user?.name)}
+          <div className="sidebar-user-avatar" title={collapsed ? user?.name : ''} style={{ position: 'relative', flexShrink: 0, overflow: 'hidden' }}>
+            {user?.profile_picture ? (
+              <img src={user.profile_picture} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+            ) : (
+              getInitials(user?.name)
+            )}
             <div style={{ position: 'absolute', bottom: '-1px', right: '-1px', width: '10px', height: '10px', background: '#10b981', borderRadius: '50%', border: '2px solid var(--bg-sidebar)' }} />
           </div>
           {!collapsed && (

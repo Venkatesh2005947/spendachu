@@ -399,6 +399,20 @@ export default function App() {
     }
   };
 
+  const handleUpdateProfilePicture = async (newPictureBase64) => {
+    try {
+      const res = await dbService.updateProfilePicture(newPictureBase64);
+      if (res && res.success) {
+        const updatedUser = { ...user, profile_picture: res.profile_picture };
+        setUser(updatedUser);
+        localStorage.setItem('tracker_user', JSON.stringify(updatedUser));
+      }
+    } catch (err) {
+      console.error('Failed to update profile picture:', err);
+      alert('Failed to save profile picture. Please try again.');
+    }
+  };
+
 
 
   const openAddModal = () => {
@@ -1044,9 +1058,14 @@ export default function App() {
                   fontWeight: '800',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  overflow: 'hidden'
                 }}>
-                  {user.name ? user.name[0].toUpperCase() : 'U'}
+                  {user.profile_picture ? (
+                    <img src={user.profile_picture} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    user.name ? user.name[0].toUpperCase() : 'U'
+                  )}
                 </div>
                 <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}>
                   {user.name ? user.name.split(' ')[0] : 'Profile'}
@@ -1416,6 +1435,7 @@ export default function App() {
             user={user}
             onClose={() => setIsProfileModalOpen(false)}
             onLogout={handleLogout}
+            onUpdateProfilePicture={handleUpdateProfilePicture}
             currencyCode={currencyCode}
             onCurrencyChange={handleSaveCurrency}
             expensesCount={expenses.length}

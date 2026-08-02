@@ -1,17 +1,21 @@
-import React from 'react';
-import { X, LogOut, ShieldCheck, Mail, Calendar, DollarSign, UserCheck, Award } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { X, LogOut, ShieldCheck, DollarSign, UserCheck, Award, Camera, Trash2 } from 'lucide-react';
 import './UserProfileModal.css';
 
 const UserProfileModal = ({
   user,
   onClose,
   onLogout,
+  onUpdateProfilePicture,
   currencyCode = 'INR',
   onCurrencyChange,
   expensesCount = 0,
   savingsCount = 0,
   goalsCount = 0
 }) => {
+  const fileInputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+
   if (!user) return null;
 
   const getInitials = (nameStr) => {
@@ -21,6 +25,52 @@ const UserProfileModal = ({
       return (parts[0][0] + parts[1][0]).toUpperCase();
     }
     return nameStr.substring(0, 2).toUpperCase();
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size is too large. Please select a photo under 5MB.');
+      return;
+    }
+
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const targetSize = 240;
+        canvas.width = targetSize;
+        canvas.height = targetSize;
+
+        const minDim = Math.min(img.width, img.height);
+        const startX = (img.width - minDim) / 2;
+        const startY = (img.height - minDim) / 2;
+
+        ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, targetSize, targetSize);
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+
+        if (onUpdateProfilePicture) {
+          onUpdateProfilePicture(compressedBase64).finally(() => setUploading(false));
+        } else {
+          setUploading(false);
+        }
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = (e) => {
+    e.stopPropagation();
+    if (onUpdateProfilePicture && confirm('Remove profile photo?')) {
+      setUploading(true);
+      onUpdateProfilePicture(null).finally(() => setUploading(false));
+    }
   };
 
   return (
@@ -36,15 +86,57 @@ const UserProfileModal = ({
         {/* Avatar & Role */}
         <div className="upm-header-body">
           <div className="upm-avatar-wrapper">
-            <div className="upm-avatar">
-              {getInitials(user.name)}
+            <div 
+              className="upm-avatar" 
+              onClick={() => fileInputRef.current && fileInputRef.current.click()}
+              title="Click to upload profile photo"
+            >
+              {user.profile_picture ? (
+                <img src={user.profile_picture} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                getInitials(user.name)
+              )}
+              <div className="upm-avatar-overlay">
+                <Camera size={20} />
+              </div>
             </div>
             <div className="upm-online-badge" title="Account Active" />
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              accept="image/*" 
+              style={{ display: 'none' }} 
+              onChange={handleFileChange} 
+            />
           </div>
 
-          <div className="upm-role-pill">
-            <ShieldCheck size={14} />
-            <span>{user.is_admin ? 'Admin Account' : 'Verified Member'}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {user.profile_picture && (
+              <button 
+                onClick={handleRemovePhoto}
+                title="Remove photo"
+                style={{
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  color: '#f87171',
+                  borderRadius: '9999px',
+                  padding: '5px 10px',
+                  fontSize: '0.72rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Trash2 size={12} />
+                <span>Remove Photo</span>
+              </button>
+            )}
+            <div className="upm-role-pill">
+              <ShieldCheck size={14} />
+              <span>{user.is_admin ? 'Admin Account' : 'Verified Member'}</span>
+            </div>
           </div>
         </div>
 
@@ -52,6 +144,9 @@ const UserProfileModal = ({
         <div className="upm-user-details">
           <h2 className="upm-user-name">{user.name || 'SpendAchu User'}</h2>
           <p className="upm-user-email">{user.email || 'user@example.com'}</p>
+          <div style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', marginTop: '4px', fontWeight: '600', cursor: 'pointer' }} onClick={() => fileInputRef.current && fileInputRef.current.click()}>
+            {uploading ? '⏳ Uploading photo...' : '📷 Click profile avatar to upload photo'}
+          </div>
         </div>
 
         {/* Quick Activity Stats */}

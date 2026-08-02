@@ -94,6 +94,25 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.upm-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.upm-avatar:hover .upm-avatar-overlay {
+  opacity: 1;
 }
 
 .upm-online-badge {

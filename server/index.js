@@ -427,7 +427,7 @@ app.post('/api/login', (req, res) => {
       );
 
       res.status(200).json({
-        user: { name: user.name, email: user.email },
+        user: { name: user.name, email: user.email, profile_picture: user.profile_picture || null },
         token: sessionToken
       });
     }
@@ -436,9 +436,32 @@ app.post('/api/login', (req, res) => {
 
 // Verify Session
 app.get('/api/verify', authenticateJWT, (req, res) => {
-  res.status(200).json({
-    user: { name: req.user.name, email: req.user.email }
+  db.get(`SELECT name, email, profile_picture FROM users WHERE email = ?`, [req.user.email], (err, user) => {
+    if (err || !user) {
+      return res.status(200).json({
+        user: { name: req.user.name, email: req.user.email }
+      });
+    }
+    res.status(200).json({
+      user: { name: user.name, email: user.email, profile_picture: user.profile_picture || null }
+    });
   });
+});
+
+// Update Profile Picture
+app.post('/api/user/profile-picture', authenticateJWT, (req, res) => {
+  const { profile_picture } = req.body;
+  db.run(
+    `UPDATE users SET profile_picture = ? WHERE email = ?`,
+    [profile_picture || null, req.user.email],
+    function (err) {
+      if (err) {
+        console.error('Failed to update profile picture:', err);
+        return res.status(500).json({ error: 'Failed to update profile picture.' });
+      }
+      res.status(200).json({ success: true, profile_picture: profile_picture || null });
+    }
+  );
 });
 
 // Reset Password
