@@ -1370,13 +1370,7 @@ export default function App() {
           />
         )}
 
-        {/* Financial Health Detailed Breakdown Modal */}
-        {isHealthModalOpen && (
-          <FinancialHealthModal
-            healthData={financialHealth}
-            onClose={() => setIsHealthModalOpen(false)}
-          />
-        )}
+
       </main>
     </div>
   );
