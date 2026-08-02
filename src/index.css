@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ==========================================================================
-   CSS Design Tokens (Theme 8: Titanium Cyan)
+   CSS Design Tokens (Theme: Royal Blue & Deep Sapphire)
    ========================================================================== */
 :root {
   /* Fonts */
@@ -17,25 +17,25 @@
   --transition-smooth: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Titanium Cyan Primary Accents (Electric Cyan) */
-  --accent-primary: #0284c7;
-  --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%);
-  --accent-gradient-hover: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  /* Royal Blue Primary Accents */
+  --accent-primary: #2563eb;
+  --accent-gradient: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
 
-  /* Light Theme (Clean Cyan White) */
-  --bg-primary: #f0f9ff;
-  --bg-secondary: #e0f2fe;
-  --bg-sidebar: #0a0f1d;
+  /* Light Theme (Clean Crisp Slate White) */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-sidebar: #0f172a;
   --card-bg: #ffffff;
-  --card-border: rgba(6, 182, 212, 0.15);
-  --border-color: rgba(6, 182, 212, 0.15);
+  --card-border: rgba(37, 99, 235, 0.12);
+  --border-color: #e2e8f0;
   
-  --text-primary: #0369a1;
-  --text-secondary: #0284c7;
-  --text-muted: #38bdf8;
-  --text-on-sidebar: #f0f9ff;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --text-on-sidebar: #f8fafc;
   
-  --accent-secondary: #38bdf8; /* Azure Sky */
+  --accent-secondary: #3b82f6; /* Sapphire Blue */
   
   --success: #10b981;
   --warning: #f59e0b;
@@ -45,31 +45,31 @@
   --warning-bg: rgba(245, 158, 11, 0.1);
   --danger-bg: rgba(239, 68, 68, 0.1);
 
-  --shadow-sm: 0 1px 3px rgba(3, 105, 161, 0.06);
-  --shadow-md: 0 4px 12px rgba(6, 182, 212, 0.1);
-  --shadow-lg: 0 12px 24px -4px rgba(6, 182, 212, 0.15);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 12px rgba(37, 99, 235, 0.08);
+  --shadow-lg: 0 12px 24px -4px rgba(37, 99, 235, 0.12);
 
   --backdrop-blur: blur(16px);
 }
 
 [data-theme="dark"] {
-  /* Titanium Cyan (Titanium Charcoal & Electric Cyan Exchange) */
-  --bg-primary: #0a0f1d; /* Titanium Charcoal Blue */
-  --bg-secondary: #111827; /* Gray 900 Pro Card Container */
-  --bg-sidebar: #060913;
-  --card-bg: #111827;
-  --card-border: rgba(6, 182, 212, 0.2);
-  --border-color: rgba(6, 182, 212, 0.2);
+  /* Royal Blue & Deep Sapphire (Deep Slate Charcoal & Sapphire Accents) */
+  --bg-primary: #0f172a; /* Deep Slate Navy */
+  --bg-secondary: #1e293b; /* Slate 800 Card Container */
+  --bg-sidebar: #090d16; /* Deep Midnight */
+  --card-bg: #1e293b;
+  --card-border: rgba(59, 130, 246, 0.2);
+  --border-color: rgba(51, 65, 85, 0.6);
   
-  --text-primary: #f0f9ff;
-  --text-secondary: #bae6fd;
-  --text-muted: #7dd3fc;
-  --text-on-sidebar: #f0f9ff;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-on-sidebar: #f8fafc;
   
-  --accent-primary: #06b6d4; /* Electric Cyan */
-  --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%);
-  --accent-gradient-hover: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  --accent-secondary: #38bdf8; /* Azure Sky */
+  --accent-primary: #3b82f6; /* Sapphire Blue */
+  --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  --accent-secondary: #60a5fa; /* Light Blue */
   
   --success: #10b981;
   --warning: #fbbf24;
@@ -79,9 +79,9 @@
   --warning-bg: rgba(251, 191, 36, 0.15);
   --danger-bg: rgba(244, 63, 94, 0.18);
 
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 8px 20px rgba(6, 182, 212, 0.15);
-  --shadow-lg: 0 16px 32px rgba(6, 182, 212, 0.25);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 20px rgba(15, 23, 42, 0.4);
+  --shadow-lg: 0 16px 32px rgba(37, 99, 235, 0.2);
 }
 
 /* ==========================================================================
