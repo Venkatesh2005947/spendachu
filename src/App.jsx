@@ -164,21 +164,26 @@ export default function App() {
 
   // Verify session against backend on startup (backend is source of truth, not localStorage)
   useEffect(() => {
+    let isMounted = true;
+
+    // Safety timer: Never freeze on loading screen for more than 1.5 seconds
+    const safetyTimer = setTimeout(() => {
+      if (isMounted) setAuthLoading(false);
+    }, 1500);
+
     const restoreSession = async () => {
       try {
-        // verifySession() calls GET /api/verify to validate the JWT server-side.
-        // If token is expired or invalid, it clears localStorage and returns null.
-        // If network is down, it falls back to cached localStorage data.
         const verifiedUser = await dbService.verifySession();
-        if (verifiedUser) {
+        if (verifiedUser && isMounted) {
           await handleLoginSuccess(verifiedUser);
         }
       } catch (err) {
         console.error('Session restore error:', err);
-        // On any unexpected error, clear stale auth and show login
-        dbService.logout();
       } finally {
-        setAuthLoading(false);
+        if (isMounted) {
+          clearTimeout(safetyTimer);
+          setAuthLoading(false);
+        }
       }
     };
 
@@ -188,6 +193,11 @@ export default function App() {
     const savedTheme = localStorage.getItem('tracker_theme') || 'dark';
     setTheme(savedTheme);
     document.documentElement.setAttribute('data-theme', savedTheme);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(safetyTimer);
+    };
   }, []);
 
   // Sync dataset document theme when state changes

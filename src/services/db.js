@@ -78,13 +78,19 @@ export const dbService = {
     if (!token) return null;
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
       const res = await fetch('/api/verify', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
+
       if (!res.ok) {
         // Token is expired or invalid — clear all auth storage
         localStorage.removeItem('tracker_token');
@@ -96,9 +102,9 @@ export const dbService = {
       const data = await res.json();
       return data.user || null;
     } catch (e) {
-      // Network error — don't log out, user may be offline
-      // Fall back to cached user data so they can see their data
-      console.warn('Token verification failed (network issue). Using cached session.');
+      // Network error or timeout — don't log out, user may be offline or cold starting
+      // Fall back to cached user data so they can see their data instantly
+      console.warn('Token verification timed out or network issue. Using cached session.');
       const userStr = localStorage.getItem('tracker_user') || sessionStorage.getItem('tracker_user');
       try {
         return userStr ? JSON.parse(userStr) : null;
