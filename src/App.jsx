@@ -1187,30 +1187,32 @@ export default function App() {
           </>
         )}
 
-        {/* Mobile Bottom Action Bar (visible only on mobile via CSS) */}
-        <div className="mobile-action-bar">
-          <button 
-            className="glow-btn floating-action-btn saving" 
-            onClick={() => setIsSavingModalOpen(true)}
-          >
-            <Plus size={18} />
-            <span>Save 💰</span>
-          </button>
-          <button 
-            className="glow-btn floating-action-btn spending" 
-            onClick={openAddModal}
-          >
-            <Plus size={18} />
-            <span>Spend 💸</span>
-          </button>
-          <button 
-            className="glow-btn floating-action-btn scanner" 
-            onClick={triggerFileSelect}
-          >
-            <Camera size={18} />
-            <span>Scan 📸</span>
-          </button>
-        </div>
+        {/* Mobile Bottom Action Bar - hidden on assistant tab to not block chat input */}
+        {activeTab !== 'assistant' && (
+          <div className="mobile-action-bar">
+            <button 
+              className="glow-btn floating-action-btn saving" 
+              onClick={() => setIsSavingModalOpen(true)}
+            >
+              <Plus size={18} />
+              <span>Save 💰</span>
+            </button>
+            <button 
+              className="glow-btn floating-action-btn spending" 
+              onClick={openAddModal}
+            >
+              <Plus size={18} />
+              <span>Spend 💸</span>
+            </button>
+            <button 
+              className="glow-btn floating-action-btn scanner" 
+              onClick={triggerFileSelect}
+            >
+              <Camera size={18} />
+              <span>Scan 📸</span>
+            </button>
+          </div>
+        )}
 
         {/* Logout Confirmation Modal */}
         {showLogoutConfirm && (

@@ -17,6 +17,14 @@
   position: relative;
 }
 
+@media (max-width: 768px) {
+  .asa-container {
+    height: calc(100vh - 140px);
+    max-height: none;
+    border-radius: 14px;
+  }
+}
+
 /* ─── Header ─────────────────────────────────────────────────────────────── */
 .asa-header {
   display: flex;

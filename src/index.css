@@ -1365,9 +1365,15 @@ a {
   .tab-content-wrapper {
     padding-bottom: 80px !important;
   }
+
+  /* Hide mobile action bar on assistant tab to avoid blocking chat input */
+  .tab-content-no-pad ~ * .mobile-action-bar,
+  .tab-content-no-pad + .mobile-action-bar {
+    display: none !important;
+  }
 }
 
-/* Hide the mobile action bar wrapper on desktop */
+/* Hide mobile action bar wrapper on desktop */
 .mobile-action-bar {
   display: none;
 }
