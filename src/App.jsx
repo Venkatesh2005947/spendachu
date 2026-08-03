@@ -974,7 +974,7 @@ export default function App() {
         </div>
 
         {/* Tab body content */}
-        <div className="tab-content-wrapper">
+        <div className={`tab-content-wrapper${activeTab === 'assistant' ? ' tab-content-no-pad' : ''}`}>
           {renderTabContent()}
         </div>
 
@@ -1155,33 +1155,37 @@ export default function App() {
           </div>
         )}
 
-        {/* Desktop Floating Buttons (hidden on mobile via CSS) */}
-        <button 
-          className="glow-btn floating-action-btn saving desktop-only-fab" 
-          onClick={() => setIsSavingModalOpen(true)}
-          title="Add Saving"
-        >
-          <Plus size={20} />
-          <span>Add Saving 💰</span>
-        </button>
+        {/* Desktop Floating Buttons (hidden on mobile and on assistant tab) */}
+        {activeTab !== 'assistant' && (
+          <>
+            <button 
+              className="glow-btn floating-action-btn saving desktop-only-fab" 
+              onClick={() => setIsSavingModalOpen(true)}
+              title="Add Saving"
+            >
+              <Plus size={20} />
+              <span>Add Saving 💰</span>
+            </button>
 
-        <button 
-          className="glow-btn floating-action-btn spending desktop-only-fab" 
-          onClick={openAddModal}
-          title="Add Expense"
-        >
-          <Plus size={20} />
-          <span>Add Spending 💸</span>
-        </button>
+            <button 
+              className="glow-btn floating-action-btn spending desktop-only-fab" 
+              onClick={openAddModal}
+              title="Add Expense"
+            >
+              <Plus size={20} />
+              <span>Add Spending 💸</span>
+            </button>
 
-        <button 
-          className="glow-btn floating-action-btn scanner desktop-only-fab" 
-          onClick={triggerFileSelect}
-          title="Scan Receipt with AI"
-        >
-          <Camera size={20} />
-          <span>Scan Receipt 📸</span>
-        </button>
+            <button 
+              className="glow-btn floating-action-btn scanner desktop-only-fab" 
+              onClick={triggerFileSelect}
+              title="Scan Receipt with AI"
+            >
+              <Camera size={20} />
+              <span>Scan Receipt 📸</span>
+            </button>
+          </>
+        )}
 
         {/* Mobile Bottom Action Bar (visible only on mobile via CSS) */}
         <div className="mobile-action-bar">

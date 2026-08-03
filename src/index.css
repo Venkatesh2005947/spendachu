@@ -1296,6 +1296,9 @@ a {
   .tab-content-wrapper {
     padding-right: 210px; /* Separates dashboard cards horizontally from floating buttons */
   }
+  .tab-content-no-pad {
+    padding-right: 0 !important;
+  }
 }
 
 @media (max-width: 768px) {
