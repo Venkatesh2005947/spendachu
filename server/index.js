@@ -279,6 +279,7 @@ const financialAnalytics = require('./services/financialChatAnalyticsService');
 const { resolveDateExpression, getCurrentMonthYear, getPreviousMonthYear } = require('./services/financialChatDateResolver');
 const { sanitizeInput, classifyIntent, validateIntent, extractCategory, extractMerchant, getSuggestedQuestions } = require('./services/financialChatIntentClassifier');
 const { formatResponse, getProviderStatus } = require('./services/financialChatAIProvider');
+const rateLimiter = require('./services/financialChatRateLimiter');
 const sessionService = require('./services/financialChatSessionService');
 
 // JWT Authentication Middleware
