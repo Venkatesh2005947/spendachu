@@ -170,9 +170,7 @@ export default function SavingTable({
                   <div className="tx-info-block">
                     <div className="tx-title">{displayTitle}</div>
                     <div className="tx-subtitle">
-                      <span style={{ color: 'var(--success)', fontWeight: '700' }}>Completed</span>
-                      <span>•</span>
-                      <span>Savings Deposit</span>
+                      Savings Deposit
                     </div>
                   </div>
                 </div>

@@ -242,11 +242,7 @@ export default function ExpenseTable({
                   <div className="tx-info-block">
                     <div className="tx-title">{displayTitle}</div>
                     <div className="tx-subtitle">
-                      <span style={{ color: 'var(--success)', fontWeight: '700' }}>Completed</span>
-                      <span>•</span>
-                      <span>{item.category}</span>
-                      <span>•</span>
-                      <span>{item.paymentMethod || 'Cash'}</span>
+                      {item.category} • {item.paymentMethod || 'Cash'}
                     </div>
                   </div>
                 </div>
