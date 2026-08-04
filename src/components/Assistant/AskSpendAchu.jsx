@@ -378,7 +378,7 @@ export default function AskSpendAchu() {
           <textarea
             ref={inputRef}
             className="asa-input"
-            placeholder="Ask about your expenses, savings, budget, goals..."
+            placeholder="Ask about your expenses..."
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
