@@ -224,14 +224,23 @@ function buildGeminiPrompt(intent, financialResult, period, userQuestion) {
     .substring(0, 200)
     .replace(/[<>{}[\]]/g, '');
 
-  const systemInstruction = `You are SpendAchu's financial assistant. 
-Your task: convert the following verified financial data into a clear, friendly response in 2-3 sentences.
+  // Detect if question is in Tanglish
+  const tanglishMarkers = /\b(evlo|evvalo|sollu|solla|kaatu|kaattu|panninen|pannen|panni|koduthen|vangichen|sela|selav|semippu|michi|pathi|enna|ippo|innikku|inniku|nethu|maasam|vaaram|lakshiyam|motham|jaasthi|kammi)\b/i;
+  const isInTanglish = tanglishMarkers.test(userQuestion || '');
+
+  const languageInstruction = isInTanglish
+    ? `The user asked in Tanglish (Tamil mixed with English). Reply naturally in Tanglish — use simple Tamil words mixed with English numbers and financial terms. Example style: "Neenga ₹2,450 spend panninga this month la. Food category la jaasthi sela pannirukeenga." Keep it friendly and short.`
+    : `Reply in clear English in 2-3 sentences.`;
+
+  const systemInstruction = `You are SpendAchu's friendly financial assistant. 
+Your task: convert the following verified financial data into a clear, friendly response.
 Rules:
 - Use ONLY the numbers provided. Do NOT invent, estimate, or add new figures.
 - Use Indian Rupee formatting (₹1,23,456).
-- Be concise and helpful. No bullet points needed — use natural sentences.
+- Be concise and helpful.
 - Do NOT mention database, SQL, or technical details.
-- If data says hasEnoughData is false, report the friendlyMessage as-is.`;
+- If data says hasEnoughData is false, report the friendlyMessage as-is.
+- ${languageInstruction}`;
 
   const dataContext = JSON.stringify({
     intent,
