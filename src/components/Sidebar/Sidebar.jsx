@@ -121,8 +121,8 @@ export default function Sidebar({
           padding: collapsed ? '16px 10px' : '14px 16px',
           cursor: 'pointer',
           borderRadius: '14px',
-          background: 'rgba(255, 255, 255, 0.04)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--card-border)',
           transition: 'all 0.2s ease',
           margin: '8px 0 0'
         }}
@@ -134,21 +134,21 @@ export default function Sidebar({
             ) : (
               getInitials(user?.name)
             )}
-            <div style={{ position: 'absolute', bottom: '-1px', right: '-1px', width: '10px', height: '10px', background: '#10b981', borderRadius: '50%', border: '2px solid var(--bg-sidebar)' }} />
+            <div style={{ position: 'absolute', bottom: '-1px', right: '-1px', width: '10px', height: '10px', background: '#10b981', borderRadius: '50%', border: '2px solid var(--card-bg)' }} />
           </div>
           {!collapsed && (
             <div className="sidebar-user-info" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span className="sidebar-user-name" style={{ fontSize: '13.5px', fontWeight: '700', color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span className="sidebar-user-name" style={{ fontSize: '13.5px', fontWeight: '700', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {user?.name || 'User'}
                 </span>
                 {isAdmin && (
-                  <span style={{ fontSize: '9.5px', background: 'rgba(59, 130, 246, 0.25)', color: '#60a5fa', padding: '1px 6px', borderRadius: '6px', fontWeight: '800', letterSpacing: '0.5px' }}>
+                  <span style={{ fontSize: '9.5px', background: 'rgba(59, 130, 246, 0.2)', color: 'var(--accent-primary)', padding: '1px 6px', borderRadius: '6px', fontWeight: '800', letterSpacing: '0.5px' }}>
                     ADMIN
                   </span>
                 )}
               </div>
-              <span className="sidebar-user-email" style={{ fontSize: '11.5px', color: 'rgba(255, 255, 255, 0.5)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span className="sidebar-user-email" style={{ fontSize: '11.5px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user?.email || 'user@example.com'}
               </span>
             </div>

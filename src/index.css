@@ -1132,7 +1132,7 @@ a {
   border-radius: var(--radius-md);
   font-size: 14.5px;
   font-weight: 700;
-  color: rgba(248, 250, 252, 0.75);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all var(--transition-fast);
   white-space: nowrap;
@@ -1140,9 +1140,9 @@ a {
 }
 
 .sidebar-item:hover {
-  background-color: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.15);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--card-border);
 }
 
 .sidebar-item.active {
@@ -1295,7 +1295,7 @@ a {
     border-bottom: none !important;
     overflow-y: auto;
     z-index: 1001 !important;
-    background: var(--bg-primary, #0f172a) !important;
+    background: var(--card-bg) !important;
     box-shadow: 10px 0 35px rgba(0, 0, 0, 0.35);
   }
   
