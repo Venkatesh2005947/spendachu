@@ -619,7 +619,7 @@ export default function App() {
     setEditingExpense(null);
     setIsReceiptPreviewOpen(false);
     setScanResult(null);
-    setActiveTab('expenses');
+    setActiveTab('dashboard');
   };
   // ────────────────────────────────────────────────────────────────────────
 

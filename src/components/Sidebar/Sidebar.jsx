@@ -40,7 +40,6 @@ export default function Sidebar({
     ...(isAdmin ? [
       { id: 'admin-analytics', label: 'Admin Analytics 📊', icon: BarChart3 }
     ] : []),
-    { id: 'expenses', label: 'Expenses', icon: ReceiptText },
     { id: 'savings', label: 'Savings', icon: Coins },
     { id: 'budgeting', label: 'Budgeting', icon: PiggyBank },
     { id: 'insights', label: 'AI Insights', icon: Sparkles },
