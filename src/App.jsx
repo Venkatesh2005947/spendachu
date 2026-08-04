@@ -752,10 +752,7 @@ export default function App() {
             {/* 1. Main Spending Card */}
             <StatCards expenses={expenses} budgets={budgets} savings={savings} selectedMonth={selectedMonth} selectedYear={selectedYear} />
 
-            {/* Spending Analytics Charts */}
-            <AnalyticsCharts expenses={expenses} selectedMonth={selectedMonth} selectedYear={selectedYear} />
-
-            {/* Expenses List & Filters */}
+            {/* 1. Expenses List & Filters */}
             <div style={{ marginTop: '12px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Expenses 💸</h3>
               <ExpenseFilters filters={filters} setFilters={setFilters} />
@@ -768,6 +765,9 @@ export default function App() {
                 onClearAllExpenses={handleClearAllExpenses}
               />
             </div>
+
+            {/* 2 & 3. Spending Analytics Charts (Spending Velocity & Category Distribution) */}
+            <AnalyticsCharts expenses={expenses} selectedMonth={selectedMonth} selectedYear={selectedYear} />
 
             {/* Financial Goals Section */}
             <FinancialGoals 
