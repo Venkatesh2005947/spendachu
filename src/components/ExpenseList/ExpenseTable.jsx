@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Search, 
   ArrowUpDown, 
@@ -34,8 +34,15 @@ export default function ExpenseTable({
   const [sortKey, setSortKey] = useState(null); // null = default order, 'date', or 'amount'
   const [sortAsc, setSortAsc] = useState(false); // Default descending for recent first
   const [selectedTx, setSelectedTx] = useState(null); // Selected transaction for detail modal
-
+  const tableContainerRef = useRef(null);
+  
   const ITEMS_PER_PAGE = 8;
+
+  const scrollToTop = () => {
+    if (tableContainerRef.current) {
+      tableContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   // Category Icon & Color Resolver matching modern template design
   const getCategoryConfig = (cat = '') => {
@@ -134,15 +141,21 @@ export default function ExpenseTable({
   const paginatedItems = sorted.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   const handlePrevPage = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+      scrollToTop();
+    }
   };
 
   const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+      scrollToTop();
+    }
   };
 
   return (
-    <div className="glass-card expenses-card" style={{ padding: '24px', borderRadius: '24px' }}>
+    <div ref={tableContainerRef} className="glass-card expenses-card" style={{ padding: '24px', borderRadius: '24px' }}>
       {/* Header with Search, Sort, CSV Export, Clear All */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         {/* Live Search */}
