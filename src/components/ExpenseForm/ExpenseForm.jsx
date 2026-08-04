@@ -6,7 +6,7 @@ export default function ExpenseForm({ expense, onClose, onSave }) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('Food');
-  const [paymentMethod, setPaymentMethod] = useState('Card');
+  const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [description, setDescription] = useState('');
   
   const [aiPredicted, setAiPredicted] = useState(false);
@@ -165,9 +165,10 @@ export default function ExpenseForm({ expense, onClose, onSave }) {
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
               >
-                <option value="Card">Card</option>
-                <option value="UPI">UPI</option>
                 <option value="Cash">Cash</option>
+                <option value="GPay">GPay</option>
+                <option value="UPI">UPI</option>
+                <option value="Card">Card</option>
                 <option value="Bank Transfer">Bank Transfer</option>
               </select>
             </div>

@@ -4,7 +4,7 @@ export default function ExpenseFilters({
   filters, 
   setFilters,
   categories = ['Food', 'Transport', 'Rent', 'Shopping', 'Bills', 'Entertainment', 'Others'],
-  methods = ['Card', 'UPI', 'Cash', 'Bank Transfer']
+  methods = ['Cash', 'GPay', 'UPI', 'Card', 'Bank Transfer']
 }) {
 
   const handleFilterChange = (key, value) => {

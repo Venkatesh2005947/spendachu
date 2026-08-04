@@ -27,7 +27,7 @@ export default function ReceiptPreview({ result, onSave, onScanAgain, onCancel }
   }, [result]);
 
   const categories = ['Food', 'Transport', 'Rent', 'Shopping', 'Bills', 'Entertainment', 'Others'];
-  const paymentMethods = ['Cash', 'Card', 'UPI', 'Bank Transfer'];
+  const paymentMethods = ['Cash', 'GPay', 'UPI', 'Card', 'Bank Transfer'];
 
   const confidence = result?.confidence || {};
 
