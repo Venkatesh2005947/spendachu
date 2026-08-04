@@ -143,9 +143,11 @@ export default function Sidebar({
                 <span className="sidebar-user-name" style={{ fontSize: '13.5px', fontWeight: '700', color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {user?.name || 'User'}
                 </span>
-                <span style={{ fontSize: '9.5px', background: 'rgba(59, 130, 246, 0.25)', color: '#60a5fa', padding: '1px 6px', borderRadius: '6px', fontWeight: '800', letterSpacing: '0.5px' }}>
-                  {isAdmin ? 'ADMIN' : 'PRO'}
-                </span>
+                {isAdmin && (
+                  <span style={{ fontSize: '9.5px', background: 'rgba(59, 130, 246, 0.25)', color: '#60a5fa', padding: '1px 6px', borderRadius: '6px', fontWeight: '800', letterSpacing: '0.5px' }}>
+                    ADMIN
+                  </span>
+                )}
               </div>
               <span className="sidebar-user-email" style={{ fontSize: '11.5px', color: 'rgba(255, 255, 255, 0.5)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user?.email || 'user@example.com'}

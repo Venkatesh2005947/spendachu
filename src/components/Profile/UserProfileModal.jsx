@@ -133,10 +133,12 @@ const UserProfileModal = ({
                 <span>Remove Photo</span>
               </button>
             )}
-            <div className="upm-role-pill">
-              <ShieldCheck size={14} />
-              <span>{user.is_admin ? 'Admin Account' : 'Verified Member'}</span>
-            </div>
+            {user.is_admin && (
+              <div className="upm-role-pill">
+                <ShieldCheck size={14} />
+                <span>Admin Account</span>
+              </div>
+            )}
           </div>
         </div>
 
