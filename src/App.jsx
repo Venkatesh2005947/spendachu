@@ -755,17 +755,6 @@ export default function App() {
             {/* Spending Analytics Charts */}
             <AnalyticsCharts expenses={expenses} selectedMonth={selectedMonth} selectedYear={selectedYear} />
 
-            {/* 2. One-line AI Insight Card */}
-            <div className="glass-card" style={{ padding: '20px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--card-bg)' }}>
-              <div style={{ fontSize: '28px' }}>🤖</div>
-              <div>
-                <h4 style={{ margin: 0, fontSize: '11px', fontWeight: '900', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>AI Smart Advice</h4>
-                <p style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', lineHeight: '1.4' }}>
-                  {insights.summary}
-                </p>
-              </div>
-            </div>
-
             {/* Financial Goals Section */}
             <FinancialGoals 
               goals={goals} 
@@ -775,19 +764,6 @@ export default function App() {
               onAddGoalSavings={(goal) => { setSelectedGoalForSavings(goal); setIsAddGoalSavingsOpen(true); }}
               loading={goalsLoading}
             />
-
-            {/* Quick Strategy Tips */}
-            <div className="glass-card" style={{ padding: '20px', borderRadius: '16px', background: 'var(--card-bg)' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: '900', textTransform: 'uppercase', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sparkles size={16} style={{ color: 'var(--accent-primary)' }} />
-                <span>Quick Advice! 💡</span>
-              </h3>
-              <ul style={{ paddingLeft: '20px', margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {insights.tips.map((tip, idx) => (
-                  <li key={idx} style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: tip.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
-                ))}
-              </ul>
-            </div>
 
           </div>
         );
