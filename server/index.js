@@ -218,7 +218,56 @@ Today's date is ${new Date().toISOString().split('T')[0]}.`;
   });
 };
 
+/**
+ * Call Gemini for any general question (not specific to financial data).
+ * Used as a fallback when intent is unsupported.
+ */
+const callGeminiGeneral = (question, apiKey) => {
+  return new Promise((resolve) => {
+    if (!apiKey) {
+      return resolve("Sorry, I need an API key to answer general questions. Please set FINANCIAL_ASSISTANT_API_KEY in Render.");
+    }
 
+    // Detect Tanglish
+    const tanglishMarkers = /\b(evlo|evvalo|sollu|solla|kaatu|kaattu|panninen|pannen|panni|koduthen|vangichen|sela|selav|semippu|michi|pathi|enna|ippo|innikku|inniku|nethu|maasam|vaaram|lakshiyam|motham|jaasthi|kammi|theriyuma|purigiradha|epdi|naan|naanga|ungaluku)\b/i;
+    const isTanglish = tanglishMarkers.test(question);
+
+    const systemMsg = isTanglish
+      ? `Nee SpendAchu app la oru friendly AI assistant. User Tanglish la (Tamil + English mixed) pesuvanga. Same style la answer pann — simple Tanglish use pannu, over-formal aagadhey. Short ah, helpful ah pesi. Any question kum answer pannu — finance, general knowledge, math, anything.`
+      : `You are SpendAchu's friendly AI assistant. Answer the user's question helpfully and concisely. You can answer any question — finance, general knowledge, advice, math, anything. Be friendly and natural. Keep answers under 150 words.`;
+
+    const requestBody = JSON.stringify({
+      contents: [{ parts: [{ text: `${systemMsg}\n\nUser: ${question}` }] }],
+      generationConfig: { maxOutputTokens: 400, temperature: 0.7 }
+    });
+
+    const options = {
+      hostname: 'generativelanguage.googleapis.com',
+      path: `/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(requestBody) }
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(body);
+          const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+          resolve(text?.trim() || "Sorry, I couldn't process that. Please try again!");
+        } catch {
+          resolve("Hmm, something went wrong. Please try again!");
+        }
+      });
+    });
+
+    req.setTimeout(15000, () => { req.destroy(); resolve("Taking too long to respond. Please try again!"); });
+    req.on('error', () => resolve("Couldn't connect right now. Please try again!"));
+    req.write(requestBody);
+    req.end();
+  });
+};
 
 const createMailTransporter = async (host, port, user, pass) => {
   if (host.toLowerCase().includes('gmail.com')) {
@@ -1930,9 +1979,29 @@ app.post('/api/financial-assistant/chat', authenticateJWT, async (req, res) => {
           break;
 
         case 'unsupported':
-        default:
-          financialResult = { hasEnoughData: false, unsupported: true };
-          break;
+        default: {
+          // For unsupported/general questions, use Gemini directly as a general AI
+          const generalAnswer = await callGeminiGeneral(sanitized, GEMINI_RECEIPT_API_KEY);
+          const processingMs0 = Date.now() - startTime;
+          console.log(`[FinancialChat] user=${userId.substring(0, 8)}... intent=general_ai ms=${processingMs0} success=true`);
+          return res.status(200).json({
+            success: true,
+            data: {
+              intent: 'general',
+              answer: generalAnswer,
+              period: null,
+              metrics: null,
+              hasEnoughData: true,
+              missingData: [],
+              suggestedQuestions: [
+                'How much did I spend this month?',
+                'What is my budget status?',
+                'How are my savings going?'
+              ],
+              processingMs: processingMs0
+            }
+          });
+        }
       }
 
       // Step 8: Format response with AI (with deterministic fallback)
