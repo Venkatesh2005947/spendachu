@@ -396,8 +396,8 @@ function classifyIntent(query, conversationContext = {}) {
     return { intent: 'expense_by_category', params: { category } };
   }
 
-  // 15. Expense total
-  if (/\b(how\s+much\s+did\s+i\s+spend|total\s+(expense|spending)|spent\s+(this|last|in|today|yesterday)|expense\s+total)/i.test(normalized)) {
+  // 15. Expense total — broad natural language patterns
+  if (/\b(how\s+much\s+did\s+i\s+spend|total\s+(expense|spending)|spent\s+(this|last|in|today|yesterday)|expense\s+total|how\s+much\s+today|today\s+(spending|expense)|today's\s+(spending|expense)|how\s+much\s+this\s+month|how\s+much\s+last\s+month|how\s+much\s+spent|my\s+spending|my\s+expense)/i.test(normalized)) {
     if (conversationContext.previousIntent === 'expense_by_category' && conversationContext.previousCategory) {
       return {
         intent: 'expense_by_category',
@@ -422,8 +422,8 @@ function classifyIntent(query, conversationContext = {}) {
     }
   }
 
-  // Generic spending query
-  if (/\b(spend|spent|expense|transaction|purchase|paid|cost)\b/i.test(normalized)) {
+  // Generic spending query — matches spend/spending/spent/expenses/cost/paid/transaction
+  if (/\b(spend(ing)?|spent|expenses?|transactions?|purchased?|paid|cost)\b/i.test(normalized)) {
     return { intent: 'expense_total', params: {} };
   }
 
