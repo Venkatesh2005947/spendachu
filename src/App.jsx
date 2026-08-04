@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Menu, X, Bell, Sparkles, Camera } from 'lucide-react';
+import { Plus, Menu, X, Bell, Sparkles, Camera, PiggyBank } from 'lucide-react';
 
 // Services
 import { dbService } from './services/db';
@@ -1177,29 +1177,32 @@ export default function App() {
           </>
         )}
 
-        {/* Mobile Bottom Action Bar - hidden on assistant tab to not block chat input */}
+        {/* Mobile Bottom Action Bar - Floating Capsule Pill Design */}
         {activeTab !== 'assistant' && (
-          <div className="mobile-action-bar">
+          <div className="mobile-action-bar-pill">
             <button 
-              className="glow-btn floating-action-btn saving" 
+              className="pill-btn saving-pill" 
               onClick={() => setIsSavingModalOpen(true)}
+              title="Add Saving 💰"
+              aria-label="Add Saving"
             >
-              <Plus size={18} />
-              <span>Save 💰</span>
+              <PiggyBank size={24} />
             </button>
             <button 
-              className="glow-btn floating-action-btn spending" 
+              className="pill-btn spending-pill" 
               onClick={openAddModal}
+              title="Add Expense 💸"
+              aria-label="Add Expense"
             >
-              <Plus size={18} />
-              <span>Spend 💸</span>
+              <Plus size={26} strokeWidth={2.8} />
             </button>
             <button 
-              className="glow-btn floating-action-btn scanner" 
+              className="pill-btn scanner-pill" 
               onClick={triggerFileSelect}
+              title="Scan Receipt 📸"
+              aria-label="Scan Receipt"
             >
-              <Camera size={18} />
-              <span>Scan 📸</span>
+              <Camera size={24} />
             </button>
           </div>
         )}
