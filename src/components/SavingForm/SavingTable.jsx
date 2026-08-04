@@ -101,27 +101,8 @@ export default function SavingTable({
           />
         </div>
 
-        {/* Sort & Actions */}
+        {/* Actions */}
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button 
-            className={`outline-btn ${sortKey === 'date' ? 'active-sort' : ''}`}
-            onClick={() => handleSort('date')}
-            title="Sort by Date (Click again to toggle order or reset)"
-            style={{ fontSize: '13px', padding: '8px 12px' }}
-          >
-            <ArrowUpDown size={14} />
-            <span>Sort Date {sortKey === 'date' ? (sortAsc ? '↑' : '↓') : ''}</span>
-          </button>
-
-          <button 
-            className={`outline-btn ${sortKey === 'amount' ? 'active-sort' : ''}`}
-            onClick={() => handleSort('amount')}
-            title="Sort by Amount (Click again to toggle order or reset)"
-            style={{ fontSize: '13px', padding: '8px 12px' }}
-          >
-            <ArrowUpDown size={14} />
-            <span>Sort Amount {sortKey === 'amount' ? (sortAsc ? '↑' : '↓') : ''}</span>
-          </button>
 
           <button 
             className="outline-btn" 
