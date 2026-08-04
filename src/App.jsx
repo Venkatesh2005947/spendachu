@@ -888,6 +888,14 @@ export default function App() {
         </button>
       </div>
 
+      {/* Mobile Side Drawer Backdrop */}
+      {mobileSidebarOpen && (
+        <div 
+          className="mobile-sidebar-backdrop" 
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
       {/* Main sidebar */}
       <Sidebar 
         activeTab={activeTab} 

@@ -1283,26 +1283,43 @@ a {
   }
   
   .sidebar {
-    width: 100vw !important;
-    height: calc(100vh - 60px) !important;
+    width: 280px !important;
+    max-width: 82vw !important;
+    height: 100vh !important;
     position: fixed;
-    top: 60px;
+    top: 0;
     left: 0;
-    transform: translateY(-120%);
-    transition: transform var(--transition-smooth);
-    border-right: none !important;
-    border-bottom: 3px solid #000000 !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    border-right: 1px solid var(--card-border) !important;
+    border-bottom: none !important;
     overflow-y: auto;
-    z-index: 150;
-    padding-bottom: 80px;
+    z-index: 1001 !important;
+    background: var(--bg-primary, #0f172a) !important;
+    box-shadow: 10px 0 35px rgba(0, 0, 0, 0.35);
   }
   
   .sidebar.mobile-open {
-    transform: translateY(0);
+    transform: translateX(0) !important;
+  }
+
+  .mobile-sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1000;
+    animation: fadeIn 0.25s ease-out;
   }
   
   .sidebar-logo {
-    display: none !important;
+    display: flex !important;
+    padding: 18px 20px !important;
+    border-bottom: 1px solid var(--card-border);
   }
   
   .sidebar-toggle-btn {
