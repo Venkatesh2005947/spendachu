@@ -31,10 +31,10 @@ export default function ExpenseTable({
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortKey, setSortKey] = useState('date'); // 'date' or 'amount'
+  const [sortKey, setSortKey] = useState(null); // null = default order, 'date', or 'amount'
   const [sortAsc, setSortAsc] = useState(false); // Default descending for recent first
   const [selectedTx, setSelectedTx] = useState(null); // Selected transaction for detail modal
-  
+
   const ITEMS_PER_PAGE = 8;
 
   // Category Icon & Color Resolver matching modern template design
@@ -99,6 +99,7 @@ export default function ExpenseTable({
 
   // 2. Apply Sorting
   const getSortedExpenses = (filteredList) => {
+    if (!sortKey) return filteredList;
     return [...filteredList].sort((a, b) => {
       let comparison = 0;
       if (sortKey === 'amount') {
@@ -112,11 +113,14 @@ export default function ExpenseTable({
   };
 
   const handleSort = (key) => {
-    if (sortKey === key) {
-      setSortAsc(!sortAsc);
-    } else {
+    if (sortKey !== key) {
       setSortKey(key);
+      setSortAsc(false);
+    } else if (!sortAsc) {
       setSortAsc(true);
+    } else {
+      setSortKey(null);
+      setSortAsc(false);
     }
     setCurrentPage(1);
   };
@@ -159,9 +163,9 @@ export default function ExpenseTable({
         {/* Sort & Action controls */}
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button 
-            className="outline-btn"
+            className={`outline-btn ${sortKey === 'date' ? 'active-sort' : ''}`}
             onClick={() => handleSort('date')}
-            title="Sort by Date"
+            title="Sort by Date (Click again to toggle order or reset)"
             style={{ fontSize: '13px', padding: '8px 12px' }}
           >
             <ArrowUpDown size={14} />
@@ -169,9 +173,9 @@ export default function ExpenseTable({
           </button>
 
           <button 
-            className="outline-btn"
+            className={`outline-btn ${sortKey === 'amount' ? 'active-sort' : ''}`}
             onClick={() => handleSort('amount')}
-            title="Sort by Amount"
+            title="Sort by Amount (Click again to toggle order or reset)"
             style={{ fontSize: '13px', padding: '8px 12px' }}
           >
             <ArrowUpDown size={14} />
