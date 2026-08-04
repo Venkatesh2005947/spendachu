@@ -755,6 +755,20 @@ export default function App() {
             {/* Spending Analytics Charts */}
             <AnalyticsCharts expenses={expenses} selectedMonth={selectedMonth} selectedYear={selectedYear} />
 
+            {/* Expenses List & Filters */}
+            <div style={{ marginTop: '12px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Expenses 💸</h3>
+              <ExpenseFilters filters={filters} setFilters={setFilters} />
+              <ExpenseTable 
+                expenses={expenses} 
+                filters={filters} 
+                setFilters={setFilters} 
+                onEditExpense={openEditModal} 
+                onDeleteExpense={handleDeleteExpense} 
+                onClearAllExpenses={handleClearAllExpenses}
+              />
+            </div>
+
             {/* Financial Goals Section */}
             <FinancialGoals 
               goals={goals} 
