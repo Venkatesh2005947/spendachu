@@ -1186,7 +1186,7 @@ export default function App() {
               title="Add Saving 💰"
               aria-label="Add Saving"
             >
-              <PiggyBank size={26} />
+              <PiggyBank size={22} />
             </button>
             <button 
               className="pill-btn spending-pill" 
@@ -1194,7 +1194,7 @@ export default function App() {
               title="Add Expense 💸"
               aria-label="Add Expense"
             >
-              <Plus size={28} strokeWidth={2.8} />
+              <Plus size={24} strokeWidth={2.6} />
             </button>
             <button 
               className="pill-btn scanner-pill" 
@@ -1202,7 +1202,7 @@ export default function App() {
               title="Scan Receipt 📸"
               aria-label="Scan Receipt"
             >
-              <Camera size={26} />
+              <Camera size={22} />
             </button>
           </div>
         )}

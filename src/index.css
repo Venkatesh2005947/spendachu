@@ -1483,44 +1483,81 @@ a {
   .mobile-action-bar-pill {
     display: flex !important;
     position: fixed;
-    bottom: 24px;
+    bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 999;
-    background: #ffffff;
-    border: 1px solid rgba(226, 232, 240, 0.9);
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(226, 232, 240, 0.8);
     border-radius: 9999px;
-    padding: 10px 28px;
-    gap: 32px;
+    padding: 7px 22px;
+    gap: 22px;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.06);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8), 0 12px 32px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.04);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
 
   [data-theme="dark"] .mobile-action-bar-pill {
-    background: #18181b;
-    border-color: rgba(63, 63, 70, 0.9);
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(0, 0, 0, 0.25);
+    background: rgba(24, 24, 27, 0.96);
+    border-color: rgba(63, 63, 70, 0.8);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 14px 36px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 
   .pill-btn {
-    width: 52px;
-    height: 52px;
-    min-width: 52px;
+    position: relative;
+    overflow: hidden;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
     outline: none;
     padding: 0;
   }
 
+  /* Smooth iOS Mirror Glossy Shine Animation */
+  .pill-btn::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -150%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+      115deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.65) 50%,
+      transparent 80%
+    );
+    transform: skewX(-20deg);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .pill-btn:hover,
   .pill-btn:active {
-    transform: scale(0.92);
+    transform: scale(1.12) translateY(-2px);
+  }
+
+  .pill-btn:hover::after,
+  .pill-btn:active::after {
+    opacity: 1;
+    animation: mirrorShine 0.75s ease-in-out forwards;
+  }
+
+  @keyframes mirrorShine {
+    0% {
+      left: -150%;
+    }
+    100% {
+      left: 150%;
+    }
   }
 
   /* 1. Green Piggy Bank Button */
