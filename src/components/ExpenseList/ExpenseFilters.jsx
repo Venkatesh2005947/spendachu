@@ -26,6 +26,7 @@ export default function ExpenseFilters({
         >
           <option value="all">All Time</option>
           <option value="today">Today</option>
+          <option value="yesterday">Yesterday</option>
           <option value="weekly">Weekly (Last 7 Days)</option>
           <option value="monthly">Monthly (Current Month)</option>
           <option value="custom">Custom Date Range</option>

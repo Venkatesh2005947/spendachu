@@ -43,6 +43,12 @@ export function isDateInRange(dateStr, rangeType, customRange = null) {
     return targetDate.getTime() === today.getTime();
   }
   
+  if (rangeType === 'yesterday') {
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    return targetDate.getTime() === yesterday.getTime();
+  }
+  
   if (rangeType === 'weekly') {
     // Current week: last 7 days from today
     const weekAgo = new Date(today);
