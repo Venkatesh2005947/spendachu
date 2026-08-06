@@ -914,7 +914,7 @@ export default function App() {
       />
 
       {/* Main Workspace Frame */}
-      <main className="main-content" style={{ position: 'relative' }}>
+      <main className={`main-content ${activeTab === 'assistant' ? 'assistant-main' : ''}`} style={{ position: 'relative' }}>
         <div className="header-bar">
           <div className="header-title-container">
             <h1>{getPageTitle()}</h1>

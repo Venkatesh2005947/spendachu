@@ -1354,6 +1354,10 @@ a {
     padding-bottom: 180px !important;
   }
 
+  .main-content.assistant-main {
+    padding-bottom: 12px !important;
+  }
+
   .modal-container {
     padding: 20px !important;
   }

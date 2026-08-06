@@ -8,14 +8,9 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+dist
 dist-ssr
 *.local
-.env
-server/.env
-*.db
-*.sqlite
-server/database.db
-server/database.sqlite
 
 # Editor directories and files
 .vscode/*
@@ -27,13 +22,6 @@ server/database.sqlite
 *.njsproj
 *.sln
 *.sw?
-
-# PaddleOCR Service
-paddle-ocr-service/.env
-paddle-ocr-service/__pycache__/
-paddle-ocr-service/.venv/
-paddle-ocr-service/venv/
-~/.paddleocr/
 
 .vercel
 .env*
