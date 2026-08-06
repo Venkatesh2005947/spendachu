@@ -927,6 +927,26 @@ app.post('/api/savings', authenticateJWT, (req, res) => {
   );
 });
 
+// Update Saving
+app.put('/api/savings/:id', authenticateJWT, (req, res) => {
+  const { amount, description } = req.body;
+  const amtFloat = parseFloat(amount);
+
+  if (isNaN(amtFloat) || amtFloat <= 0) {
+    return res.status(400).json({ error: 'Amount must be a positive number.' });
+  }
+
+  db.run(
+    `UPDATE savings SET amount = ?, description = ? WHERE id = ? AND user_id = ?`,
+    [amtFloat, description || '', req.params.id, req.user.id],
+    function (err) {
+      if (err) return res.status(500).json({ error: 'Failed to update saving.' });
+      if (this.changes === 0) return res.status(404).json({ error: 'Saving entry not found.' });
+      res.status(200).json({ success: true });
+    }
+  );
+});
+
 // Soft Delete Saving (Move to Trash)
 app.delete('/api/savings/:id', authenticateJWT, (req, res) => {
   db.get(

@@ -216,6 +216,15 @@ export const dbService = {
     return handleResponse(res);
   },
 
+  async updateSaving(id, savingData) {
+    const res = await fetch(`/api/savings/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(savingData)
+    });
+    return handleResponse(res);
+  },
+
   async deleteSaving(id) {
     const res = await fetch(`/api/savings/${id}`, {
       method: 'DELETE',

@@ -3,6 +3,7 @@ import {
   Search, 
   ArrowUpDown,
   Trash2, 
+  Edit3,
   ChevronLeft, 
   ChevronRight, 
   FolderOpen,
@@ -15,6 +16,7 @@ import { formatCurrency } from '../../utils/helpers';
 
 export default function SavingTable({ 
   savings = [], 
+  onEditSaving,
   onDeleteSaving,
   onClearAllSavings
 }) {
@@ -279,11 +281,23 @@ export default function SavingTable({
               </div>
             )}
 
-            {/* Action Button */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
               <button 
                 className="outline-btn" 
-                style={{ width: '100%', justifyContent: 'center', padding: '12px', borderRadius: '14px', fontSize: '14px', borderColor: 'var(--error)', color: 'var(--error)' }}
+                style={{ flex: 1, justifyContent: 'center', padding: '12px', borderRadius: '14px', fontSize: '14px' }}
+                onClick={() => {
+                  const txToEdit = selectedTx;
+                  setSelectedTx(null);
+                  if (onEditSaving) onEditSaving(txToEdit);
+                }}
+              >
+                <Edit3 size={16} />
+                <span>Edit</span>
+              </button>
+              <button 
+                className="outline-btn" 
+                style={{ flex: 1, justifyContent: 'center', padding: '12px', borderRadius: '14px', fontSize: '14px', borderColor: 'var(--error)', color: 'var(--error)' }}
                 onClick={() => {
                   const txToDelete = selectedTx;
                   if (window.confirm('Are you sure you want to delete this saving entry?')) {
@@ -293,7 +307,7 @@ export default function SavingTable({
                 }}
               >
                 <Trash2 size={16} />
-                <span>Delete Saving Entry</span>
+                <span>Delete</span>
               </button>
             </div>
           </div>

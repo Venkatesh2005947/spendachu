@@ -51,6 +51,7 @@ export default function App() {
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [isSavingModalOpen, setIsSavingModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
+  const [editingSaving, setEditingSaving] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -264,12 +265,22 @@ export default function App() {
     }
   };
 
+  const openEditSavingModal = (saving) => {
+    setEditingSaving(saving);
+    setIsSavingModalOpen(true);
+  };
+
   const handleSaveSaving = async (payload) => {
     try {
-      await dbService.addSaving(payload);
+      if (editingSaving && editingSaving.id) {
+        await dbService.updateSaving(editingSaving.id, payload);
+      } else {
+        await dbService.addSaving(payload);
+      }
       const updatedSavings = await dbService.getSavings();
       setSavings(updatedSavings);
       setIsSavingModalOpen(false);
+      setEditingSaving(null);
     } catch (err) {
       console.error('Failed to save saving:', err);
     }
@@ -804,6 +815,7 @@ export default function App() {
         return (
           <SavingTable 
             savings={savings} 
+            onEditSaving={openEditSavingModal}
             onDeleteSaving={handleDeleteSaving} 
             onClearAllSavings={handleClearAllSavings}
           />
@@ -985,10 +997,11 @@ export default function App() {
           />
         )}
 
-        {/* Floating Modal for Add Saving */}
+        {/* Floating Modal for Add/Edit Saving */}
         {isSavingModalOpen && (
           <SavingForm 
-            onClose={() => setIsSavingModalOpen(false)} 
+            saving={editingSaving}
+            onClose={() => { setIsSavingModalOpen(false); setEditingSaving(null); }} 
             onSave={handleSaveSaving} 
           />
         )}

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { X, PlusCircle } from 'lucide-react';
+import { X, PlusCircle, CheckCircle } from 'lucide-react';
 
-export default function SavingForm({ onClose, onSave }) {
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
+export default function SavingForm({ saving, onClose, onSave }) {
+  const [amount, setAmount] = useState(saving ? saving.amount : '');
+  const [description, setDescription] = useState(saving ? saving.description || '' : '');
   const [error, setError] = useState('');
 
   const handleSubmit = (e) => {
@@ -17,6 +17,7 @@ export default function SavingForm({ onClose, onSave }) {
     }
 
     const payload = {
+      ...(saving && saving.id ? { id: saving.id } : {}),
       amount: amtFloat,
       description: description.trim()
     };
@@ -32,7 +33,7 @@ export default function SavingForm({ onClose, onSave }) {
     <div className="modal-overlay">
       <div className="glass-card modal-container">
         <div className="modal-header">
-          <h2>Add Saving</h2>
+          <h2>{saving ? 'Edit Saving Entry' : 'Add Saving'}</h2>
           <button className="close-btn" onClick={onClose} aria-label="Close">
             <X size={18} />
           </button>
@@ -81,8 +82,8 @@ export default function SavingForm({ onClose, onSave }) {
             className="glow-btn" 
             style={{ width: '100%', justifyContent: 'center', marginTop: '10px', background: 'var(--success)' }}
           >
-            <PlusCircle size={18} />
-            <span>Add Saving</span>
+            {saving ? <CheckCircle size={18} /> : <PlusCircle size={18} />}
+            <span>{saving ? 'Update Saving' : 'Add Saving'}</span>
           </button>
         </form>
       </div>
