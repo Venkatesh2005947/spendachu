@@ -1355,9 +1355,10 @@ a {
   }
 
   .main-content.assistant-main {
+    margin-top: 60px !important;
+    padding: 0 !important;
     height: calc(100dvh - 60px) !important;
-    padding: 10px !important;
-    padding-bottom: 10px !important;
+    max-height: calc(100dvh - 60px) !important;
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
@@ -1368,6 +1369,9 @@ a {
     display: flex !important;
     flex-direction: column !important;
     height: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
     min-height: 0 !important;
   }
 

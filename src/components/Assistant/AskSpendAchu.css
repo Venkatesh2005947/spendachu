@@ -20,8 +20,10 @@
 @media (max-width: 768px) {
   .asa-container {
     height: 100% !important;
+    width: 100% !important;
     max-height: none !important;
-    border-radius: 14px;
+    border-radius: 0 !important;
+    border: none !important;
     flex: 1;
   }
 }
@@ -543,8 +545,10 @@
 @media (max-width: 600px) {
   .asa-container {
     height: 100% !important;
+    width: 100% !important;
     max-height: none !important;
-    border-radius: 12px;
+    border-radius: 0 !important;
+    border: none !important;
     flex: 1;
   }
 
