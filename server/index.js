@@ -592,7 +592,7 @@ app.post('/api/expenses/scan-receipt', authenticateJWT, (req, res) => {
 
 app.get('/api/expenses', authenticateJWT, (req, res) => {
   db.all(
-    `SELECT * FROM expenses WHERE user_id = ? ORDER BY date DESC`,
+    `SELECT * FROM expenses WHERE user_id = ? ORDER BY date DESC, created_at DESC, id DESC`,
     [req.user.id],
     (err, rows) => {
       if (err) return res.status(500).json({ error: 'Failed to fetch expenses.' });
@@ -896,7 +896,7 @@ app.post('/api/expenses/clear', authenticateJWT, (req, res) => {
 // Get Savings
 app.get('/api/savings', authenticateJWT, (req, res) => {
   db.all(
-    `SELECT * FROM savings WHERE user_id = ? ORDER BY date DESC`,
+    `SELECT * FROM savings WHERE user_id = ? ORDER BY date DESC, created_at DESC, id DESC`,
     [req.user.id],
     (err, rows) => {
       if (err) return res.status(500).json({ error: 'Failed to fetch savings.' });
