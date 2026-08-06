@@ -19,9 +19,10 @@
 
 @media (max-width: 768px) {
   .asa-container {
-    height: calc(100dvh - 100px);
-    max-height: none;
+    height: 100% !important;
+    max-height: none !important;
     border-radius: 14px;
+    flex: 1;
   }
 }
 
@@ -541,9 +542,10 @@
 /* ─── Responsive: Mobile ─────────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .asa-container {
-    height: calc(100vh - 80px);
+    height: 100% !important;
+    max-height: none !important;
     border-radius: 12px;
-    max-height: none;
+    flex: 1;
   }
 
   .asa-bubble {
