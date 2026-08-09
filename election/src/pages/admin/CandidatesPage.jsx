@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, UserCheck, Edit2, Trash2, CheckCircle2, XCircle } from 'lucide-react'
+import { Plus, UserCheck, Edit2, Trash2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
 import { getAllCandidates, addCandidate, updateCandidate, deleteCandidate } from '../../services/adminService'
 import Button from '../../components/ui/Button'
 import Modal from '../../components/ui/Modal'
@@ -9,6 +9,7 @@ import { FullPageLoader } from '../../components/ui/LoadingSpinner'
 export default function CandidatesPage() {
   const [candidates, setCandidates] = useState([])
   const [loading, setLoading] = useState(true)
+  const [alertMessage, setAlertMessage] = useState(null)
 
   // Add/Edit Modal
   const [showModal, setShowModal] = useState(false)
@@ -78,13 +79,18 @@ export default function CandidatesPage() {
   }
 
   const handleDeleteCandidate = async (candidateId, candidateName) => {
-    if (!confirm(`Are you sure you want to delete candidate "${candidateName}"?`)) return
+    if (!confirm(`Are you sure you want to remove candidate "${candidateName}"?`)) return
+    setAlertMessage(null)
+
     try {
-      await deleteCandidate(candidateId)
+      const res = await deleteCandidate(candidateId)
+      if (res && res.deactivated) {
+        setAlertMessage(res.message || 'Candidate has already received votes, so the candidate was withdrawn instead of permanently deleted.')
+      }
       fetchCandidates()
     } catch (err) {
       console.error('Failed to delete candidate:', err)
-      alert('Cannot delete a candidate who has already received votes.')
+      alert(err.message || 'Failed to remove candidate.')
     }
   }
 
@@ -112,6 +118,21 @@ export default function CandidatesPage() {
         </Button>
       </div>
 
+      {alertMessage && (
+        <div className="bg-amber-500/15 border border-amber-500/30 rounded-2xl p-4 text-amber-300 text-sm flex items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <AlertCircle size={20} className="text-amber-400 shrink-0" />
+            <span>{alertMessage}</span>
+          </div>
+          <button
+            onClick={() => setAlertMessage(null)}
+            className="text-xs text-amber-400/80 hover:text-white font-bold"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Candidate list grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {candidates.length === 0 ? (
@@ -129,7 +150,7 @@ export default function CandidatesPage() {
               />
 
               {/* Action Toolbar */}
-              <div className="absolute top-4 right-4 flex items-center gap-2">
+              <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
                 <button
                   onClick={() => openEditModal(candidate)}
                   className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition-colors"
@@ -140,7 +161,7 @@ export default function CandidatesPage() {
                 <button
                   onClick={() => handleDeleteCandidate(candidate.id, candidate.candidate_name)}
                   className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors"
-                  title="Delete candidate"
+                  title="Delete/Withdraw candidate"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -158,7 +179,7 @@ export default function CandidatesPage() {
       >
         <form onSubmit={handleSaveCandidate} className="space-y-5">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2">
+            <label htmlFor="candidate-name-input" className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2">
               Candidate Name
             </label>
             <input
@@ -173,7 +194,7 @@ export default function CandidatesPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2">
+            <label htmlFor="candidate-description-input" className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2">
               Description / Manifesto
             </label>
             <textarea

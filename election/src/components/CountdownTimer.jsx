@@ -6,35 +6,56 @@ function pad(n) {
 }
 
 function getTimeLeft(targetDate) {
-  const now = new Date()
-  const target = new Date(targetDate)
+  if (!targetDate) return null
+  const now = new Date().getTime()
+  const target = new Date(targetDate).getTime()
+  if (isNaN(target)) return null
+
   const diff = target - now
-  if (diff <= 0) return null
+  if (diff <= 0) {
+    return { diff: 0, days: 0, hours: 0, minutes: 0, seconds: 0 }
+  }
+
   const days = Math.floor(diff / (1000 * 60 * 60 * 24))
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
   const seconds = Math.floor((diff % (1000 * 60)) / 1000)
-  return { days, hours, minutes, seconds }
+
+  return { diff, days, hours, minutes, seconds }
 }
 
-export default function CountdownTimer({ targetDate, label = 'Closes in' }) {
+export default function CountdownTimer({ targetDate, label = 'Closes in', onExpire }) {
   const [timeLeft, setTimeLeft] = useState(() => getTimeLeft(targetDate))
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTimeLeft(getTimeLeft(targetDate))
-    }, 1000)
+    let expiredTriggered = false
+
+    const checkTimer = () => {
+      const remaining = getTimeLeft(targetDate)
+      setTimeLeft(remaining)
+
+      if (remaining && remaining.diff <= 0 && !expiredTriggered) {
+        expiredTriggered = true
+        if (onExpire) onExpire()
+      }
+    }
+
+    checkTimer()
+    const interval = setInterval(checkTimer, 1000)
+
     return () => clearInterval(interval)
-  }, [targetDate])
+  }, [targetDate, onExpire])
 
   if (!timeLeft) return null
 
   return (
     <div className="flex items-center gap-3 flex-wrap">
-      <div className="flex items-center gap-1.5 text-emerald-400/70 text-sm font-medium">
-        <Clock size={14} />
-        <span>{label}</span>
-      </div>
+      {label && (
+        <div className="flex items-center gap-1.5 text-emerald-400/70 text-sm font-medium">
+          <Clock size={14} />
+          <span>{label}</span>
+        </div>
+      )}
       <div className="flex items-center gap-1">
         {timeLeft.days > 0 && (
           <>

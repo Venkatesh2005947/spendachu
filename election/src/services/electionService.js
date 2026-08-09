@@ -11,8 +11,6 @@ export function generateToken() {
 
 /**
  * Hash a token using SHA-256 via the Web Crypto API
- * @param {string} token - raw token string
- * @returns {Promise<string>} hex-encoded SHA-256 hash
  */
 export async function hashToken(token) {
   const encoder = new TextEncoder()
@@ -24,8 +22,6 @@ export async function hashToken(token) {
 
 /**
  * Validate a voter token (checks DB without exposing voter info)
- * @param {string} token - raw token from URL
- * @returns {Promise<{valid: boolean, reason?: string, voterName?: string}>}
  */
 export async function validateToken(token) {
   try {
@@ -48,9 +44,6 @@ export async function validateToken(token) {
 
 /**
  * Submit a vote securely via RPC
- * @param {string} token - raw token from URL
- * @param {string} candidateId - UUID of selected candidate
- * @returns {Promise<{success: boolean, error?: string}>}
  */
 export async function submitVote(token, candidateId) {
   try {
@@ -81,16 +74,16 @@ export async function getCandidates() {
 }
 
 /**
- * Get election settings (public)
+ * Get election settings (safe maybeSingle)
  */
 export async function getElectionSettings() {
   const { data, error } = await supabase
     .from('election_settings')
     .select('*')
     .eq('id', 1)
-    .single()
-  if (error) throw error
-  return data
+    .maybeSingle()
+  if (error && error.code !== 'PGRST116') throw error
+  return data || null
 }
 
 /**

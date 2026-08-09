@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import ElectionHomePage from './pages/ElectionHomePage'
 import VotePage from './pages/VotePage'
+import PublicResultsPage from './pages/PublicResultsPage'
 import AdminLoginPage from './pages/admin/AdminLoginPage'
 import DashboardPage from './pages/admin/DashboardPage'
 import VotersPage from './pages/admin/VotersPage'
@@ -17,6 +18,7 @@ export default function App() {
         {/* Public Routes */}
         <Route path="/" element={<ElectionHomePage />} />
         <Route path="/vote/:token" element={<VotePage />} />
+        <Route path="/results" element={<PublicResultsPage />} />
 
         {/* Admin Auth */}
         <Route path="/admin" element={<AdminLoginPage />} />

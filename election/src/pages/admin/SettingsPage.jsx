@@ -6,10 +6,37 @@ import Button from '../../components/ui/Button'
 import Modal from '../../components/ui/Modal'
 import { FullPageLoader } from '../../components/ui/LoadingSpinner'
 
+/**
+ * Converts an HTML datetime-local string (e.g. "2026-08-07T13:19")
+ * representing the user's local time into a clean ISO 8601 UTC string for DB storage.
+ */
+function localDateTimeToIso(val) {
+  if (!val) return null
+  const d = new Date(val)
+  return isNaN(d.getTime()) ? null : d.toISOString()
+}
+
+/**
+ * Converts a UTC ISO string from DB (e.g. "2026-08-07T07:49:00.000Z")
+ * back into a local HTML datetime-local input string (e.g. "2026-08-07T13:19").
+ */
+function isoToLocalDateTime(isoStr) {
+  if (!isoStr) return ''
+  const d = new Date(isoStr)
+  if (isNaN(d.getTime())) return ''
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const hours = String(d.getHours()).padStart(2, '0')
+  const minutes = String(d.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState(false)
+  const [errorMsg, setErrorMsg] = useState(null)
 
   const [organizationName, setOrganizationName] = useState('')
   const [title, setTitle] = useState('')
@@ -32,10 +59,16 @@ export default function SettingsPage() {
           setOrganizationName(data.organization_name || 'WhatsApp Group')
           setTitle(data.election_title || '')
           setDescription(data.election_description || '')
-          setWhatsappTemplate(data.whatsapp_message_template || 'Hi {voter_name},\n\nHere is your private one-time link to vote in our {election_title}:\n\n{link}\n\nYour vote is 100% secret and anonymous.')
+          
+          let rawTpl = data.whatsapp_message_template || 'Hi {voter_name},\n\nHere is your private one-time link to vote in our {election_title}:\n\n{link}\n\nYour vote is 100% secret and anonymous.'
+          rawTpl = rawTpl.replace(/\/n/g, '\n')
+          setWhatsappTemplate(rawTpl)
+
           setRulesText(data.rules_text || '1. Select only one candidate.\n2. Voting link works only once.\n3. Vote cannot be changed after submission.')
-          setStartDate(data.start_date ? new Date(data.start_date).toISOString().slice(0, 16) : '')
-          setEndDate(data.end_date ? new Date(data.end_date).toISOString().slice(0, 16) : '')
+          
+          // Use isoToLocalDateTime to preserve local timezone formatting in input
+          setStartDate(isoToLocalDateTime(data.start_date))
+          setEndDate(isoToLocalDateTime(data.end_date))
         }
       } catch (err) {
         console.error('Error loading settings:', err)
@@ -51,22 +84,25 @@ export default function SettingsPage() {
     if (!title.trim() || submitting) return
     setSubmitting(true)
     setSuccessMsg(false)
+    setErrorMsg(null)
 
     try {
+      const cleanedTpl = whatsappTemplate.replace(/\/n/g, '\n')
+
       await updateElectionSettings({
         organizationName,
         title,
         description,
-        whatsappMessageTemplate: whatsappTemplate,
+        whatsappMessageTemplate: cleanedTpl,
         rulesText,
-        startDate: startDate ? new Date(startDate).toISOString() : null,
-        endDate: endDate ? new Date(endDate).toISOString() : null,
+        startDate: localDateTimeToIso(startDate),
+        endDate: localDateTimeToIso(endDate),
       })
       setSuccessMsg(true)
-      setTimeout(() => setSuccessMsg(false), 3000)
+      setTimeout(() => setSuccessMsg(false), 4000)
     } catch (err) {
       console.error('Failed to update settings:', err)
-      alert(err.message || 'Failed to update election settings.')
+      setErrorMsg(err.message || 'Failed to update election settings.')
     } finally {
       setSubmitting(false)
     }
@@ -104,7 +140,14 @@ export default function SettingsPage() {
       {successMsg && (
         <div className="bg-emerald-500/20 border border-emerald-400/40 rounded-2xl p-4 text-emerald-300 text-sm flex items-center gap-3 animate-fade-in">
           <ShieldCheck size={20} className="text-emerald-400 shrink-0" />
-          <span>Election settings and template saved successfully!</span>
+          <span>Election settings and schedule saved successfully!</span>
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="bg-red-500/15 border border-red-500/30 rounded-2xl p-4 text-red-300 text-sm flex items-center gap-3 animate-fade-in">
+          <AlertTriangle size={20} className="text-red-400 shrink-0" />
+          <span>{errorMsg}</span>
         </div>
       )}
 
@@ -112,7 +155,7 @@ export default function SettingsPage() {
       <form onSubmit={handleSave} className="glass-card p-6 sm:p-8 space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2 flex items-center gap-1.5">
+            <label htmlFor="settings-org-name" className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2 flex items-center gap-1.5">
               <Building size={14} />
               Organization / Group Name
             </label>
@@ -128,7 +171,7 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2">
+            <label htmlFor="settings-title-input" className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2">
               Election Title
             </label>
             <input
@@ -144,7 +187,7 @@ export default function SettingsPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2">
+          <label htmlFor="settings-description-input" className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2">
             Description / Group Banner Message
           </label>
           <textarea
@@ -159,7 +202,7 @@ export default function SettingsPage() {
 
         {/* WhatsApp Message Template */}
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2 flex items-center gap-1.5">
+          <label htmlFor="settings-whatsapp-template" className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2 flex items-center gap-1.5">
             <MessageSquare size={14} />
             WhatsApp Message Template
           </label>
@@ -179,7 +222,7 @@ export default function SettingsPage() {
         {/* Schedule grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-emerald-500/15 pt-6">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2 flex items-center gap-1.5">
+            <label htmlFor="settings-start-date-input" className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2 flex items-center gap-1.5">
               <Clock size={14} />
               Voting Start Date & Time
             </label>
@@ -193,7 +236,7 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2 flex items-center gap-1.5">
+            <label htmlFor="settings-end-date-input" className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2 flex items-center gap-1.5">
               <Clock size={14} />
               Voting Closing Date & Time
             </label>

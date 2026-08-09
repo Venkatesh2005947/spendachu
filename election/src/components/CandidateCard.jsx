@@ -40,7 +40,7 @@ export default function CandidateCard({ candidate, selected, onSelect, disabled 
       disabled={disabled}
       className={`
         w-full text-left glass-card p-5 transition-all duration-200
-        border-2 cursor-pointer touch-manipulation select-none
+        border-2 cursor-pointer touch-manipulation select-none relative
         active:scale-[0.98]
         ${selected
           ? 'candidate-card-selected border-emerald-500'
@@ -51,7 +51,7 @@ export default function CandidateCard({ candidate, selected, onSelect, disabled 
       aria-pressed={selected}
       aria-label={`Select ${candidate.candidate_name}`}
     >
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-4 pr-16">
         {/* Avatar */}
         <div className={`
           w-14 h-14 rounded-2xl bg-gradient-to-br ${colorClass}
@@ -64,10 +64,17 @@ export default function CandidateCard({ candidate, selected, onSelect, disabled 
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <h3 className="text-white font-bold text-base leading-tight truncate">
               {candidate.candidate_name}
             </h3>
+
+            {!candidate.is_active && (
+              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-bold uppercase tracking-wider shrink-0">
+                Withdrawn
+              </span>
+            )}
+
             {selected && (
               <CheckCircle2
                 size={18}

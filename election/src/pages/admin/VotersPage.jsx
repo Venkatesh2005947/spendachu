@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Plus, Copy, Check, Trash2, Search, Share2, ShieldCheck, MessageSquare } from 'lucide-react'
+import { Plus, Copy, Check, Trash2, Search, Share2, ShieldCheck, Link as LinkIcon, MessageSquare } from 'lucide-react'
 import { getVoters, addVoter, deleteVoter } from '../../services/adminService'
 import { getElectionSettings } from '../../services/electionService'
+import { getVoterLink } from '../../lib/config'
 import Button from '../../components/ui/Button'
 import Modal from '../../components/ui/Modal'
 import { FullPageLoader } from '../../components/ui/LoadingSpinner'
@@ -18,8 +19,8 @@ export default function VotersPage() {
   const [submitting, setSubmitting] = useState(false)
 
   // Generated Link Modal state
-  const [generatedLinkData, setGeneratedLinkData] = useState(null) // { voterName, link }
-  const [copiedVoterId, setCopiedVoterId] = useState(null)
+  const [generatedLinkData, setGeneratedLinkData] = useState(null) // { voterName, voterLink, rawToken }
+  const [copiedType, setCopiedType] = useState(null) // 'link' | 'message'
 
   useEffect(() => {
     fetchVotersAndSettings()
@@ -47,11 +48,14 @@ export default function VotersPage() {
 
     try {
       const { voter, rawToken } = await addVoter(newVoterName)
-      const link = `${window.location.origin}/vote/${rawToken}`
+
+      // Use single reusable getVoterLink helper -> ONLY returns https://domain/vote/TOKEN
+      const voterLink = getVoterLink(rawToken)
 
       setGeneratedLinkData({
         voterName: voter.voter_name,
-        link,
+        voterLink,
+        rawToken,
       })
 
       setNewVoterName('')
@@ -76,23 +80,27 @@ export default function VotersPage() {
     }
   }
 
-  const copyToClipboard = (text, id) => {
+  const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text)
-    setCopiedVoterId(id)
-    setTimeout(() => setCopiedVoterId(null), 2500)
+    setCopiedType(type)
+    setTimeout(() => setCopiedType(null), 2500)
   }
 
-  const getFormattedMessage = (voterName, link) => {
-    const template = settings?.whatsapp_message_template || 'Hi {voter_name},\n\nHere is your private one-time link to vote in our {election_title}:\n\n{link}\n\nYour vote is 100% secret and anonymous.'
+  const getFormattedMessage = (voterName, voterLink) => {
+    let template = settings?.whatsapp_message_template || 'Hi {voter_name},\n\nHere is your private one-time link to vote in our {election_title}:\n\n{link}\n\nYour vote is 100% secret and anonymous.'
+    
+    // Replace any accidental literal /n with real newlines \n
+    template = template.replace(/\/n/g, '\n')
+
     const title = settings?.election_title || 'Group Election'
     return template
       .replace(/\{voter_name\}/g, voterName)
       .replace(/\{election_title\}/g, title)
-      .replace(/\{link\}/g, link)
+      .replace(/\{link\}/g, voterLink)
   }
 
-  const shareToWhatsApp = (voterName, link) => {
-    const text = getFormattedMessage(voterName, link)
+  const shareToWhatsApp = (voterName, voterLink) => {
+    const text = getFormattedMessage(voterName, voterLink)
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`
     window.open(url, '_blank')
   }
@@ -199,7 +207,7 @@ export default function VotersPage() {
       >
         <form onSubmit={handleAddVoter} className="space-y-5">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2">
+            <label htmlFor="voter-name-input" className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2">
               Voter Full Name
             </label>
             <input
@@ -250,36 +258,64 @@ export default function VotersPage() {
         {generatedLinkData && (
           <div className="space-y-5">
             <div className="bg-emerald-900/30 border border-emerald-500/30 rounded-2xl p-4">
-              <span className="text-xs text-emerald-400/70 font-semibold block mb-1">Voter</span>
+              <span className="text-xs text-emerald-400/70 font-semibold block mb-1">Voter Name</span>
               <h3 className="text-white font-bold text-lg">{generatedLinkData.voterName}</h3>
             </div>
 
+            {/* Pure Unpolluted Link Display */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2 flex items-center justify-between">
-                <span>Message Preview</span>
-                <span className="text-[10px] text-gray-400 font-normal">Dynamic template</span>
+              <label htmlFor="whatsapp-modal-voter-link" className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2 flex items-center justify-between">
+                <span>Direct Voter URL Only</span>
+                <span className="text-[10px] text-gray-400 font-normal">Clean URL</span>
               </label>
-              <div className="bg-emerald-950/80 border border-emerald-500/20 rounded-2xl p-3 text-xs text-emerald-300 font-mono whitespace-pre-wrap break-all">
-                {getFormattedMessage(generatedLinkData.voterName, generatedLinkData.link)}
+              <div id="whatsapp-modal-voter-link" className="bg-emerald-950/80 border border-emerald-500/20 rounded-2xl p-3 text-xs text-white font-mono break-all select-all">
+                {generatedLinkData.voterLink}
               </div>
             </div>
 
-            <div className="flex gap-3">
+            {/* WhatsApp Message Preview */}
+            <div>
+              <label htmlFor="whatsapp-modal-message-preview" className="block text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-2 flex items-center justify-between">
+                <span>WhatsApp Message Preview</span>
+                <span className="text-[10px] text-gray-400 font-normal">Formatted text</span>
+              </label>
+              <div id="whatsapp-modal-message-preview" className="bg-emerald-950/80 border border-emerald-500/20 rounded-2xl p-3 text-xs text-emerald-300 font-mono whitespace-pre-wrap break-all select-all">
+                {getFormattedMessage(generatedLinkData.voterName, generatedLinkData.voterLink)}
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Copy Link Only Button */}
               <Button
+                id="copy-link-only-btn"
                 variant="secondary"
                 size="md"
                 className="flex-1"
-                onClick={() => copyToClipboard(getFormattedMessage(generatedLinkData.voterName, generatedLinkData.link), 'modal')}
+                onClick={() => copyToClipboard(generatedLinkData.voterLink, 'link')}
               >
-                {copiedVoterId === 'modal' ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
-                {copiedVoterId === 'modal' ? 'Copied Message!' : 'Copy Message'}
+                {copiedType === 'link' ? <Check size={16} className="text-emerald-400" /> : <LinkIcon size={16} />}
+                {copiedType === 'link' ? 'Copied Link!' : 'Copy Link Only'}
               </Button>
 
+              {/* Copy Full Message Button */}
               <Button
+                id="copy-full-message-btn"
+                variant="secondary"
+                size="md"
+                className="flex-1"
+                onClick={() => copyToClipboard(getFormattedMessage(generatedLinkData.voterName, generatedLinkData.voterLink), 'message')}
+              >
+                {copiedType === 'message' ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
+                {copiedType === 'message' ? 'Copied Message!' : 'Copy Full Message'}
+              </Button>
+
+              {/* WhatsApp Share Button */}
+              <Button
+                id="share-whatsapp-btn"
                 variant="primary"
                 size="md"
                 className="flex-1 bg-emerald-600 hover:bg-emerald-500"
-                onClick={() => shareToWhatsApp(generatedLinkData.voterName, generatedLinkData.link)}
+                onClick={() => shareToWhatsApp(generatedLinkData.voterName, generatedLinkData.voterLink)}
               >
                 <Share2 size={16} />
                 Send via WhatsApp

@@ -575,6 +575,16 @@ const MIGRATIONS = [
         // Ignored if column already exists
       }
     }
+  },
+  {
+    version: '015_add_has_seen_tutorial_to_users',
+    up: async (runQuery) => {
+      try {
+        await runQuery(`ALTER TABLE users ADD COLUMN has_seen_tutorial BOOLEAN DEFAULT FALSE`);
+      } catch (err) {
+        // Ignored if column already exists
+      }
+    }
   }
 ];
 

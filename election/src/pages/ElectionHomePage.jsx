@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Vote, ShieldCheck, Lock, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { Vote, ShieldCheck, Lock, CheckCircle2, AlertTriangle, BarChart2 } from 'lucide-react'
 import { getElectionSettings, getCandidates } from '../services/electionService'
 import { isSupabaseConfigured } from '../lib/supabase'
 import CountdownTimer from '../components/CountdownTimer'
@@ -57,9 +57,17 @@ export default function ElectionHomePage() {
             <span className="text-emerald-400/80 text-xs font-semibold uppercase tracking-wider">{orgName}</span>
           </div>
         </div>
-        <Link to="/admin">
-          <Button variant="ghost" size="sm">Admin Portal</Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link to="/results">
+            <Button variant="outline" size="sm">
+              <BarChart2 size={16} />
+              Results
+            </Button>
+          </Link>
+          <Link to="/admin">
+            <Button variant="ghost" size="sm">Admin Portal</Button>
+          </Link>
+        </div>
       </header>
 
       {/* Main Hero Card */}
@@ -102,18 +110,27 @@ export default function ElectionHomePage() {
 
           {/* Countdown / Schedule Info */}
           {(startDate || endDate) && (
-            <div className="bg-emerald-950/40 border border-emerald-500/15 rounded-2xl p-4 mb-8">
-              {isNotStarted && startDate && (
-                <CountdownTimer targetDate={startDate} label="Voting Opens In" />
-              )}
-              {isActive && endDate && (
-                <CountdownTimer targetDate={endDate} label="Voting Closes In" />
-              )}
-              {isClosed && (
-                <div className="text-gray-400 text-sm font-medium">
-                  Voting officially closed on {endDate ? endDate.toLocaleString() : 'scheduled time'}.
-                </div>
-              )}
+            <div className="bg-emerald-950/40 border border-emerald-500/15 rounded-2xl p-4 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                {isNotStarted && startDate && (
+                  <CountdownTimer targetDate={startDate} label="Voting Opens In" />
+                )}
+                {isActive && endDate && (
+                  <CountdownTimer targetDate={endDate} label="Voting Closes & Results Unlock In" />
+                )}
+                {isClosed && (
+                  <div className="text-gray-400 text-sm font-medium">
+                    Voting officially closed on {endDate ? endDate.toLocaleString() : 'scheduled time'}.
+                  </div>
+                )}
+              </div>
+
+              <Link to="/results">
+                <Button variant="secondary" size="sm" className="w-full sm:w-auto shrink-0">
+                  <BarChart2 size={16} />
+                  View Live Countdown / Results
+                </Button>
+              </Link>
             </div>
           )}
 
@@ -159,7 +176,7 @@ export default function ElectionHomePage() {
 
       {/* Footer */}
       <footer className="max-w-4xl mx-auto w-full text-center py-4 text-emerald-400/40 text-xs">
-        <p>VoteSecure &bull; {orgName} Anonymous Election System</p>
+        <p>VoteSecure &bull; {orgName} Official Election System</p>
       </footer>
     </div>
   )

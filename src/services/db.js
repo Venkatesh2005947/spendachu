@@ -456,5 +456,13 @@ export const dbService = {
       headers: getAuthHeaders()
     });
     return handleResponse(res);
+  },
+
+  async completeTutorial() {
+    const res = await fetch('/api/user/complete-tutorial', {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
   }
 };

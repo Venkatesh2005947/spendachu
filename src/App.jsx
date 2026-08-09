@@ -30,6 +30,7 @@ import GoalCompletedModal from './components/Dashboard/GoalCompletedModal';
 import AdminAnalytics from './components/Admin/AdminAnalytics';
 import AskSpendAchu from './components/Assistant/AskSpendAchu';
 import UserProfileModal from './components/Profile/UserProfileModal';
+import OnboardingTutorial from './components/Onboarding/OnboardingTutorial';
 
 export default function App() {
   // 1. Session and Auth State
@@ -55,6 +56,7 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [isReceiptPreviewOpen, setIsReceiptPreviewOpen] = useState(false);
@@ -182,6 +184,12 @@ export default function App() {
       // Fetch user currency setting if saved
       const savedCurrency = localStorage.getItem(`tracker_currency_${loggedInUser.email}`) || 'INR';
       setCurrencyCode(savedCurrency);
+
+      // Check onboarding tutorial trigger for new/unseen users
+      const hasSeenLocal = localStorage.getItem(`spendachu_tutorial_seen_${loggedInUser.email}`) === 'true';
+      if (!loggedInUser.has_seen_tutorial && !hasSeenLocal) {
+        setIsTutorialOpen(true);
+      }
     } catch (err) {
       console.error('Failed to load database states:', err);
     }
@@ -189,6 +197,19 @@ export default function App() {
     // Reset view variables
     setActiveTab('dashboard');
     setAuthScreen('login');
+  };
+
+  const handleCompleteTutorial = async () => {
+    setIsTutorialOpen(false);
+    if (user && user.email) {
+      localStorage.setItem(`spendachu_tutorial_seen_${user.email}`, 'true');
+      setUser(prev => prev ? { ...prev, has_seen_tutorial: true } : prev);
+      try {
+        await dbService.completeTutorial();
+      } catch (err) {
+        console.error('Failed to update tutorial completion on server:', err);
+      }
+    }
   };
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -918,6 +939,7 @@ export default function App() {
         user={user} 
         onLogout={handleLogout} 
         onOpenProfile={() => setIsProfileModalOpen(true)}
+        onOpenTutorial={() => setIsTutorialOpen(true)}
         theme={theme}
         toggleTheme={toggleTheme}
         collapsed={sidebarCollapsed}
@@ -1005,6 +1027,14 @@ export default function App() {
             onSave={handleSaveSaving} 
           />
         )}
+
+        {/* Onboarding Tutorial Modal */}
+        <OnboardingTutorial 
+          isOpen={isTutorialOpen} 
+          onClose={() => setIsTutorialOpen(false)} 
+          onComplete={handleCompleteTutorial} 
+          userName={user?.name} 
+        />
 
         {/* Hidden File Input for scanning */}
         <input

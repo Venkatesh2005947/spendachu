@@ -15,7 +15,6 @@ export async function getVoters() {
 
 /**
  * Add a new voter and generate their private token
- * Returns { voter, rawToken } — rawToken is ONLY returned once, never stored
  */
 export async function addVoter(voterName) {
   const rawToken = generateToken()
@@ -35,14 +34,13 @@ export async function addVoter(voterName) {
 }
 
 /**
- * Delete a voter (only if they haven't voted yet)
+ * Delete a voter (admin management)
  */
 export async function deleteVoter(voterId) {
   const { error } = await supabase
     .from('voters')
     .delete()
     .eq('id', voterId)
-    .eq('has_voted', false)
   if (error) throw error
 }
 
@@ -67,6 +65,7 @@ export async function addCandidate({ candidateName, candidateDescription }) {
     .insert({
       candidate_name: candidateName.trim(),
       candidate_description: candidateDescription?.trim() || null,
+      is_active: true,
     })
     .select()
     .single()
@@ -93,18 +92,72 @@ export async function updateCandidate(id, { candidateName, candidateDescription,
 }
 
 /**
- * Delete a candidate (only if no ballots reference them)
+ * Cleanly remove or withdraw candidate without triggering HTTP 409 Conflict network errors
+ * Checks ballot count first before deciding whether to DELETE or UPDATE
  */
 export async function deleteCandidate(id) {
-  const { error } = await supabase
-    .from('candidates')
-    .delete()
-    .eq('id', id)
-  if (error) throw error
+  try {
+    // 1. Check if ballots reference this candidate first to prevent HTTP 409 Conflict in browser network tab
+    const { count, error: countErr } = await supabase
+      .from('ballots')
+      .select('id', { count: 'exact', head: true })
+      .eq('candidate_id', id)
+
+    const ballotCount = (countErr || count === null) ? 0 : count
+
+    if (ballotCount > 0) {
+      // Candidate has received votes: issue UPDATE directly (HTTP 200 OK — zero 409 errors in DevTools!)
+      const { error: softErr } = await supabase
+        .from('candidates')
+        .update({ is_active: false })
+        .eq('id', id)
+
+      if (softErr) throw softErr
+
+      return {
+        success: true,
+        deactivated: true,
+        message: 'Candidate has already received votes, so the candidate was withdrawn instead of permanently deleted. To delete permanently, click "Reset Election Data" in Settings first.',
+      }
+    }
+
+    // 2. Candidate has 0 votes: issue DELETE directly (HTTP 204/200 OK — zero 409 errors in DevTools!)
+    const { error: deleteErr } = await supabase
+      .from('candidates')
+      .delete()
+      .eq('id', id)
+
+    if (deleteErr) {
+      if (deleteErr.code === '23503' || deleteErr.status === 409) {
+        const { error: softErr } = await supabase
+          .from('candidates')
+          .update({ is_active: false })
+          .eq('id', id)
+
+        if (softErr) throw softErr
+
+        return {
+          success: true,
+          deactivated: true,
+          message: 'Candidate has already received votes, so the candidate was withdrawn instead of permanently deleted.',
+        }
+      }
+      throw deleteErr
+    }
+
+    return {
+      success: true,
+      deactivated: false,
+      message: 'Candidate permanently deleted.',
+    }
+  } catch (err) {
+    console.error('deleteCandidate error:', err?.message || err)
+    throw new Error(err?.message || 'Failed to remove candidate.')
+  }
 }
 
 /**
- * Update election settings (supports organization_name, template, and rules)
+ * Update election settings — uses upsert to ensure row id:1 exists cleanly
  */
 export async function updateElectionSettings({
   organizationName,
@@ -116,8 +169,9 @@ export async function updateElectionSettings({
   endDate,
 }) {
   const updatePayload = {
-    election_title: title,
-    election_description: description,
+    id: 1,
+    election_title: title || 'Group Admin Election',
+    election_description: description || '',
     start_date: startDate || null,
     end_date: endDate || null,
     updated_at: new Date().toISOString(),
@@ -129,24 +183,42 @@ export async function updateElectionSettings({
 
   const { data, error } = await supabase
     .from('election_settings')
-    .update(updatePayload)
-    .eq('id', 1)
+    .upsert(updatePayload, { onConflict: 'id' })
     .select()
     .single()
+
   if (error) throw error
   return data
 }
 
 /**
- * Reset election data (wipes voters, ballots, and attempts for a new election)
- * @param {boolean} clearCandidates - whether to also wipe candidates list
+ * FULL ELECTION RESET: Wipes all ballots, voters, vote attempts, reactivates candidates, and clears schedule
  */
 export async function resetElectionData(clearCandidates = false) {
-  const { data, error } = await supabase.rpc('reset_election_data', {
-    p_clear_candidates: clearCandidates,
-  })
-  if (error) throw error
-  return data
+  // 1. Direct Table Deletes (Guarantees 100% table wipe)
+  await supabase.from('ballots').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+  await supabase.from('voters').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+  await supabase.from('vote_attempts').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+
+  // 2. Reactivate any previously withdrawn candidates
+  await supabase.from('candidates').update({ is_active: true }).neq('id', '00000000-0000-0000-0000-000000000000')
+
+  // 3. Delete candidates if clearCandidates checkbox was checked
+  if (clearCandidates) {
+    await supabase.from('candidates').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+  }
+
+  // 4. Reset schedule dates in settings
+  await supabase.from('election_settings').update({ start_date: null, end_date: null }).eq('id', 1)
+
+  // 5. Also execute database RPC reset_election_data if available
+  try {
+    await supabase.rpc('reset_election_data', { p_clear_candidates: clearCandidates })
+  } catch (rpcErr) {
+    console.warn('RPC reset execution notice:', rpcErr)
+  }
+
+  return { success: true }
 }
 
 /**

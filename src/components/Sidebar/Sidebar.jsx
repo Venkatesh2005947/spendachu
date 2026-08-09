@@ -13,7 +13,8 @@ import {
   Trash2,
   MessageSquare,
   BarChart3,
-  Bot
+  Bot,
+  HelpCircle
 } from 'lucide-react';
 
 export default function Sidebar({ 
@@ -22,6 +23,7 @@ export default function Sidebar({
   user, 
   onLogout, 
   onOpenProfile,
+  onOpenTutorial,
   theme, 
   toggleTheme, 
   collapsed, 
@@ -44,7 +46,8 @@ export default function Sidebar({
     { id: 'budgeting', label: 'Budgeting', icon: PiggyBank },
     { id: 'insights', label: 'AI Insights', icon: Sparkles },
     { id: 'trash', label: 'Recently Deleted', icon: Trash2 },
-    { id: 'feedback', label: 'Send Feedback', icon: MessageSquare }
+    { id: 'feedback', label: 'Send Feedback', icon: MessageSquare },
+    { id: 'tutorial', label: 'Website Tour 💡', icon: HelpCircle }
   ];
 
   // Helper to get initials
@@ -84,7 +87,13 @@ export default function Sidebar({
             <li 
               key={item.id}
               className={`sidebar-item ${isActive ? 'active' : ''}`}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => {
+                if (item.id === 'tutorial') {
+                  if (onOpenTutorial) onOpenTutorial();
+                } else {
+                  setActiveTab(item.id);
+                }
+              }}
               title={collapsed ? item.label : ''}
             >
               <Icon size={20} />

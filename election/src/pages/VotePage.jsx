@@ -22,19 +22,27 @@ export default function VotePage() {
   const [submitError, setSubmitError] = useState(null)
 
   useEffect(() => {
+    let isSubscribed = true
+
     async function init() {
-      if (!token) {
-        setVoterState('invalid')
-        setLoading(false)
+      if (!token || token.trim().length === 0) {
+        if (isSubscribed) {
+          setVoterState('invalid')
+          setLoading(false)
+        }
         return
       }
 
       try {
+        // Validate token against database via Supabase RPC
+        // Fetch candidates and settings gracefully
         const [validation, candidatesList, settingsData] = await Promise.all([
           validateToken(token),
-          getCandidates(),
+          getCandidates().catch(() => []),
           getElectionSettings().catch(() => null),
         ])
+
+        if (!isSubscribed) return
 
         setSettings(settingsData)
 
@@ -54,14 +62,18 @@ export default function VotePage() {
           setVoterState('valid')
         }
       } catch (err) {
-        console.error('Vote page init error:', err)
-        setVoterState('invalid')
+        console.error('Vote validation error:', err?.message || 'Failed to validate link')
+        if (isSubscribed) setVoterState('invalid')
       } finally {
-        setLoading(false)
+        if (isSubscribed) setLoading(false)
       }
     }
 
     init()
+
+    return () => {
+      isSubscribed = false
+    }
   }, [token])
 
   const handleVoteSubmit = async () => {
@@ -74,7 +86,7 @@ export default function VotePage() {
       if (res.success) {
         setShowConfirmModal(false)
         setVoterState('submitted')
-        // Automatically destroy token state locally
+        // Update URL state cleanly without reload or destroying voter token record
         window.history.replaceState(null, '', '/vote/used')
       } else {
         if (res.error === 'already_voted') {
@@ -89,7 +101,7 @@ export default function VotePage() {
         setShowConfirmModal(false)
       }
     } catch (err) {
-      console.error('Error submitting vote:', err)
+      console.error('Error submitting vote:', err?.message || 'Vote submission failed')
       setSubmitError('An unexpected error occurred. Please try again.')
       setShowConfirmModal(false)
     } finally {
@@ -127,7 +139,7 @@ export default function VotePage() {
     )
   }
 
-  // 2. INVALID / USED LINK PAGE
+  // 2. INVALID / UNKNOWN LINK PAGE
   if (voterState === 'invalid') {
     return (
       <div className="vote-bg min-h-screen flex items-center justify-center p-4">
@@ -135,7 +147,7 @@ export default function VotePage() {
           <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-6">
             <AlertTriangle className="text-red-400" size={32} />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-3">Invalid Voting Link</h2>
+          <h2 className="text-2xl font-bold text-white mb-3">Invalid Voter Link</h2>
           <p className="text-gray-300 text-base mb-6 leading-relaxed">
             This private voting link is invalid, expired, or has already been used.
           </p>
@@ -188,13 +200,13 @@ export default function VotePage() {
           <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-6">
             <Clock className="text-red-400" size={32} />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-3">Voting Closed</h2>
+          <h2 className="text-2xl font-bold text-white mb-3">Voting Has Ended</h2>
           <p className="text-gray-300 text-base mb-6 leading-relaxed">
             This election has ended and no further votes are being accepted.
           </p>
-          <Link to="/">
+          <Link to="/results">
             <Button variant="secondary" size="md" className="w-full">
-              View Election Info
+              View Election Results
             </Button>
           </Link>
         </div>
@@ -220,9 +232,9 @@ export default function VotePage() {
             <ShieldCheck size={16} />
             <span>Your private link is now permanently deactivated.</span>
           </div>
-          <Link to="/">
+          <Link to="/results">
             <Button variant="secondary" size="md" className="w-full">
-              Done
+              View Results Countdown
             </Button>
           </Link>
         </div>

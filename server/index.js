@@ -434,7 +434,7 @@ app.post('/api/register', (req, res) => {
           );
 
           res.status(201).json({
-            user: { name, email: normalizedEmail },
+            user: { name, email: normalizedEmail, has_seen_tutorial: false },
             token: sessionToken
           });
         }
@@ -489,7 +489,7 @@ app.post('/api/login', (req, res) => {
       );
 
       res.status(200).json({
-        user: { name: user.name, email: user.email, profile_picture: user.profile_picture || null },
+        user: { name: user.name, email: user.email, profile_picture: user.profile_picture || null, has_seen_tutorial: !!user.has_seen_tutorial },
         token: sessionToken
       });
     }
@@ -498,16 +498,28 @@ app.post('/api/login', (req, res) => {
 
 // Verify Session
 app.get('/api/verify', authenticateJWT, (req, res) => {
-  db.get(`SELECT name, email, profile_picture FROM users WHERE email = ?`, [req.user.email], (err, user) => {
+  db.get(`SELECT name, email, profile_picture, has_seen_tutorial FROM users WHERE email = ?`, [req.user.email], (err, user) => {
     if (err || !user) {
       return res.status(200).json({
-        user: { name: req.user.name, email: req.user.email }
+        user: { name: req.user.name, email: req.user.email, has_seen_tutorial: false }
       });
     }
     res.status(200).json({
-      user: { name: user.name, email: user.email, profile_picture: user.profile_picture || null }
+      user: { name: user.name, email: user.email, profile_picture: user.profile_picture || null, has_seen_tutorial: !!user.has_seen_tutorial }
     });
   });
+});
+
+// Complete Website Tutorial
+app.post('/api/user/complete-tutorial', authenticateJWT, (req, res) => {
+  db.run(
+    `UPDATE users SET has_seen_tutorial = TRUE WHERE id = ?`,
+    [req.user.id],
+    (err) => {
+      if (err) return res.status(500).json({ error: 'Failed to update tutorial state.' });
+      res.status(200).json({ success: true });
+    }
+  );
 });
 
 // Update Profile Picture
