@@ -103,24 +103,23 @@ const sendEmailViaResend = (apiKey, category, message, senderEmail, senderName, 
 
 
 // ── Receipt Scanning via Gemini Vision API ───────────────────────────────────
-const GEMINI_RECEIPT_API_KEY = process.env.FINANCIAL_ASSISTANT_API_KEY || process.env.GEMINI_API_KEY || '';
-const GEMINI_RECEIPT_MODEL = 'gemini-1.5-flash';
+const getGeminiApiKey = () => process.env.FINANCIAL_ASSISTANT_API_KEY || process.env.GEMINI_API_KEY || '';
 
 /**
  * Scan a receipt image using Gemini Vision API.
- * Returns structured JSON matching ReceiptPreview expected format.
+ * Tries models in order: gemini-1.5-flash, gemini-2.0-flash, gemini-1.5-flash-latest
  *
  * @param {string} base64Data - Base64-encoded image data
  * @param {string} mimeType   - MIME type (e.g. image/jpeg)
  * @returns {Promise<object>}  Parsed receipt data
  */
 const scanReceiptWithGemini = (base64Data, mimeType) => {
-  return new Promise((resolve, reject) => {
-    if (!GEMINI_RECEIPT_API_KEY) {
-      return reject(new Error('Gemini API key not configured. Please set FINANCIAL_ASSISTANT_API_KEY in Render environment variables.'));
-    }
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    return Promise.reject(new Error('Gemini API key not configured. Please set GEMINI_API_KEY or FINANCIAL_ASSISTANT_API_KEY in Render environment variables.'));
+  }
 
-    const prompt = `You are a receipt data extractor. Analyze this receipt image and extract structured information.
+  const prompt = `You are a receipt data extractor. Analyze this receipt image and extract structured information.
 
 Return ONLY a valid JSON object with exactly these fields (no markdown, no explanation):
 {
@@ -145,77 +144,92 @@ For category: infer from the merchant name or items purchased.
 For paymentMethod: look for payment type on receipt, default to Cash if unclear.
 Today's date is ${new Date().toISOString().split('T')[0]}.`;
 
-    const requestBody = JSON.stringify({
-      contents: [{
-        parts: [
-          { text: prompt },
-          {
-            inline_data: {
-              mime_type: mimeType,
-              data: base64Data
-            }
+  const requestBody = JSON.stringify({
+    contents: [{
+      parts: [
+        { text: prompt },
+        {
+          inline_data: {
+            mime_type: mimeType,
+            data: base64Data
           }
-        ]
-      }],
-      generationConfig: {
-        maxOutputTokens: 512,
-        temperature: 0.1
-      }
-    });
-
-    const options = {
-      hostname: 'generativelanguage.googleapis.com',
-      path: `/v1beta/models/${GEMINI_RECEIPT_MODEL}:generateContent?key=${GEMINI_RECEIPT_API_KEY}`,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(requestBody)
-      }
-    };
-
-    console.log(`📤 [Gemini Receipt] Scanning receipt image (${base64Data.length} chars) with Gemini Vision...`);
-
-    const req = https.request(options, (res) => {
-      let body = '';
-      res.on('data', (chunk) => body += chunk);
-      res.on('end', () => {
-        try {
-          if (res.statusCode < 200 || res.statusCode >= 300) {
-            console.error(`❌ [Gemini Receipt] HTTP ${res.statusCode}:`, body.substring(0, 300));
-            return reject(new Error(`Receipt scanning failed. Please try again. (HTTP ${res.statusCode})`));
-          }
-
-          const parsed = JSON.parse(body);
-          const rawText = parsed?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-          // Strip markdown code blocks if present
-          const cleaned = rawText
-            .replace(/```json/gi, '')
-            .replace(/```/g, '')
-            .trim();
-
-          const result = JSON.parse(cleaned);
-          console.log(`✅ [Gemini Receipt] Extracted: merchant=${result.merchant}, amount=${result.amount}`);
-          resolve(result);
-        } catch (parseErr) {
-          console.error('❌ [Gemini Receipt] Failed to parse response:', body.substring(0, 300));
-          reject(new Error('Could not read the receipt clearly. Please try a clearer photo.'));
         }
-      });
-    });
-
-    req.setTimeout(30000, () => {
-      req.destroy(new Error('Receipt scanning timed out. Please try again.'));
-    });
-
-    req.on('error', (e) => {
-      console.error('❌ [Gemini Receipt] Connection error:', e.message);
-      reject(new Error('Could not connect to scanning service. Please try again.'));
-    });
-
-    req.write(requestBody);
-    req.end();
+      ]
+    }],
+    generationConfig: {
+      maxOutputTokens: 512,
+      temperature: 0.1
+    }
   });
+
+  const modelsToTry = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-latest'];
+
+  const attemptModelScan = (modelIndex) => {
+    if (modelIndex >= modelsToTry.length) {
+      return Promise.reject(new Error('Could not process receipt with available AI models. Please try again.'));
+    }
+
+    const modelName = modelsToTry[modelIndex];
+    return new Promise((resolve, reject) => {
+      const options = {
+        hostname: 'generativelanguage.googleapis.com',
+        path: `/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(requestBody)
+        }
+      };
+
+      console.log(`📤 [Gemini Receipt] Attempting scan with model "${modelName}"...`);
+
+      const req = https.request(options, (res) => {
+        let body = '';
+        res.on('data', (chunk) => body += chunk);
+        res.on('end', () => {
+          try {
+            if (res.statusCode < 200 || res.statusCode >= 300) {
+              console.error(`❌ [Gemini Receipt] Model "${modelName}" HTTP ${res.statusCode}:`, body.substring(0, 200));
+              if (res.statusCode === 404 || res.statusCode === 400) {
+                // Try next model if 404 or bad request
+                return attemptModelScan(modelIndex + 1).then(resolve).catch(reject);
+              }
+              return reject(new Error(`Receipt scanning failed. Please try again. (HTTP ${res.statusCode})`));
+            }
+
+            const parsed = JSON.parse(body);
+            const rawText = parsed?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+            const cleaned = rawText
+              .replace(/```json/gi, '')
+              .replace(/```/g, '')
+              .trim();
+
+            const result = JSON.parse(cleaned);
+            console.log(`✅ [Gemini Receipt] Successfully extracted with "${modelName}": merchant=${result.merchant}, amount=${result.amount}`);
+            resolve(result);
+          } catch (parseErr) {
+            console.error('❌ [Gemini Receipt] Failed to parse response:', body.substring(0, 200));
+            reject(new Error('Could not read the receipt clearly. Please try a clearer photo.'));
+          }
+        });
+      });
+
+      req.setTimeout(30000, () => {
+        req.destroy(new Error('Receipt scanning timed out. Please try again.'));
+      });
+
+      req.on('error', (e) => {
+        console.error('❌ [Gemini Receipt] Connection error:', e.message);
+        reject(new Error('Could not connect to scanning service. Please try again.'));
+      });
+
+      req.write(requestBody);
+      req.end();
+    });
+  };
+
+  return attemptModelScan(0);
 };
 
 /**
