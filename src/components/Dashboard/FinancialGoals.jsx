@@ -35,25 +35,51 @@ export default function FinancialGoals({
     }
   };
 
-  const calcMonthlySavingRequired = (target, saved, deadlineStr) => {
+  const calcGoalSavingRequirement = (target, saved, deadlineStr) => {
     const targetVal = parseFloat(target || 0);
     const savedVal = parseFloat(saved || 0);
-    if (savedVal >= targetVal) return 0;
-    if (!deadlineStr) return 0;
-    
-    // Add T00:00:00 to avoid UTC midnight date shifts
+    const remaining = Math.max(targetVal - savedVal, 0);
+
+    if (savedVal >= targetVal || remaining === 0) {
+      return { label: 'REQUIRED SAVING', value: 'Goal Met! 🎉', isOver: false, isMonthly: false };
+    }
+    if (!deadlineStr) {
+      return { label: 'TOTAL NEEDED', value: formatCurrency(remaining), isOver: false, isMonthly: false };
+    }
+
     const deadlineDate = new Date(deadlineStr.includes('T') ? deadlineStr : deadlineStr + 'T23:59:59');
-    if (isNaN(deadlineDate.getTime())) return 0;
-    
+    if (isNaN(deadlineDate.getTime())) {
+      return { label: 'TOTAL NEEDED', value: formatCurrency(remaining), isOver: false, isMonthly: false };
+    }
+
     const today = new Date();
     const diffTime = deadlineDate - today;
-    if (diffTime <= 0) return Math.max(targetVal - savedVal, 0); // Goal deadline passed, full remaining required
-    
-    const diffMonths = diffTime / (1000 * 60 * 60 * 24 * 30.4375);
-    const monthsRemaining = Math.max(diffMonths, 0.1);
-    
-    const req = (targetVal - savedVal) / monthsRemaining;
-    return isNaN(req) ? 0 : req;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 0) {
+      return { label: 'DEADLINE PASSED', value: `${formatCurrency(remaining)} due`, isOver: true, isMonthly: false };
+    }
+
+    if (diffDays <= 30) {
+      // Within 30 days: show daily pace or total needed instead of scaling up to a misleading monthly rate
+      const dailyReq = remaining / Math.max(diffDays, 1);
+      return {
+        label: `DAILY PACE (${diffDays}D LEFT)`,
+        value: `${formatCurrency(dailyReq)}/day`,
+        isOver: false,
+        isMonthly: false
+      };
+    } else {
+      // More than 1 month away: show monthly rate
+      const diffMonths = diffDays / 30.4375;
+      const monthlyReq = remaining / diffMonths;
+      return {
+        label: 'MONTHLY REQUIRED',
+        value: `${formatCurrency(monthlyReq)}/mo`,
+        isOver: false,
+        isMonthly: true
+      };
+    }
   };
 
   const formatDate = (dateStr) => {
@@ -159,7 +185,7 @@ export default function FinancialGoals({
             const progress = Math.min(rawPct, 100);
             const isOverachieved = rawPct > 100;
             const remaining = Math.max((goal.targetAmount || 0) - (goal.savedAmount || 0), 0);
-            const monthlyRequired = calcMonthlySavingRequired(goal.targetAmount, goal.savedAmount, goal.deadline);
+            const reqInfo = calcGoalSavingRequirement(goal.targetAmount, goal.savedAmount, goal.deadline);
             const badge = getStatusBadgeStyles(goal.status);
             const isCompleted = goal.status === 'completed';
             const isPaused = goal.status === 'paused';
@@ -279,15 +305,15 @@ export default function FinancialGoals({
                     </span>
                   </div>
                   <div>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', fontWeight: '700', textTransform: 'uppercase' }}>Monthly Required</span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', fontWeight: '700', textTransform: 'uppercase' }}>{reqInfo.label}</span>
                     <span style={{ 
                       fontSize: '12px', 
                       fontWeight: '800', 
-                      color: isCompleted ? 'var(--success)' : monthlyRequired > 10000 ? 'var(--danger)' : 'var(--text-primary)',
+                      color: isCompleted ? 'var(--success)' : isPaused ? 'var(--text-muted)' : reqInfo.isOver ? 'var(--danger)' : 'var(--text-primary)',
                       display: 'block', 
                       marginTop: '2px' 
                     }}>
-                      {isCompleted ? 'Goal Met! 🎉' : isPaused ? 'Paused ⏸️' : `${formatCurrency(monthlyRequired)}/mo`}
+                      {isCompleted ? 'Goal Met! 🎉' : isPaused ? 'Paused ⏸️' : reqInfo.value}
                     </span>
                   </div>
                 </div>
