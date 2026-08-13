@@ -13,7 +13,7 @@ const isProduction = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
 // Render's disk is wiped on every restart — SQLite would
 // lose ALL user data permanently on every deploy/restart.
 // ============================================================
-if (process.env.RENDER || process.env.NODE_ENV === 'production') {
+if (process.env.RENDER || process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_STATIC_URL || process.env.NODE_ENV === 'production') {
   if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
     console.error('');
     console.error('╔══════════════════════════════════════════════════════════╗');
