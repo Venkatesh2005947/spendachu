@@ -14,26 +14,32 @@ const isProduction = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
 // lose ALL user data permanently on every deploy/restart.
 // ============================================================
 if (process.env.RENDER || process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_STATIC_URL || process.env.NODE_ENV === 'production') {
-  if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
+  const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || '';
+  
+  if (!dbUrl) {
     console.error('');
     console.error('╔══════════════════════════════════════════════════════════╗');
     console.error('║  FATAL: DATABASE_URL environment variable is NOT set.    ║');
     console.error('║                                                          ║');
-    console.error('║  On Render, you MUST create a PostgreSQL database and    ║');
-    console.error('║  set DATABASE_URL in the Environment Variables section.  ║');
-    console.error('║                                                          ║');
-    console.error('║  Without this, the app would use SQLite on an           ║');
-    console.error('║  ephemeral disk that is wiped on every restart,          ║');
-    console.error('║  causing ALL user data to be permanently deleted.        ║');
-    console.error('║                                                          ║');
-    console.error('║  Steps to fix:                                           ║');
-    console.error('║  1. Go to Render dashboard → New → PostgreSQL           ║');
-    console.error('║  2. Create a database (free tier available)              ║');
-    console.error('║  3. Copy the "Internal Database URL"                     ║');
-    console.error('║  4. Go to your Web Service → Environment                 ║');
-    console.error('║  5. Add DATABASE_URL = <paste the URL here>              ║');
-    console.error('║  6. Redeploy                                             ║');
+    console.error('║  On Railway, you MUST set DATABASE_URL in Variables.     ║');
     console.error('╚══════════════════════════════════════════════════════════╝');
+    console.error('');
+    process.exit(1);
+  }
+
+  if (dbUrl.includes('@dpg-') && !dbUrl.includes('.render.com')) {
+    console.error('');
+    console.error('╔═════════════════════════════════════════════════════════════════════╗');
+    console.error('║  FATAL ERROR: DATABASE_URL is a Render Internal Hostname!           ║');
+    console.error('║                                                                     ║');
+    console.error('║  Render internal URLs (@dpg-...) CANNOT be reached from Railway.   ║');
+    console.error('║                                                                     ║');
+    console.error('║  STEPS TO FIX ON RAILWAY:                                           ║');
+    console.error('║  1. Go to Render Dashboard -> PostgreSQL database.                 ║');
+    console.error('║  2. Under Connections, copy the "External Database URL".            ║');
+    console.error('║  3. In Railway Dashboard -> Variables -> Paste the External URL.     ║');
+    console.error('║     (It should look like: ...@dpg-xxxxxx.oregon-postgres.render.com) ║');
+    console.error('╚═════════════════════════════════════════════════════════════════════╝');
     console.error('');
     process.exit(1);
   }
