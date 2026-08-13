@@ -41,45 +41,64 @@ export default function FinancialGoals({
     const remaining = Math.max(targetVal - savedVal, 0);
 
     if (savedVal >= targetVal || remaining === 0) {
-      return { label: 'REQUIRED SAVING', value: 'Goal Met! 🎉', isOver: false, isMonthly: false };
+      return { label: 'REQUIRED SAVING', value: 'Goal Met! 🎉', isOver: false };
     }
     if (!deadlineStr) {
-      return { label: 'TOTAL NEEDED', value: formatCurrency(remaining), isOver: false, isMonthly: false };
+      return { label: 'TOTAL NEEDED', value: formatCurrency(remaining), isOver: false };
     }
 
-    const deadlineDate = new Date(deadlineStr.includes('T') ? deadlineStr : deadlineStr + 'T23:59:59');
-    if (isNaN(deadlineDate.getTime())) {
-      return { label: 'TOTAL NEEDED', value: formatCurrency(remaining), isOver: false, isMonthly: false };
+    let deadlineDate = null;
+    try {
+      if (typeof deadlineStr === 'number') {
+        deadlineDate = new Date(deadlineStr);
+      } else if (typeof deadlineStr === 'string') {
+        const s = deadlineStr.trim();
+        if (/^\d+$/.test(s)) {
+          deadlineDate = new Date(parseInt(s, 10));
+        } else if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+          deadlineDate = new Date(`${s}T23:59:59`);
+        } else {
+          deadlineDate = new Date(s);
+        }
+      } else {
+        deadlineDate = new Date(deadlineStr);
+      }
+    } catch {
+      deadlineDate = null;
+    }
+
+    if (!deadlineDate || isNaN(deadlineDate.getTime())) {
+      return { label: 'TOTAL NEEDED', value: formatCurrency(remaining), isOver: false };
     }
 
     const today = new Date();
-    const diffTime = deadlineDate - today;
+    const diffTime = deadlineDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays <= 0) {
-      return { label: 'DEADLINE PASSED', value: `${formatCurrency(remaining)} due`, isOver: true, isMonthly: false };
+      return { label: 'DEADLINE PASSED', value: `${formatCurrency(remaining)} due`, isOver: true };
     }
 
+    // ABSOLUTE RULE: Required saving can NEVER exceed total remaining amount!
     if (diffDays <= 30) {
-      // Within 30 days: show daily pace or total needed instead of scaling up to a misleading monthly rate
-      const dailyReq = remaining / Math.max(diffDays, 1);
+      // For short deadlines (<= 30 days), show total remaining needed so it never exceeds remaining balance
       return {
-        label: `DAILY PACE (${diffDays}D LEFT)`,
-        value: `${formatCurrency(dailyReq)}/day`,
-        isOver: false,
-        isMonthly: false
-      };
-    } else {
-      // More than 1 month away: show monthly rate
-      const diffMonths = diffDays / 30.4375;
-      const monthlyReq = remaining / diffMonths;
-      return {
-        label: 'MONTHLY REQUIRED',
-        value: `${formatCurrency(monthlyReq)}/mo`,
-        isOver: false,
-        isMonthly: true
+        label: `REQUIRED (${diffDays}D LEFT)`,
+        value: `${formatCurrency(remaining)} total`,
+        isOver: false
       };
     }
+
+    // For longer deadlines (> 30 days), calculate monthly requirement capped strictly at remaining amount
+    const diffMonths = diffDays / 30.4375;
+    const rawMonthly = remaining / diffMonths;
+    const monthlyReq = Math.min(rawMonthly, remaining);
+
+    return {
+      label: 'MONTHLY REQUIRED',
+      value: `${formatCurrency(monthlyReq)}/mo`,
+      isOver: false
+    };
   };
 
   const formatDate = (dateStr) => {
