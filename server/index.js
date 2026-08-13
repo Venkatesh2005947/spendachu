@@ -1068,9 +1068,12 @@ app.get('/api/goals', authenticateJWT, (req, res) => {
 
 // Add Goal
 app.post('/api/goals', authenticateJWT, (req, res) => {
-  const { name, targetAmount, savedAmount, deadline, category, priority, notes, allowExceed } = req.body;
-  const target = parseFloat(targetAmount);
-  const saved = parseFloat(savedAmount || 0);
+  const { name, targetAmount, target_amount, savedAmount, saved_amount, deadline, category, priority, notes, allowExceed } = req.body;
+  const rawTarget = targetAmount !== undefined ? targetAmount : target_amount;
+  const rawSaved = savedAmount !== undefined ? savedAmount : saved_amount;
+  
+  const target = parseFloat(rawTarget);
+  const saved = parseFloat(rawSaved || 0);
 
   if (!name || name.trim() === '') {
     return res.status(400).json({ error: 'Goal name is required.' });
@@ -1113,11 +1116,6 @@ app.post('/api/goals', authenticateJWT, (req, res) => {
         return res.status(500).json({ error: 'Failed to create goal.' });
       }
 
-      const rules = ['goal_created_count'];
-      if (status === 'completed') {
-        rules.push('goal_completed_count');
-      }
-
       res.status(201).json({
         id: goalId,
         user_id: req.user.id,
@@ -1137,9 +1135,12 @@ app.post('/api/goals', authenticateJWT, (req, res) => {
 
 // Update Goal
 app.put('/api/goals/:id', authenticateJWT, (req, res) => {
-  const { name, targetAmount, savedAmount, deadline, category, priority, notes, status, allowExceed } = req.body;
-  const target = parseFloat(targetAmount);
-  const saved = parseFloat(savedAmount);
+  const { name, targetAmount, target_amount, savedAmount, saved_amount, deadline, category, priority, notes, status, allowExceed } = req.body;
+  const rawTarget = targetAmount !== undefined ? targetAmount : target_amount;
+  const rawSaved = savedAmount !== undefined ? savedAmount : saved_amount;
+
+  const target = parseFloat(rawTarget);
+  const saved = parseFloat(rawSaved !== undefined ? rawSaved : 0);
 
   if (!name || name.trim() === '') {
     return res.status(400).json({ error: 'Goal name is required.' });
@@ -1161,6 +1162,8 @@ app.put('/api/goals/:id', authenticateJWT, (req, res) => {
   let finalStatus = status || 'active';
   if (saved >= target) {
     finalStatus = 'completed';
+  } else if (finalStatus === 'completed' && saved < target) {
+    finalStatus = 'active';
   }
 
   db.run(
@@ -1216,12 +1219,13 @@ app.post('/api/goals/:id/add-savings', authenticateJWT, (req, res) => {
       if (err) return res.status(500).json({ error: 'Database error fetching goal.' });
       if (!goal) return res.status(404).json({ error: 'Goal not found.' });
 
-      const newSaved = goal.saved_amount + savingAmt;
-      if (newSaved > goal.target_amount && !allowExceed) {
+      const newSaved = (parseFloat(goal.saved_amount) || 0) + savingAmt;
+      const targetAmt = parseFloat(goal.target_amount) || 0;
+      if (newSaved > targetAmt && !allowExceed) {
         return res.status(400).json({ error: 'Saved amount cannot exceed target amount.' });
       }
 
-      const newStatus = newSaved >= goal.target_amount ? 'completed' : goal.status;
+      const newStatus = newSaved >= targetAmt ? 'completed' : goal.status;
 
       db.run(
         `UPDATE financial_goals SET saved_amount = ?, status = ? WHERE id = ? AND user_id = ?`,
@@ -1240,9 +1244,10 @@ app.post('/api/goals/:id/add-savings', authenticateJWT, (req, res) => {
               relatedPage: 'budgeting',
               eventKey: `goal_comp_${req.params.id}`
             });
-          } else {
-            const pct = (newSaved / goal.target_amount) * 100;
-            if (pct >= 75 && ((goal.saved_amount / goal.target_amount) * 100 < 75)) {
+          } else if (targetAmt > 0) {
+            const pct = (newSaved / targetAmt) * 100;
+            const oldPct = ((parseFloat(goal.saved_amount) || 0) / targetAmt) * 100;
+            if (pct >= 75 && oldPct < 75) {
               notifyUser({
                 userId: req.user.id,
                 type: 'goal_progress',
@@ -1252,7 +1257,7 @@ app.post('/api/goals/:id/add-savings', authenticateJWT, (req, res) => {
                 relatedPage: 'budgeting',
                 eventKey: `goal_75_${req.params.id}`
               });
-            } else if (pct >= 50 && ((goal.saved_amount / goal.target_amount) * 100 < 50)) {
+            } else if (pct >= 50 && oldPct < 50) {
               notifyUser({
                 userId: req.user.id,
                 type: 'goal_progress',
@@ -1271,7 +1276,7 @@ app.post('/api/goals/:id/add-savings', authenticateJWT, (req, res) => {
             savedAmount: newSaved,
             status: newStatus,
             completed: isNewlyCompleted,
-            unlockedAchievements: unlocked
+            unlockedAchievements: []
           });
         }
       );

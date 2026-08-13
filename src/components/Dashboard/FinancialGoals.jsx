@@ -36,22 +36,31 @@ export default function FinancialGoals({
   };
 
   const calcMonthlySavingRequired = (target, saved, deadlineStr) => {
-    if (saved >= target) return 0;
-    const deadlineDate = new Date(deadlineStr + 'T23:59:59');
-    const today = new Date();
+    const targetVal = parseFloat(target || 0);
+    const savedVal = parseFloat(saved || 0);
+    if (savedVal >= targetVal) return 0;
+    if (!deadlineStr) return 0;
     
+    // Add T00:00:00 to avoid UTC midnight date shifts
+    const deadlineDate = new Date(deadlineStr.includes('T') ? deadlineStr : deadlineStr + 'T23:59:59');
+    if (isNaN(deadlineDate.getTime())) return 0;
+    
+    const today = new Date();
     const diffTime = deadlineDate - today;
-    if (diffTime <= 0) return target - saved; // Goal deadline passed, full remaining required
+    if (diffTime <= 0) return Math.max(targetVal - savedVal, 0); // Goal deadline passed, full remaining required
     
     const diffMonths = diffTime / (1000 * 60 * 60 * 24 * 30.4375);
     const monthsRemaining = Math.max(diffMonths, 0.1);
     
-    return (target - saved) / monthsRemaining;
+    const req = (targetVal - savedVal) / monthsRemaining;
+    return isNaN(req) ? 0 : req;
   };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'No date';
-    const d = new Date(dateStr);
+    // Append T00:00:00 if plain YYYY-MM-DD to parse in local timezone
+    const formattedStr = dateStr.includes('T') ? dateStr : `${dateStr}T00:00:00`;
+    const d = new Date(formattedStr);
     if (isNaN(d.getTime())) return dateStr;
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
@@ -146,7 +155,9 @@ export default function FinancialGoals({
       {!loading && filteredGoals.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
           {filteredGoals.map(goal => {
-            const progress = Math.min(((goal.savedAmount || 0) / (goal.targetAmount || 1)) * 100, 100);
+            const rawPct = ((goal.savedAmount || 0) / (goal.targetAmount || 1)) * 100;
+            const progress = Math.min(rawPct, 100);
+            const isOverachieved = rawPct > 100;
             const remaining = Math.max((goal.targetAmount || 0) - (goal.savedAmount || 0), 0);
             const monthlyRequired = calcMonthlySavingRequired(goal.targetAmount, goal.savedAmount, goal.deadline);
             const badge = getStatusBadgeStyles(goal.status);
@@ -249,8 +260,12 @@ export default function FinancialGoals({
                     ></div>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)', marginTop: '6px' }}>
-                    <span>{progress.toFixed(0)}% Saved</span>
-                    {remaining > 0 && <span>{formatCurrency(remaining)} Left</span>}
+                    <span>{isOverachieved ? `${rawPct.toFixed(0)}% Saved 🎉` : `${progress.toFixed(0)}% Saved`}</span>
+                    {remaining > 0 ? (
+                      <span>{formatCurrency(remaining)} Left</span>
+                    ) : isOverachieved ? (
+                      <span style={{ color: 'var(--success)' }}>+{formatCurrency((goal.savedAmount || 0) - (goal.targetAmount || 0))} Bonus</span>
+                    ) : null}
                   </div>
                 </div>
 

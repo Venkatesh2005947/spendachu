@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Award, Sparkles, Check } from 'lucide-react';
+import { formatCurrency } from '../../utils/helpers';
 
 export default function GoalCompletedModal({ goal, onClose }) {
   if (!goal) return null;
@@ -72,7 +73,7 @@ export default function GoalCompletedModal({ goal, onClose }) {
         </h2>
 
         <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.5', margin: '0 auto 24px auto', maxWidth: '320px' }}>
-          You have successfully reached your target for <strong style={{ color: 'var(--text-primary)' }}>{goal.name}</strong> by saving <strong style={{ color: 'var(--success)' }}>₹{goal.targetAmount?.toLocaleString('en-IN')}</strong>!
+          You have successfully reached your target for <strong style={{ color: 'var(--text-primary)' }}>{goal.name}</strong> by saving <strong style={{ color: 'var(--success)' }}>{formatCurrency(goal.targetAmount || 0)}</strong>!
         </p>
 
         <div 
@@ -89,7 +90,7 @@ export default function GoalCompletedModal({ goal, onClose }) {
           </span>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: 'var(--success)', fontWeight: '800', fontSize: '18px' }}>
             <Check size={18} />
-            <span>₹{goal.savedAmount?.toLocaleString('en-IN')} Saved</span>
+            <span>{formatCurrency(goal.savedAmount || 0)} Saved</span>
           </div>
         </div>
 

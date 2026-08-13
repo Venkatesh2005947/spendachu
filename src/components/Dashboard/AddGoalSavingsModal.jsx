@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { X, Plus, PiggyBank } from 'lucide-react';
+import { X, Plus, PiggyBank, Sparkles } from 'lucide-react';
+import { formatCurrency } from '../../utils/helpers';
 
 export default function AddGoalSavingsModal({ goal, onClose, onSave }) {
   const [amount, setAmount] = useState('');
   const [allowExceed, setAllowExceed] = useState(false);
   const [error, setError] = useState('');
+
+  const remainingNeeded = Math.max((goal.targetAmount || 0) - (goal.savedAmount || 0), 0);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -45,8 +48,8 @@ export default function AddGoalSavingsModal({ goal, onClose, onSave }) {
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', fontWeight: '700', textTransform: 'uppercase' }}>Goal</span>
           <span style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)' }}>{goal.name}</span>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
-            <span>Target: ₹{goal.targetAmount?.toLocaleString('en-IN')}</span>
-            <span>Saved: ₹{goal.savedAmount?.toLocaleString('en-IN')}</span>
+            <span>Target: {formatCurrency(goal.targetAmount || 0)}</span>
+            <span>Saved: {formatCurrency(goal.savedAmount || 0)}</span>
           </div>
         </div>
 
@@ -58,7 +61,31 @@ export default function AddGoalSavingsModal({ goal, onClose, onSave }) {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div className="form-group" style={{ marginBottom: '0' }}>
-            <label htmlFor="savings-amount">Amount to Deposit (₹)</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <label htmlFor="savings-amount" style={{ margin: 0 }}>Amount to Deposit</label>
+              {remainingNeeded > 0 && (
+                <button
+                  type="button"
+                  onClick={() => { setAmount(remainingNeeded.toString()); setError(''); }}
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    color: 'var(--accent-primary)',
+                    background: 'rgba(250, 203, 5, 0.12)',
+                    border: 'none',
+                    borderRadius: '12px',
+                    padding: '3px 8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <Sparkles size={10} />
+                  <span>Fill Remaining ({formatCurrency(remainingNeeded)})</span>
+                </button>
+              )}
+            </div>
             <input
               id="savings-amount"
               type="number"
