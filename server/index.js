@@ -2231,6 +2231,250 @@ app.delete('/api/financial-assistant/history', authenticateJWT, async (req, res)
   }
 });
 
+// ==========================================================================
+// AI Copilot Agent Endpoint (POST /api/agent)
+// ==========================================================================
+
+/**
+ * Parse natural-language user message via Gemini and return a structured action.
+ * Follows the same raw-https pattern used by scanReceiptWithGemini().
+ */
+const callGeminiAgent = (message, apiKey, today) => {
+  return new Promise((resolve, reject) => {
+    if (!apiKey) {
+      return reject(new Error('Gemini API key not configured.'));
+    }
+
+    const systemPrompt = `You are Spendachu's AI Copilot. The user is talking to you via a chat interface.
+Your job: parse the user's message and return ONLY a valid JSON object — no markdown, no explanation.
+
+Today's date: ${today}
+Default currency: INR (₹)
+
+Supported actions:
+
+1. ADD_EXPENSE — when user wants to log / record a spending:
+   { "action": "ADD_EXPENSE", "amount": <number>, "category": "<string>", "title": "<string>", "date": "<YYYY-MM-DD>" }
+   - category MUST be one of: Food, Transport, Rent, Shopping, Bills, Entertainment, Others
+   - title = short description (e.g. "Lunch", "Petrol", "Netflix")
+   - If amount is clearly mentioned, extract it. If completely missing, use CLARIFY.
+
+2. GET_SUMMARY — when user asks about spending totals or reports:
+   { "action": "GET_SUMMARY", "timeframe": "<today|week|month>", "category": "<string|null>" }
+   - timeframe: "today" for today, "week" for this week, "month" for this month (default)
+   - Detect Tamil/Tanglish: "iniku" = today, "vaaram" = week, "maasam" = month
+
+3. GENERAL_QUERY — greetings, tips, or questions you can answer without DB access:
+   { "action": "GENERAL_QUERY", "reply": "<friendly reply in same language as user>" }
+
+4. CLARIFY — when amount is missing or intent is unclear:
+   { "action": "CLARIFY", "question": "<ask the user what you need to know>" }
+
+Language rules:
+- If user writes in Tamil/Tanglish, reply in Tanglish in the "reply" or "question" field.
+- Examples: "Spent 150 for lunch" → ADD_EXPENSE ₹150 Food "Lunch"
+- "Canteen tea 20" → ADD_EXPENSE ₹20 Food "Tea"
+- "Uber ride 250 rs" → ADD_EXPENSE ₹250 Transport "Uber ride"
+- "Fuel 300" → ADD_EXPENSE ₹300 Transport "Fuel"
+- "Iniku evlo spend pannen?" → GET_SUMMARY timeframe=today
+- "This month's total" → GET_SUMMARY timeframe=month
+- "Add expense" (no amount) → CLARIFY
+
+Return ONLY the JSON object.`;
+
+    const requestBody = JSON.stringify({
+      contents: [{ parts: [{ text: `${systemPrompt}\n\nUser message: "${message}"` }] }],
+      generationConfig: { maxOutputTokens: 300, temperature: 0.1 }
+    });
+
+    const options = {
+      hostname: 'generativelanguage.googleapis.com',
+      path: `/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(requestBody) }
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(body);
+          const raw = parsed?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+          const action = JSON.parse(cleaned);
+          resolve(action);
+        } catch {
+          reject(new Error('Failed to parse Gemini agent response.'));
+        }
+      });
+    });
+
+    req.setTimeout(15000, () => { req.destroy(new Error('Gemini agent timeout.')); });
+    req.on('error', reject);
+    req.write(requestBody);
+    req.end();
+  });
+};
+
+/**
+ * Get expense totals from DB for the agent's GET_SUMMARY action.
+ */
+const getAgentSummary = (userId, timeframe, category) => {
+  return new Promise((resolve, reject) => {
+    const today = new Date();
+    let startDate;
+
+    if (timeframe === 'today') {
+      startDate = today.toISOString().split('T')[0];
+    } else if (timeframe === 'week') {
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay());
+      startDate = weekStart.toISOString().split('T')[0];
+    } else {
+      // month (default)
+      startDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+    }
+
+    const endDate = today.toISOString().split('T')[0];
+
+    let query = `SELECT SUM(amount) as total, COUNT(*) as count FROM expenses WHERE user_id = ? AND date >= ? AND date <= ?`;
+    const params = [userId, startDate, endDate];
+
+    if (category) {
+      query += ` AND category = ?`;
+      params.push(category);
+    }
+
+    db.get(query, params, (err, row) => {
+      if (err) return reject(err);
+      resolve({ total: row?.total || 0, count: row?.count || 0, startDate, endDate, timeframe, category });
+    });
+  });
+};
+
+// POST /api/agent — AI Copilot main endpoint
+app.post('/api/agent', authenticateJWT, async (req, res) => {
+  const userId = req.user.id;
+  const { message } = req.body;
+
+  if (!message || typeof message !== 'string' || message.trim().length === 0) {
+    return res.status(400).json({ success: false, error: 'Message is required.' });
+  }
+
+  const trimmed = message.trim().substring(0, 500);
+  const GEMINI_KEY = process.env.FINANCIAL_ASSISTANT_API_KEY || process.env.GEMINI_API_KEY || '';
+  const today = new Date().toISOString().split('T')[0];
+
+  try {
+    console.log(`[Agent] user=${userId.substring(0, 8)}... message="${trimmed.substring(0, 60)}"`);
+
+    let parsed;
+    try {
+      parsed = await callGeminiAgent(trimmed, GEMINI_KEY, today);
+    } catch (geminiErr) {
+      console.error('[Agent] Gemini call failed:', geminiErr.message);
+      return res.status(200).json({
+        success: true,
+        type: 'chat',
+        reply: "Sorry, I couldn't understand that. Try saying something like: \"Spent 150 for lunch\" or \"This month's total\"."
+      });
+    }
+
+    const action = parsed?.action;
+
+    // ── ADD_EXPENSE ────────────────────────────────────────────────────
+    if (action === 'ADD_EXPENSE') {
+      const amount = parseFloat(parsed.amount);
+      if (isNaN(amount) || amount <= 0) {
+        return res.status(200).json({
+          success: true,
+          type: 'chat',
+          reply: "I couldn't catch the amount. How much did you spend? (e.g. \"Lunch 150 rs\")"
+        });
+      }
+
+      const validCategories = ['Food', 'Transport', 'Rent', 'Shopping', 'Bills', 'Entertainment', 'Others'];
+      const category = validCategories.includes(parsed.category) ? parsed.category : 'Others';
+      const title = (parsed.title || category).substring(0, 100);
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(parsed.date) ? parsed.date : today;
+
+      await new Promise((resolve, reject) => {
+        const expenseId = `exp_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+        db.run(
+          `INSERT INTO expenses (id, user_id, date, amount, category, payment_method, description, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [expenseId, userId, date, amount, category, 'Others', title, Date.now()],
+          (err) => { if (err) reject(err); else resolve(); }
+        );
+      });
+
+      const emoji = { Food: '🍽️', Transport: '🚗', Rent: '🏠', Shopping: '🛍️', Bills: '📄', Entertainment: '🎬', Others: '📌' }[category] || '📌';
+      const formattedAmount = `₹${amount.toLocaleString('en-IN')}`;
+
+      console.log(`[Agent] ADD_EXPENSE user=${userId.substring(0, 8)}... amount=${amount} category=${category}`);
+
+      return res.status(200).json({
+        success: true,
+        type: 'success',
+        reply: `${emoji} Added **${formattedAmount}** for **${title}** under *${category}*`,
+        data: { amount, category, title, date, action: 'ADD_EXPENSE' }
+      });
+    }
+
+    // ── GET_SUMMARY ────────────────────────────────────────────────────
+    if (action === 'GET_SUMMARY') {
+      const timeframe = ['today', 'week', 'month'].includes(parsed.timeframe) ? parsed.timeframe : 'month';
+      const category = parsed.category || null;
+
+      const summary = await getAgentSummary(userId, timeframe, category);
+      const formattedTotal = `₹${summary.total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const timeLabel = timeframe === 'today' ? 'today' : timeframe === 'week' ? 'this week' : 'this month';
+      const catLabel = category ? ` on ${category}` : '';
+
+      const reply = summary.count === 0
+        ? `No expenses recorded${catLabel} ${timeLabel}.`
+        : `You spent **${formattedTotal}**${catLabel} ${timeLabel} across ${summary.count} transaction${summary.count !== 1 ? 's' : ''}.`;
+
+      return res.status(200).json({
+        success: true,
+        type: 'insight',
+        reply,
+        data: { total: summary.total, count: summary.count, timeframe, category, action: 'GET_SUMMARY' }
+      });
+    }
+
+    // ── CLARIFY ────────────────────────────────────────────────────────
+    if (action === 'CLARIFY') {
+      return res.status(200).json({
+        success: true,
+        type: 'chat',
+        reply: parsed.question || "Could you tell me more? (e.g. amount, category)"
+      });
+    }
+
+    // ── GENERAL_QUERY ──────────────────────────────────────────────────
+    if (action === 'GENERAL_QUERY') {
+      return res.status(200).json({
+        success: true,
+        type: 'chat',
+        reply: parsed.reply || "I'm here to help! Try logging an expense or asking for a spending summary."
+      });
+    }
+
+    // Fallback
+    return res.status(200).json({
+      success: true,
+      type: 'chat',
+      reply: "I'm not sure what you mean. Try: \"Spent 200 for groceries\" or \"Show this month's total\"."
+    });
+
+  } catch (err) {
+    console.error('[Agent] Unexpected error:', err.message);
+    return res.status(500).json({ success: false, error: 'Agent error. Please try again.' });
+  }
+});
+
 // Serve static frontend files in production
 const distPath = path.join(__dirname, '../dist');
 const indexPath = path.join(distPath, 'index.html');

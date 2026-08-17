@@ -464,5 +464,15 @@ export const dbService = {
       headers: getAuthHeaders()
     });
     return handleResponse(res);
+  },
+
+  // ── AI Copilot Agent ──────────────────────────────────────────────────────
+  async sendAgentMessage(message) {
+    const res = await fetch('/api/agent', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ message })
+    });
+    return handleResponse(res);
   }
 };

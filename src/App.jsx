@@ -29,6 +29,7 @@ import AddGoalSavingsModal from './components/Dashboard/AddGoalSavingsModal';
 import GoalCompletedModal from './components/Dashboard/GoalCompletedModal';
 import AdminAnalytics from './components/Admin/AdminAnalytics';
 import AskSpendAchu from './components/Assistant/AskSpendAchu';
+import AICopilotDrawer from './components/Assistant/AICopilotDrawer';
 import UserProfileModal from './components/Profile/UserProfileModal';
 import OnboardingTutorial from './components/Onboarding/OnboardingTutorial';
 
@@ -1351,6 +1352,9 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* ── AI Copilot Floating Drawer (global, fixed position) ── */}
+      <AICopilotDrawer onExpenseAdded={refreshAllData} />
     </div>
   );
 }
