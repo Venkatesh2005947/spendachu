@@ -2259,32 +2259,37 @@ Supported actions:
    - title = short description (e.g. "Lunch", "Petrol", "Netflix")
    - If amount is clearly mentioned, extract it. If completely missing, use CLARIFY.
 
-2. GET_SUMMARY — when user asks about spending totals or reports:
+2. GET_SUMMARY — when user asks about spending totals or reports from their own data:
    { "action": "GET_SUMMARY", "timeframe": "<today|week|month>", "category": "<string|null>" }
    - timeframe: "today" for today, "week" for this week, "month" for this month (default)
    - Detect Tamil/Tanglish: "iniku" = today, "vaaram" = week, "maasam" = month
 
-3. GENERAL_QUERY — greetings, tips, or questions you can answer without DB access:
-   { "action": "GENERAL_QUERY", "reply": "<friendly reply in same language as user>" }
+3. GENERAL_QUERY — for ANY other question: greetings, SpendAchu app questions, finance tips, general knowledge, how-to questions about the app, etc.:
+   { "action": "GENERAL_QUERY" }
+   NOTE: Do NOT include a reply field — the system will generate a rich answer separately.
 
 4. CLARIFY — when amount is missing or intent is unclear:
-   { "action": "CLARIFY", "question": "<ask the user what you need to know>" }
+   { "action": "CLARIFY", "question": "<ask the user what you need to know, in same language>" }
 
 Language rules:
-- If user writes in Tamil/Tanglish, reply in Tanglish in the "reply" or "question" field.
-- Examples: "Spent 150 for lunch" → ADD_EXPENSE ₹150 Food "Lunch"
-- "Canteen tea 20" → ADD_EXPENSE ₹20 Food "Tea"
-- "Uber ride 250 rs" → ADD_EXPENSE ₹250 Transport "Uber ride"
-- "Fuel 300" → ADD_EXPENSE ₹300 Transport "Fuel"
-- "Iniku evlo spend pannen?" → GET_SUMMARY timeframe=today
-- "This month's total" → GET_SUMMARY timeframe=month
+- Detect Tamil/Tanglish by words like: evlo, pannen, panni, iniku, vaaram, maasam, enna, epdi, sollu, etc.
+- Examples: "Spent 150 for lunch" → ADD_EXPENSE
+- "Canteen tea 20" → ADD_EXPENSE ₹20 Food
+- "Uber ride 250 rs" → ADD_EXPENSE ₹250 Transport
+- "Fuel 300" → ADD_EXPENSE ₹300 Transport
+- "Iniku evlo spend pannen?" → GET_SUMMARY today
+- "This month's total" → GET_SUMMARY month
+- "How to add expense?" → GENERAL_QUERY
+- "What is SpendAchu?" → GENERAL_QUERY
+- "Receipt scan panna epdi?" → GENERAL_QUERY
+- "Hello" → GENERAL_QUERY
 - "Add expense" (no amount) → CLARIFY
 
 Return ONLY the JSON object.`;
 
     const requestBody = JSON.stringify({
       contents: [{ parts: [{ text: `${systemPrompt}\n\nUser message: "${message}"` }] }],
-      generationConfig: { maxOutputTokens: 300, temperature: 0.1 }
+      generationConfig: { maxOutputTokens: 150, temperature: 0.1 }
     });
 
     const options = {
@@ -2312,6 +2317,117 @@ Return ONLY the JSON object.`;
 
     req.setTimeout(15000, () => { req.destroy(new Error('Gemini agent timeout.')); });
     req.on('error', reject);
+    req.write(requestBody);
+    req.end();
+  });
+};
+
+/**
+ * Rich Gemini call for GENERAL_QUERY — includes full SpendAchu website knowledge.
+ * No token limit on reply. Responds in same language as user (English/Tamil/Tanglish).
+ */
+const callGeminiAgentGeneral = (userMessage, apiKey) => {
+  return new Promise((resolve) => {
+    if (!apiKey) {
+      return resolve("I'm having trouble connecting right now. Please try again!");
+    }
+
+    const tanglishMarkers = /\b(evlo|evvalo|sollu|solla|pann|pannen|panni|iniku|inniku|nethu|maasam|vaaram|enna|epdi|naan|naanga|ungaluku|theriyuma|purigiradha|seri|okay|ok|appuram|aprom|ithu|antha|inga|andha|yenna|yepdi|illa|illai|than|thaan|iruku|irukkaa|irukku)\b/i;
+    const isTanglish = tanglishMarkers.test(userMessage);
+
+    const spendachuKnowledge = `
+SpendAchu is an AI-powered personal expense tracker web app. Here is everything about it:
+
+## Core Features:
+1. **Expense Tracking** — Add expenses with amount, category, date, payment method, merchant name, notes. Categories: Food, Transport, Rent, Shopping, Bills, Entertainment, Others. Payment methods: Cash, GPay, UPI, Card, Bank Transfer.
+2. **Savings Tracking** — Log savings entries separately from expenses.
+3. **Budget Management** — Set monthly budget limits per category. Get alerts when near or over budget.
+4. **AI Receipt Scanner** — Take a photo of any receipt → AI (Gemini Vision) auto-fills all fields. Supports JPEG/PNG.
+5. **AI Insights** — Auto-generated spending patterns and suggestions based on your data.
+6. **Financial Goals** — Create savings goals with target amount, deadline, category. Track progress. Deposit savings to goals.
+7. **Ask SpendAchu (Financial Q&A)** — Chat interface to ask analytical questions about your spending data (e.g. "What's my highest spending category?").
+8. **AI Copilot (this feature!)** — Log expenses and get summaries using natural language in English, Tamil, or Tanglish.
+9. **Recently Deleted / Trash** — Deleted expenses go to trash for 30 days before permanent deletion. Can restore.
+10. **Export CSV** — Download all expenses as a CSV file.
+11. **Dark/Light Mode** — Toggle theme.
+12. **Duplicate Detection** — App warns if you try to add a duplicate expense (same amount, date, merchant).
+13. **Weekly Email Reports** — Admin gets weekly spending summary emails.
+14. **Notifications** — In-app notifications for budget alerts, goal milestones.
+15. **Profile Management** — Change profile picture, currency settings, reminder preferences.
+16. **Multi-device Sync** — Data synced via backend (Railway) so accessible from any device when logged in.
+
+## How to use — Step by step:
+- **Add expense manually**: Click "+ Add Expense" button (bottom right or top right) → fill form → Save.
+- **Scan a receipt**: Click "📷 Scan Receipt" → take photo or upload image → AI fills the form → review → Save.
+- **Add saving**: Click "+ Add Saving" → enter amount, date, description.
+- **Set budget**: Go to "Budgeting" in sidebar → set monthly limits per category.
+- **Create a goal**: Go to Dashboard → scroll to Financial Goals → click "+ New Goal".
+- **Ask AI questions**: Go to "Ask SpendAchu" in sidebar → type your question.
+- **Use AI Copilot**: Click "⚡ Ask AI" button (bottom right corner) → type in natural language.
+- **View deleted items**: Click "Recently Deleted" in sidebar → restore or permanently delete.
+- **Export data**: Go to Expenses table → click "Export CSV".
+- **Change theme**: Click sun/moon icon in sidebar bottom.
+
+## Supported categories and icons:
+Food 🍽️ | Transport 🚗 | Rent 🏠 | Shopping 🛍️ | Bills 📄 | Entertainment 🎬 | Others 📌
+
+## AI Copilot — what you can say:
+- "Spent 150 for lunch" → logs ₹150 Food
+- "Fuel 300 rs" → logs ₹300 Transport
+- "This month's total" → shows your spending this month
+- "Iniku evlo spend pannen?" → today's total in Tanglish
+- General questions about the app or finance
+
+## Technical info (for curious users):
+- Frontend: React + Vite hosted on Vercel (spendachu.vercel.app)
+- Backend: Node.js + Express + SQLite hosted on Railway
+- AI: Google Gemini 1.5 Flash
+- Auth: JWT tokens (30-day sessions)
+`;
+
+    const languageInstruction = isTanglish
+      ? `The user is writing in Tanglish (Tamil + English mixed). Reply naturally in Tanglish — friendly, simple, conversational. Mix Tamil words with English naturally. Example style: "SpendAchu-la receipt scan panna romba easy! 📷 Scan Receipt button click panni photo eduthu upload pannu, AI automatically fill pannidu." Keep it warm and helpful.`
+      : `Reply in clear, friendly English. Be helpful, concise, and warm. Use emojis where appropriate.`;
+
+    const systemMsg = `You are the AI Copilot for SpendAchu, an expense tracking app. 
+Answer the user's question using the knowledge base below about SpendAchu.
+If the question is about something outside SpendAchu (general knowledge, math, etc.), answer that too helpfully.
+${languageInstruction}
+Keep answers under 200 words. Be specific and practical.
+
+${spendachuKnowledge}`;
+
+    const requestBody = JSON.stringify({
+      contents: [{ parts: [{ text: `${systemMsg}\n\nUser question: "${userMessage}"` }] }],
+      generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
+    });
+
+    const options = {
+      hostname: 'generativelanguage.googleapis.com',
+      path: `/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(requestBody) }
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(body);
+          const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+          resolve(text?.trim() || "I'm here to help with SpendAchu! Ask me anything about the app or your finances.");
+        } catch {
+          resolve("I'm here to help! Ask me about SpendAchu features, how to add expenses, or anything else.");
+        }
+      });
+    });
+
+    req.setTimeout(15000, () => {
+      req.destroy();
+      resolve("Taking a bit long to respond. Please try again!");
+    });
+    req.on('error', () => resolve("Couldn't connect right now. Please try again!"));
     req.write(requestBody);
     req.end();
   });
@@ -2453,12 +2569,13 @@ app.post('/api/agent', authenticateJWT, async (req, res) => {
       });
     }
 
-    // ── GENERAL_QUERY ──────────────────────────────────────────────────
+    // ── GENERAL_QUERY — rich Gemini call with full SpendAchu knowledge ──
     if (action === 'GENERAL_QUERY') {
+      const richReply = await callGeminiAgentGeneral(trimmed, GEMINI_KEY);
       return res.status(200).json({
         success: true,
         type: 'chat',
-        reply: parsed.reply || "I'm here to help! Try logging an expense or asking for a spending summary."
+        reply: richReply
       });
     }
 
