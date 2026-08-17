@@ -5,8 +5,8 @@
 /* ── Floating Trigger Button ────────────────────────────────── */
 .acd-trigger {
   position: fixed;
-  bottom: 28px;
-  right: 28px;
+  bottom: 216px;
+  right: 24px;
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -526,9 +526,9 @@
 .acd-retry-btn:hover { background: rgba(239, 68, 68, 0.35); }
 
 /* ── Responsive ─────────────────────────────────────────────── */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .acd-trigger {
-    bottom: 16px;
+    bottom: 84px;
     right: 16px;
     padding: 11px 16px;
     font-size: 13px;
