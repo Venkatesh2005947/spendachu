@@ -2307,10 +2307,17 @@ Return ONLY the JSON object.`;
           const parsed = JSON.parse(body);
           const raw = parsed?.candidates?.[0]?.content?.parts?.[0]?.text || '';
           const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
-          const action = JSON.parse(cleaned);
-          resolve(action);
+          try {
+            const action = JSON.parse(cleaned);
+            resolve(action);
+          } catch {
+            // Gemini didn't return JSON — treat as a general conversational message
+            console.warn('[Agent] Gemini returned non-JSON, falling back to GENERAL_QUERY. Raw:', raw.substring(0, 100));
+            resolve({ action: 'GENERAL_QUERY' });
+          }
         } catch {
-          reject(new Error('Failed to parse Gemini agent response.'));
+          // HTTP response body couldn't be parsed — fallback gracefully
+          resolve({ action: 'GENERAL_QUERY' });
         }
       });
     });
@@ -2332,7 +2339,7 @@ const callGeminiAgentGeneral = (userMessage, apiKey) => {
       return resolve("I'm having trouble connecting right now. Please try again!");
     }
 
-    const tanglishMarkers = /\b(evlo|evvalo|sollu|solla|pann|pannen|panni|iniku|inniku|nethu|maasam|vaaram|enna|epdi|naan|naanga|ungaluku|theriyuma|purigiradha|seri|okay|ok|appuram|aprom|ithu|antha|inga|andha|yenna|yepdi|illa|illai|than|thaan|iruku|irukkaa|irukku)\b/i;
+    const tanglishMarkers = /\b(evlo|evvalo|evolo|sollu|solla|pann|pannen|panni|panninen|iniku|inniku|nethu|maasam|vaaram|enna|epdi|eppo|naan|naanga|ungaluku|theriyuma|purigiradha|seri|appuram|aprom|ithu|antha|inga|andha|yenna|yepdi|illa|illai|than|thaan|iruku|irukkaa|irukku|mattum|start|kettu|ketten|paarunga|paaru|sollunga|pannunga|vandhu|vanthu|solla|theriyum|theriyala|therinja|kaattu|kaathunga|neenga|avan|aval|oru|rendu|moonu|naalu|anju|solren|solrom|solla|solli|vittu|potu|potta|pottu)\b/i;
     const isTanglish = tanglishMarkers.test(userMessage);
 
     const spendachuKnowledge = `
@@ -2489,12 +2496,9 @@ app.post('/api/agent', authenticateJWT, async (req, res) => {
     try {
       parsed = await callGeminiAgent(trimmed, GEMINI_KEY, today);
     } catch (geminiErr) {
-      console.error('[Agent] Gemini call failed:', geminiErr.message);
-      return res.status(200).json({
-        success: true,
-        type: 'chat',
-        reply: "Sorry, I couldn't understand that. Try saying something like: \"Spent 150 for lunch\" or \"This month's total\"."
-      });
+      console.error('[Agent] Gemini intent call failed, falling back to GENERAL_QUERY:', geminiErr.message);
+      // Instead of showing an error, fall through with GENERAL_QUERY for a rich reply
+      parsed = { action: 'GENERAL_QUERY' };
     }
 
     const action = parsed?.action;
