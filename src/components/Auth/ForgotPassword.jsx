@@ -21,7 +21,12 @@ export default function ForgotPassword({ onBackToLogin }) {
 
     setLoading(true);
     try {
-      await sendPasswordResetEmail(auth, email.trim());
+      const actionCodeSettings = {
+        // After password reset, user is redirected back to SpendAchu
+        url: 'https://spendachu.vercel.app',
+        handleCodeInApp: false,
+      };
+      await sendPasswordResetEmail(auth, email.trim(), actionCodeSettings);
       setSuccess(`Password reset email sent to ${email}! Check your inbox (and spam folder). Click the link to reset your password.`);
     } catch (err) {
       const errorMap = {
