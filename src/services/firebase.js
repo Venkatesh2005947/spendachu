@@ -13,12 +13,12 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId:             import.meta.env.VITE_FIREBASE_APP_ID
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCtsH0AwRBn_5nDOZtKoUEYTRehz9D3zak",
+  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "spendachu-dc2d2.firebaseapp.com",
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID || "spendachu-dc2d2",
+  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "spendachu-dc2d2.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "839448345410",
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID || "1:839448345410:web:ab3e663e422a2bef90a6db"
 };
 
 // Initialize Firebase
