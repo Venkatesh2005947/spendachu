@@ -24,6 +24,7 @@ export default function Sidebar({
   onLogout, 
   onOpenProfile,
   onOpenTutorial,
+  onOpenCopilot,
   theme, 
   toggleTheme, 
   collapsed, 
@@ -38,7 +39,6 @@ export default function Sidebar({
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'assistant', label: 'Ask SpendAchu 🤖', icon: Bot },
     ...(isAdmin ? [
       { id: 'admin-analytics', label: 'Admin Analytics 📊', icon: BarChart3 }
     ] : []),
@@ -90,6 +90,8 @@ export default function Sidebar({
               onClick={() => {
                 if (item.id === 'tutorial') {
                   if (onOpenTutorial) onOpenTutorial();
+                } else if (item.id === 'assistant') {
+                  if (onOpenCopilot) onOpenCopilot();
                 } else {
                   setActiveTab(item.id);
                 }

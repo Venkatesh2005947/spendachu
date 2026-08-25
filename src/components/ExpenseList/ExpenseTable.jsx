@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Search, 
   ArrowUpDown, 
@@ -285,12 +286,12 @@ export default function ExpenseTable({
       )}
 
       {/* Transaction Details & Action Modal */}
-      {selectedTx && (
+      {selectedTx && createPortal(
         <div className="modal-overlay" style={{ zIndex: 12000 }} onClick={() => setSelectedTx(null)}>
           <div 
             className="glass-card modal-container" 
             onClick={(e) => e.stopPropagation()}
-            style={{ width: '90%', maxWidth: '440px', padding: '24px', borderRadius: '24px', animation: 'scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1)' }}
+            style={{ width: '90%', maxWidth: '440px', maxHeight: '90vh', overflowY: 'auto', padding: '24px', borderRadius: '24px', animation: 'scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1)' }}
           >
             {/* Header Banner */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -365,7 +366,7 @@ export default function ExpenseTable({
             )}
 
             {/* Action Buttons */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
               <button 
                 className="glow-btn" 
                 style={{ justifyContent: 'center', padding: '12px', borderRadius: '14px', fontSize: '14px' }}
@@ -395,7 +396,8 @@ export default function ExpenseTable({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

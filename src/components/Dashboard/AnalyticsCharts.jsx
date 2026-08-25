@@ -135,8 +135,8 @@ export default function AnalyticsCharts({ expenses, selectedMonth, selectedYear 
           <h3>Spending Velocity (Cumulative)</h3>
           <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Current Month</span>
         </div>
-        <div className="chart-container-inner">
-          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+        <div className="chart-container-inner" style={{ width: '100%', height: '260px', minHeight: '260px' }}>
+          <ResponsiveContainer width="100%" height={260} minWidth={0}>
             <AreaChart data={dailyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="spendGrad" x1="0" y1="0" x2="0" y2="1">
@@ -173,16 +173,16 @@ export default function AnalyticsCharts({ expenses, selectedMonth, selectedYear 
       </div>
 
       {/* Category breakdown pie chart */}
-      <div className="glass-card chart-card" style={{ height: '360px' }}>
+      <div className="glass-card chart-card" style={{ minHeight: '360px' }}>
         <div className="chart-title">
           <h3>Category Distribution</h3>
           <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>This Month</span>
         </div>
-        <div className="chart-container-inner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="chart-container-inner" style={{ width: '100%', height: '260px', minHeight: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {categoryData.length === 0 ? (
             <div style={{ color: 'var(--text-muted)', fontSize: '14px' }}>No spending data for this category map</div>
           ) : (
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+            <ResponsiveContainer width="100%" height={260} minWidth={0}>
               <PieChart>
                 <Pie
                   data={categoryData}

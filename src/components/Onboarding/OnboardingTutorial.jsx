@@ -10,55 +10,85 @@ import {
   X, 
   CheckCircle2, 
   Zap,
-  ShieldCheck
+  ShieldCheck,
+  Check,
+  TrendingUp,
+  Camera,
+  Layers,
+  Award
 } from 'lucide-react';
 import './OnboardingTutorial.css';
 
 const TUTORIAL_STEPS = [
   {
     id: 1,
-    title: 'Welcome to SpendAchu!',
-    subtitle: 'Smart Budgeting & AI Financial Assistant',
+    title: 'Welcome to SpendAchu 👋',
+    subtitle: 'Your Smart AI Financial Assistant',
     icon: Sparkles,
     badge: 'Dashboard & Overview',
-    gradient: 'linear-gradient(135deg, #6366f1, #a855f7)',
-    description: (name) => `Welcome, ${name || 'User'}! Take a quick 1-minute tour to discover how SpendAchu helps you track expenses, manage savings, and achieve your financial goals effortlessly.`
+    gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+    highlights: [
+      'Real-time monthly spending tracking',
+      '3-Column metric summary & budget limit gauge',
+      'Instant insights & category analytics'
+    ],
+    description: (name) => `Vanakkam ${name || 'User'}! Welcome to SpendAchu. Manage your daily money, save for dream goals, and ask AI anything in English or Tanglish.`
   },
   {
     id: 2,
-    title: 'Track Your Expenses',
-    subtitle: 'Instant Entry & Category Icons',
+    title: 'Track Expenses in Seconds 💳',
+    subtitle: 'Categorized Spending & Filters',
     icon: CreditCard,
-    badge: 'Expense List & Filters',
-    gradient: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
-    description: () => 'Log daily expenses in seconds with payment methods (Cash, UPI, Card) and category icons. View all transactions in a clean list and edit or delete entries anytime.'
+    badge: 'Expense Management',
+    gradient: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
+    highlights: [
+      'Categorized logging (Food, Rent, Fuel, Shopping)',
+      'Support for UPI, Cash, & Card payment methods',
+      'Instant date, category & amount filtering'
+    ],
+    description: () => 'Log every transaction effortlessly. Filter expenses by date ranges, edit entries on the fly, and download CSV reports whenever you need.'
   },
   {
     id: 3,
-    title: 'AskSpendAchu AI & Scanner',
-    subtitle: 'Smart AI Insights & Camera OCR',
+    title: 'AI Copilot & OCR Scanner 🤖',
+    subtitle: 'Natural Language AI & Receipt Reader',
     icon: Bot,
-    badge: 'AI Assistant & Receipt OCR',
-    gradient: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-    description: () => 'Ask financial questions in natural English or Tanglish! You can also snap photos of paper receipts with the camera scanner for automatic entry logging.'
+    badge: 'Ask AI & Receipt OCR',
+    gradient: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)',
+    highlights: [
+      'Type or ask questions in Tanglish or English',
+      'Camera Receipt Scanner for instant bill entry',
+      'Automatic duplicate transaction warnings'
+    ],
+    description: () => 'Click the "Ask AI" button in the header bar anytime! Type "Spent 200 for tea" or "Iniku evlo spend pannen?" to get instant smart answers.'
   },
   {
     id: 4,
-    title: 'Savings & Dream Goals',
-    subtitle: 'Set Targets & Track Progress',
+    title: 'Savings Stash & Dream Goals 🎯',
+    subtitle: 'Set Targets & Build Wealth',
     icon: Target,
-    badge: 'Savings Stash & Targets',
-    gradient: 'linear-gradient(135deg, #10b981, #059669)',
-    description: () => 'Stash money into your savings balance and set financial goals (e.g. Laptop, Bike, Vacation) with real-time visual progress bars.'
+    badge: 'Financial Goals',
+    gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+    highlights: [
+      'Set goal targets (Laptop, Bike, Emergency Fund)',
+      'Visual progress bar & celebratory milestones',
+      'Deposit savings into dedicated goal buckets'
+    ],
+    description: () => 'Turn your financial aspirations into reality. Track your savings deposits and celebrate when you hit 100% of your targets!'
   },
   {
     id: 5,
-    title: 'Themes & Account Settings',
-    subtitle: 'Light/Dark Mode & Profile Controls',
+    title: 'Custom Themes & Profile 🌙',
+    subtitle: 'Personalize Your Experience',
     icon: SunMoon,
-    badge: 'Theme Toggle & Profile Avatar',
-    gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
-    description: () => 'Toggle seamlessly between Dark and Light themes anytime using the header icon. Click your profile avatar to manage your account details.'
+    badge: 'Theme & Profile Settings',
+    gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+    highlights: [
+      'Sleek Dark Mode & Vibrant Light Mode toggle',
+      'Profile avatar & personal settings management',
+      'Recycle bin for recently deleted entries'
+    ],
+    description: () => 'Switch between dark and light themes using the header toggle. Recover deleted transactions anytime from the Recently Deleted tab.'
   }
 ];
 
@@ -98,42 +128,52 @@ export default function OnboardingTutorial({ isOpen, onClose, onComplete, userNa
       >
         {/* Header bar with Skip button */}
         <div className="onboarding-header">
-          <div className="onboarding-badge-pill">
-            <Zap size={13} />
-            <span>Website Tour</span>
+          <div className="onboarding-brand-tag">
+            <Zap size={14} className="brand-icon-zap" />
+            <span>SpendAchu Tour</span>
           </div>
+
+          {/* Interactive Step Indicator Dots */}
+          <div className="onboarding-step-dots">
+            {TUTORIAL_STEPS.map((step, idx) => (
+              <button
+                key={step.id}
+                className={`step-dot ${idx === currentStep ? 'active' : ''} ${idx < currentStep ? 'completed' : ''}`}
+                onClick={() => setCurrentStep(idx)}
+                title={`Go to Step ${idx + 1}: ${step.title}`}
+              >
+                {idx < currentStep ? <Check size={10} /> : idx + 1}
+              </button>
+            ))}
+          </div>
+
           <button 
             className="onboarding-close-btn" 
             onClick={handleSkip}
             title="Skip Tour"
           >
-            <span>Skip Tour</span>
-            <X size={16} />
+            <span>Skip</span>
+            <X size={15} />
           </button>
-        </div>
-
-        {/* Step Progress Bar */}
-        <div className="onboarding-progress-track">
-          <div 
-            className="onboarding-progress-fill" 
-            style={{ width: `${((currentStep + 1) / TUTORIAL_STEPS.length) * 100}%` }}
-          />
         </div>
 
         {/* Card Body Content */}
         <div className="onboarding-body">
-          {/* Main Hero Icon Circle */}
-          <div 
-            className="onboarding-icon-circle"
-            style={{ background: stepData.gradient }}
-          >
-            <StepIcon size={34} color="#ffffff" />
+          {/* Main Hero Icon Circle with Subtle Glow */}
+          <div className="hero-icon-container">
+            <div 
+              className="onboarding-icon-circle"
+              style={{ background: stepData.gradient }}
+            >
+              <StepIcon size={38} color="#ffffff" />
+            </div>
+            <div className="hero-badge-chip">
+              <ShieldCheck size={13} />
+              <span>{stepData.badge}</span>
+            </div>
           </div>
 
-          <span className="onboarding-step-counter">
-            Step {currentStep + 1} of {TUTORIAL_STEPS.length}
-          </span>
-
+          {/* Step Headers */}
           <h2 className="onboarding-title">{stepData.title}</h2>
           <div className="onboarding-subtitle">{stepData.subtitle}</div>
 
@@ -141,9 +181,16 @@ export default function OnboardingTutorial({ isOpen, onClose, onComplete, userNa
             {stepData.description(userName)}
           </p>
 
-          <div className="onboarding-feature-tag">
-            <ShieldCheck size={14} />
-            <span>{stepData.badge}</span>
+          {/* Feature Highlights Grid */}
+          <div className="onboarding-highlights-box">
+            {stepData.highlights.map((item, i) => (
+              <div key={i} className="highlight-item">
+                <div className="highlight-check-icon">
+                  <CheckCircle2 size={15} />
+                </div>
+                <span>{item}</span>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -161,13 +208,19 @@ export default function OnboardingTutorial({ isOpen, onClose, onComplete, userNa
             <div style={{ flex: 1 }} />
           )}
 
-          <button 
-            className="glow-btn onboarding-btn-next"
-            onClick={handleNext}
-          >
-            <span>{isLastStep ? 'Get Started!' : 'Next'}</span>
-            {isLastStep ? <CheckCircle2 size={16} /> : <ChevronRight size={16} />}
-          </button>
+          <div className="onboarding-footer-right">
+            <span className="step-counter-text">
+              {currentStep + 1} / {TUTORIAL_STEPS.length}
+            </span>
+            <button 
+              className="primary-btn onboarding-btn-next"
+              onClick={handleNext}
+              style={{ background: stepData.gradient }}
+            >
+              <span>{isLastStep ? 'Explore App 🎉' : 'Next Step'}</span>
+              {isLastStep ? <Award size={16} /> : <ChevronRight size={16} />}
+            </button>
+          </div>
         </div>
       </div>
     </div>

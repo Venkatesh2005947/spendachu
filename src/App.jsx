@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Menu, X, Bell, Sparkles, Camera, PiggyBank } from 'lucide-react';
+import { Plus, Menu, X, Bell, Sparkles, Camera, PiggyBank, Receipt } from 'lucide-react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from './services/firebase';
 
 // Services
 import { dbService } from './services/db';
@@ -58,6 +60,7 @@ export default function App() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [isReceiptPreviewOpen, setIsReceiptPreviewOpen] = useState(false);
@@ -111,45 +114,40 @@ export default function App() {
     }
   };
 
-  // Auth loading state — prevents flash of login screen while verifying
+  // Auth loading state — prevents flash of login screen while Firebase resolves session
   const [authLoading, setAuthLoading] = useState(true);
 
-  // Verify session against backend on startup (backend is source of truth, not localStorage)
+  // Firebase Auth state listener — auto-restores session on page load and social logins
   useEffect(() => {
-    let isMounted = true;
-
-    // Safety timer: Never freeze on loading screen for more than 1.5 seconds
-    const safetyTimer = setTimeout(() => {
-      if (isMounted) setAuthLoading(false);
-    }, 1500);
-
-    const restoreSession = async () => {
-      try {
-        const verifiedUser = await dbService.verifySession();
-        if (verifiedUser && isMounted) {
-          await handleLoginSuccess(verifiedUser);
-        }
-      } catch (err) {
-        console.error('Session restore error:', err);
-      } finally {
-        if (isMounted) {
-          clearTimeout(safetyTimer);
-          setAuthLoading(false);
-        }
-      }
-    };
-
-    restoreSession();
-
     // Load preferred theme
     const savedTheme = localStorage.getItem('tracker_theme') || 'dark';
     setTheme(savedTheme);
     document.documentElement.setAttribute('data-theme', savedTheme);
 
-    return () => {
-      isMounted = false;
-      clearTimeout(safetyTimer);
-    };
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const appUser = {
+          id: firebaseUser.uid,
+          uid: firebaseUser.uid,
+          name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+          email: firebaseUser.email,
+          profile_picture: firebaseUser.photoURL || null,
+          is_admin: false
+        };
+        await handleLoginSuccess(appUser);
+      } else {
+        // User is signed out
+        setUser(null);
+        setExpenses([]);
+        setSavings([]);
+        setTrash([]);
+        setBudgets({});
+        setGoals([]);
+      }
+      setAuthLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   // Sync dataset document theme when state changes
@@ -219,8 +217,12 @@ export default function App() {
     setShowLogoutConfirm(true);
   };
 
-  const performLogout = () => {
-    dbService.logout();
+  const performLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
     setUser(null);
     setExpenses([]);
     setSavings([]);
@@ -269,7 +271,7 @@ export default function App() {
 
   const handleSaveBudgets = async (updatedBudgets) => {
     try {
-      const limits = await dbService.updateBudgets(updatedBudgets);
+      const limits = await dbService.saveBudgets(updatedBudgets);
       setBudgets(limits);
     } catch (err) {
       console.error('Failed to save budgets:', err);
@@ -707,6 +709,7 @@ export default function App() {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'dashboard': {
+        const now = new Date();
         const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
         const isCurrentMonth = selectedMonth === now.getMonth() && selectedYear === now.getFullYear();
 
@@ -787,7 +790,10 @@ export default function App() {
 
             {/* 1. Expenses List & Filters */}
             <div style={{ marginTop: '12px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Expenses 💸</h3>
+              <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Receipt size={18} style={{ color: 'var(--accent-primary)' }} />
+                <span>Expenses</span>
+              </h3>
               <ExpenseFilters filters={filters} setFilters={setFilters} />
               <ExpenseTable 
                 expenses={expenses} 
@@ -893,7 +899,7 @@ export default function App() {
 
   const getPageSubtitle = () => {
     switch (activeTab) {
-      case 'dashboard': return `Welcome, ${user.name}!`;
+      case 'dashboard': return 'Overview & Analytics';
       case 'assistant': return 'Ask anything about your expenses or budget.';
       case 'admin-analytics': return 'Weekly KPI analytics report.';
       case 'expenses': return 'Manage and track your expenses.';
@@ -941,6 +947,7 @@ export default function App() {
         onLogout={handleLogout} 
         onOpenProfile={() => setIsProfileModalOpen(true)}
         onOpenTutorial={() => setIsTutorialOpen(true)}
+        onOpenCopilot={() => { setIsCopilotOpen(true); setMobileSidebarOpen(false); }}
         theme={theme}
         toggleTheme={toggleTheme}
         collapsed={sidebarCollapsed}
@@ -957,6 +964,30 @@ export default function App() {
           </div>
           
           <div className="header-actions">
+            {/* Ask AI Pill Button in Header */}
+            <button 
+              onClick={() => setIsCopilotOpen(true)}
+              title="Ask SpendAchu AI"
+              style={{
+                background: 'var(--card-bg)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                padding: '6px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                color: 'var(--text-primary)',
+                fontWeight: '700',
+                fontSize: '13px',
+                boxShadow: 'var(--shadow-sm)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Sparkles size={15} style={{ color: 'var(--accent-primary)' }} />
+              <span>Ask AI</span>
+            </button>
+
             {/* Quick Profile Badge */}
             {user && (
               <button 
@@ -1215,7 +1246,7 @@ export default function App() {
               title="Add Expense"
             >
               <Plus size={20} />
-              <span>Add Spending 💸</span>
+              <span>Add Spending</span>
             </button>
 
             <button 
@@ -1224,7 +1255,7 @@ export default function App() {
               title="Scan Receipt with AI"
             >
               <Camera size={20} />
-              <span>Scan Receipt 📸</span>
+              <span>Scan Receipt</span>
             </button>
           </>
         )}
@@ -1235,7 +1266,7 @@ export default function App() {
             <button 
               className="pill-btn saving-pill" 
               onClick={() => setIsSavingModalOpen(true)}
-              title="Add Saving 💰"
+              title="Add Saving"
               aria-label="Add Saving"
             >
               <PiggyBank size={22} />
@@ -1243,7 +1274,7 @@ export default function App() {
             <button 
               className="pill-btn spending-pill" 
               onClick={openAddModal}
-              title="Add Expense 💸"
+              title="Add Expense"
               aria-label="Add Expense"
             >
               <Plus size={24} strokeWidth={2.6} />
@@ -1251,7 +1282,7 @@ export default function App() {
             <button 
               className="pill-btn scanner-pill" 
               onClick={triggerFileSelect}
-              title="Scan Receipt 📸"
+              title="Scan Receipt"
               aria-label="Scan Receipt"
             >
               <Camera size={22} />
@@ -1354,7 +1385,11 @@ export default function App() {
       </main>
 
       {/* ── AI Copilot Floating Drawer (global, fixed position) ── */}
-      <AICopilotDrawer onExpenseAdded={refreshAllData} />
+      <AICopilotDrawer 
+        onExpenseAdded={refreshAllData} 
+        isOpen={isCopilotOpen} 
+        setIsOpen={setIsCopilotOpen} 
+      />
     </div>
   );
 }

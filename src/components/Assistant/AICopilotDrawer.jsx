@@ -55,8 +55,10 @@ function ThinkingBubble() {
   );
 }
 
-export default function AICopilotDrawer({ onExpenseAdded }) {
-  const [isOpen, setIsOpen] = useState(false);
+export default function AICopilotDrawer({ onExpenseAdded, isOpen: externalIsOpen, setIsOpen: externalSetIsOpen }) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
+  const setIsOpen = externalSetIsOpen !== undefined ? externalSetIsOpen : setInternalIsOpen;
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -141,20 +143,6 @@ export default function AICopilotDrawer({ onExpenseAdded }) {
 
   return (
     <>
-      {/* ── Floating Trigger ──────────────────────────────────── */}
-      {!isOpen && (
-        <button
-          id="ai-copilot-trigger"
-          className="acd-trigger"
-          onClick={() => setIsOpen(true)}
-          aria-label="Open AI Copilot"
-          title="SpendAchu AI Copilot"
-        >
-          <span className="acd-trigger-icon">⚡</span>
-          <span>Ask AI</span>
-        </button>
-      )}
-
       {/* ── Backdrop ──────────────────────────────────────────── */}
       {isOpen && (
         <div

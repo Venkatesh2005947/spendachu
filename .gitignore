@@ -37,3 +37,8 @@ paddle-ocr-service/venv/
 
 .vercel
 .env*
+dist
+dist/
+serviceAccountKey.json
+scratch/
+*.bak_*

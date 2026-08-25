@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Search, 
   ArrowUpDown,
@@ -216,12 +217,12 @@ export default function SavingTable({
       )}
 
       {/* Saving Details & Action Modal */}
-      {selectedTx && (
+      {selectedTx && createPortal(
         <div className="modal-overlay" style={{ zIndex: 12000 }} onClick={() => setSelectedTx(null)}>
           <div 
             className="glass-card modal-container" 
             onClick={(e) => e.stopPropagation()}
-            style={{ width: '90%', maxWidth: '440px', padding: '24px', borderRadius: '24px', animation: 'scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1)' }}
+            style={{ width: '90%', maxWidth: '440px', maxHeight: '90vh', overflowY: 'auto', padding: '24px', borderRadius: '24px', animation: 'scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1)' }}
           >
             {/* Header Banner */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -311,7 +312,8 @@ export default function SavingTable({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
