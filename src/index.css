@@ -1092,7 +1092,7 @@ a {
   transition: width var(--transition-smooth);
   position: relative;
   z-index: 100;
-  border-right: 3px solid #000000;
+  border-right: 3px solid var(--border-color);
 }
 
 .sidebar.collapsed {
@@ -1104,7 +1104,7 @@ a {
   align-items: center;
   gap: 12px;
   padding: 24px 20px;
-  border-bottom: 3px solid #000000;
+  border-bottom: 3px solid var(--border-color);
   font-family: var(--font-heading);
   font-weight: 800;
   font-size: 20px;
@@ -1115,6 +1115,25 @@ a {
 .sidebar-logo-text {
   font-weight: 900;
   color: var(--text-on-sidebar);
+}
+
+/* Light mode: sidebar stays dark navy, text stays light — correct on desktop.
+   On mobile sidebar bg is forced to card-bg (white), so we need dark text in light mode. */
+[data-theme="light"] .sidebar {
+  --text-on-sidebar: #0f172a;
+}
+
+[data-theme="light"] .sidebar-item {
+  color: #334155;
+}
+
+[data-theme="light"] .sidebar-item:hover {
+  background-color: rgba(37, 99, 235, 0.08);
+  color: #0f172a;
+}
+
+[data-theme="light"] .sidebar-logo-text {
+  color: #0f172a;
 }
 
 .sidebar-toggle-btn {
