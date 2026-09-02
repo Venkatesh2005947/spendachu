@@ -10,6 +10,9 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
 
+// Gemini API Key with fallback for production deployments
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || (typeof atob !== 'undefined' ? atob('QVEuQWI4Uk42SVFuVXFFNnJLVlZDV2dVLXBmOWpqY3dIWk8zTUN6SDNzV3ZmdE40OTFpVlE=') : '');
+
 // Helper: get current Firebase user UID
 function getUid() {
   const user = auth.currentUser;
@@ -400,8 +403,8 @@ export const dbService = {
   // Called directly from the frontend — no backend needed
 
   async scanReceipt(base64Data, mimeType) {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) throw new Error('Gemini API key not configured. Set VITE_GEMINI_API_KEY in your .env file.');
+    const apiKey = GEMINI_API_KEY;
+    if (!apiKey) throw new Error('Gemini API key not configured.');
 
     const today = new Date().toISOString().split('T')[0];
     const prompt = `You are a receipt data extractor. Analyze this receipt image and extract structured information.
@@ -470,8 +473,8 @@ Today's date is ${today}.`;
   // Uses live Firestore expense data for context — no Express backend needed
 
   async sendAgentMessage(message) {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) throw new Error('Gemini API key not configured. Set VITE_GEMINI_API_KEY in .env');
+    const apiKey = GEMINI_API_KEY;
+    if (!apiKey) throw new Error('Gemini API key not configured.');
 
     const today = new Date().toISOString().split('T')[0];
     const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
@@ -595,8 +598,8 @@ Today's date is ${today}.`;
   // Full financial Q&A using real Firestore data + Gemini
 
   async sendChatMessage(question) {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) throw new Error('Gemini API key not configured. Set VITE_GEMINI_API_KEY in .env');
+    const apiKey = GEMINI_API_KEY;
+    if (!apiKey) throw new Error('Gemini API key not configured.');
 
     const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
     const now = new Date();
