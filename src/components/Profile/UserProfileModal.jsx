@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { X, LogOut, ShieldCheck, DollarSign, UserCheck, Award, Camera, Trash2 } from 'lucide-react';
 import './UserProfileModal.css';
 

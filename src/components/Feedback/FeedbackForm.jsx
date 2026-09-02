@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Send, AlertCircle, CheckCircle, Mail, Bell, BellOff } from 'lucide-react';
 import { dbService } from '../../services/db';
 
@@ -15,20 +15,22 @@ export default function FeedbackForm() {
   const [settingsMessage, setSettingsMessage] = useState('');
 
   useEffect(() => {
-    loadSettings();
+    let active = true;
+    dbService.getUserSettings()
+      .then(data => {
+        if (active) {
+          setRemindersEnabled(data.inactiveRemindersEnabled !== false);
+          setSettingsLoading(false);
+        }
+      })
+      .catch(err => {
+        if (active) {
+          console.warn('Failed to load user settings:', err);
+          setSettingsLoading(false);
+        }
+      });
+    return () => { active = false; };
   }, []);
-
-  const loadSettings = async () => {
-    try {
-      setSettingsLoading(true);
-      const data = await dbService.getUserSettings();
-      setRemindersEnabled(data.inactiveRemindersEnabled !== false);
-    } catch (err) {
-      console.warn('Failed to load user settings:', err);
-    } finally {
-      setSettingsLoading(false);
-    }
-  };
 
   const handleToggleReminders = async (e) => {
     const newValue = e.target.checked;
@@ -38,7 +40,7 @@ export default function FeedbackForm() {
       await dbService.updateReminderSettings(newValue);
       setSettingsMessage(newValue ? 'Inactivity email reminders enabled 🔔' : 'Inactivity email reminders disabled 🔕');
       setTimeout(() => setSettingsMessage(''), 4000);
-    } catch (err) {
+    } catch {
       setRemindersEnabled(!newValue);
       alert('Failed to update email preferences.');
     }

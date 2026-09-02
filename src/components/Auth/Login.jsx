@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import {
   signInWithEmailAndPassword,
-  signInWithPopup,
-  signOut
+  signInWithPopup
 } from 'firebase/auth';
 import { auth, googleProvider, facebookProvider } from '../../services/firebase';
 

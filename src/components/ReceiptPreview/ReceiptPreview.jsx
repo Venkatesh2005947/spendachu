@@ -1,19 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { AlertTriangle, Check, RotateCcw, X, Calendar, Clock, Tag, CreditCard, User, Landmark, HelpCircle, FileText } from 'lucide-react';
-import { formatCurrency } from '../../utils/helpers';
+import { useState } from 'react';
+import { AlertTriangle, Check, RotateCcw, X, Calendar, Clock, Tag, CreditCard, User, FileText } from 'lucide-react';
 
 export default function ReceiptPreview({ result, onSave, onScanAgain, onCancel }) {
-  const [merchant, setMerchant] = useState('');
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('Others');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
-  const [tax, setTax] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('Cash');
-  const [notes, setNotes] = useState('');
+  const [merchant, setMerchant] = useState(result?.merchant || '');
+  const [amount, setAmount] = useState(result?.amount !== null && result?.amount !== undefined ? result.amount.toString() : '');
+  const [category, setCategory] = useState(result?.category || 'Others');
+  const [date, setDate] = useState(result?.date || new Date().toISOString().split('T')[0]);
+  const [time, setTime] = useState(result?.time || '');
+  const [tax, setTax] = useState(result?.tax !== null && result?.tax !== undefined ? result.tax.toString() : '');
+  const [paymentMethod, setPaymentMethod] = useState(result?.paymentMethod || 'Cash');
+  const [notes, setNotes] = useState(result?.notes || '');
 
-  // Auto-populate when scan result is available
-  useEffect(() => {
+  // Auto-populate when scan result is updated
+  const [prevResult, setPrevResult] = useState(result);
+  if (result !== prevResult) {
+    setPrevResult(result);
     if (result) {
       setMerchant(result.merchant || '');
       setAmount(result.amount !== null && result.amount !== undefined ? result.amount.toString() : '');
@@ -24,7 +25,7 @@ export default function ReceiptPreview({ result, onSave, onScanAgain, onCancel }
       setPaymentMethod(result.paymentMethod || 'Cash');
       setNotes(result.notes || '');
     }
-  }, [result]);
+  }
 
   const categories = ['Food', 'Transport', 'Rent', 'Shopping', 'Bills', 'Entertainment', 'Others'];
   const paymentMethods = ['Cash', 'GPay', 'UPI', 'Card', 'Bank Transfer'];

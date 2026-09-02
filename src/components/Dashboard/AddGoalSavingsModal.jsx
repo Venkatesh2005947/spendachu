@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, Plus, PiggyBank, Sparkles } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
 

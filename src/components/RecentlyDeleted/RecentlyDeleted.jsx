@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { RotateCcw, Trash2, FolderOpen, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
 
@@ -9,6 +9,7 @@ export default function RecentlyDeleted({
   onClearTrash
 }) {
   const [currentPage, setCurrentPage] = useState(1);
+  const [currentTimestamp] = useState(() => Date.now());
   const ITEMS_PER_PAGE = 8;
 
   // Paginate
@@ -26,7 +27,7 @@ export default function RecentlyDeleted({
 
   const getRemainingDays = (deletedAt) => {
     const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
-    const timePassed = Date.now() - deletedAt;
+    const timePassed = currentTimestamp - deletedAt;
     const timeLeft = THIRTY_DAYS - timePassed;
     const daysLeft = Math.ceil(timeLeft / (24 * 60 * 60 * 1000));
     return daysLeft > 0 ? `${daysLeft}d left` : 'expiring';

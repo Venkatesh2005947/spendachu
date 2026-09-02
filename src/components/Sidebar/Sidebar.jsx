@@ -1,7 +1,5 @@
-import React from 'react';
 import { 
   LayoutDashboard, 
-  ReceiptText, 
   PiggyBank, 
   Sparkles, 
   LogOut, 
@@ -13,7 +11,6 @@ import {
   Trash2,
   MessageSquare,
   BarChart3,
-  Bot,
   HelpCircle
 } from 'lucide-react';
 

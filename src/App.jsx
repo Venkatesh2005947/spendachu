@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Menu, X, Bell, Sparkles, Camera, PiggyBank, Receipt } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, Menu, X, Sparkles, Camera, PiggyBank, Receipt } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './services/firebase';
 
 // Services
 import { dbService } from './services/db';
-import { aiService } from './services/ai';
 
 // Components
 import Sidebar from './components/Sidebar/Sidebar';
@@ -117,13 +116,61 @@ export default function App() {
   // Auth loading state — prevents flash of login screen while Firebase resolves session
   const [authLoading, setAuthLoading] = useState(true);
 
+  // Sync dataset document theme when state changes
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    localStorage.setItem('tracker_theme', nextTheme);
+    document.documentElement.setAttribute('data-theme', nextTheme);
+  };
+
+  const handleLoginSuccess = async (loggedInUser) => {
+    setUser(loggedInUser);
+    
+    try {
+      setGoalsLoading(true);
+      // Fetch user-isolated financial data
+      const [records, limits, savingsList, trashList, goalsList] = await Promise.all([
+        dbService.getExpenses(),
+        dbService.getBudgets(),
+        dbService.getSavings(),
+        dbService.getTrash(),
+        dbService.getGoals().catch(() => [])
+      ]);
+      
+      setExpenses(records);
+      setBudgets(limits);
+      setSavings(savingsList);
+      setTrash(trashList);
+      setGoals(goalsList);
+
+      // Fetch user currency setting if saved
+      const savedCurrency = localStorage.getItem(`tracker_currency_${loggedInUser.email}`) || 'INR';
+      setCurrencyCode(savedCurrency);
+
+      // Check onboarding tutorial trigger for new/unseen users
+      const hasSeenLocal = localStorage.getItem(`spendachu_tutorial_seen_${loggedInUser.email}`) === 'true';
+      if (!loggedInUser.has_seen_tutorial && !hasSeenLocal) {
+        setIsTutorialOpen(true);
+      }
+    } catch (err) {
+      console.error('Failed to load database states:', err);
+    } finally {
+      setGoalsLoading(false);
+    }
+
+    // Reset view variables
+    setActiveTab('dashboard');
+    setAuthScreen('login');
+  };
+
+  // Sync document theme when state changes
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
   // Firebase Auth state listener — auto-restores session on page load and social logins
   useEffect(() => {
-    // Load preferred theme
-    const savedTheme = localStorage.getItem('tracker_theme') || 'dark';
-    setTheme(savedTheme);
-    document.documentElement.setAttribute('data-theme', savedTheme);
-
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const appUser = {
@@ -149,54 +196,6 @@ export default function App() {
 
     return () => unsubscribe();
   }, []);
-
-  // Sync dataset document theme when state changes
-  const toggleTheme = () => {
-    const nextTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(nextTheme);
-    localStorage.setItem('tracker_theme', nextTheme);
-    document.documentElement.setAttribute('data-theme', nextTheme);
-  };
-
-
-
-  const handleLoginSuccess = async (loggedInUser) => {
-    setUser(loggedInUser);
-    
-    try {
-      // Fetch user-isolated financial data
-      const [records, limits, savingsList, trashList, goalsList] = await Promise.all([
-        dbService.getExpenses(),
-        dbService.getBudgets(),
-        dbService.getSavings(),
-        dbService.getTrash(),
-        dbService.getGoals().catch(() => [])
-      ]);
-      
-      setExpenses(records);
-      setBudgets(limits);
-      setSavings(savingsList);
-      setTrash(trashList);
-      setGoals(goalsList);
-
-
-      // Fetch user currency setting if saved
-      const savedCurrency = localStorage.getItem(`tracker_currency_${loggedInUser.email}`) || 'INR';
-      setCurrencyCode(savedCurrency);
-
-      // Check onboarding tutorial trigger for new/unseen users
-      const hasSeenLocal = localStorage.getItem(`spendachu_tutorial_seen_${loggedInUser.email}`) === 'true';
-      if (!loggedInUser.has_seen_tutorial && !hasSeenLocal) {
-        setIsTutorialOpen(true);
-      }
-    } catch (err) {
-      console.error('Failed to load database states:', err);
-    }
-
-    // Reset view variables
-    setActiveTab('dashboard');
-    setAuthScreen('login');
-  };
 
   const handleCompleteTutorial = async () => {
     setIsTutorialOpen(false);
@@ -628,7 +627,6 @@ export default function App() {
       await dbService.addExpense({ ...pendingPayload, forceCreate: true });
       const updated = await dbService.getExpenses();
       setExpenses(updated);
-      checkBudgetAlerts(updated, budgets);
       if (source === 'manual') {
         setIsExpenseModalOpen(false);
         setEditingExpense(null);
@@ -719,14 +717,6 @@ export default function App() {
           const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
           monthOptions.push({ month: d.getMonth(), year: d.getFullYear() });
         }
-
-        const insights = aiService.generateInsights(
-          expenses.filter(e => {
-            const d = new Date(e.date);
-            return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
-          }),
-          budgets
-        );
 
         return (
           <div className="dashboard-container">

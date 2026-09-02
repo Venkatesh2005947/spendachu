@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Sparkles, AlertTriangle, Lightbulb, TrendingUp, TrendingDown, Minus, Info, Calendar, PiggyBank, Star } from 'lucide-react';
 import { aiService } from '../../services/ai';
 
@@ -10,7 +10,6 @@ export default function InsightsPanel({ expenses, budgets, savings }) {
   const trend       = aiService.getSpendingTrend(expenses);
   const savingsRate = aiService.getSavingsRate(expenses, savings);
   const dowPattern  = aiService.getDayOfWeekPattern(expenses);
-  const merchants   = aiService.getTopMerchants(expenses);
 
   const hasExpenses = expenses && expenses.length > 0;
 

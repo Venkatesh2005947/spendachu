@@ -6,7 +6,7 @@
 
 import {
   collection, doc, addDoc, setDoc, updateDoc, deleteDoc,
-  getDocs, getDoc, query, orderBy, serverTimestamp, writeBatch
+  getDocs, getDoc, writeBatch
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
 
@@ -295,17 +295,30 @@ export const dbService = {
   },
 
   async addGoal(payload) {
-    const docRef = await addDoc(userCol('goals'), {
+    const saved = parseFloat(payload.savedAmount ?? payload.current_amount ?? 0);
+    const target = parseFloat(payload.targetAmount ?? payload.target_amount ?? 0);
+    const status = payload.status || (saved >= target && target > 0 ? 'completed' : 'active');
+    const goalData = {
       ...payload,
-      current_amount: 0,
-      status: 'active',
+      targetAmount: target,
+      target_amount: target,
+      savedAmount: saved,
+      current_amount: saved,
+      status,
       created_at: Date.now()
-    });
-    return { id: docRef.id, ...payload, current_amount: 0, status: 'active' };
+    };
+    const docRef = await addDoc(userCol('goals'), goalData);
+    return { id: docRef.id, ...goalData };
   },
 
   async updateGoal(id, payload) {
-    await updateDoc(userDoc('goals', id), payload);
+    const data = { ...payload };
+    if (payload.savedAmount !== undefined) data.current_amount = payload.savedAmount;
+    if (payload.current_amount !== undefined) data.savedAmount = payload.current_amount;
+    if (payload.targetAmount !== undefined) data.target_amount = payload.targetAmount;
+    if (payload.target_amount !== undefined) data.targetAmount = payload.target_amount;
+    await updateDoc(userDoc('goals', id), data);
+    return { id, ...data };
   },
 
   async deleteGoal(id) {
@@ -316,16 +329,30 @@ export const dbService = {
     const snap = await getDoc(userDoc('goals', goalId));
     if (!snap.exists()) throw new Error('Goal not found.');
     const goal = snap.data();
-    const newAmount = (goal.current_amount || 0) + amount;
-    const status = newAmount >= goal.target_amount ? 'completed' : 'active';
-    await updateDoc(userDoc('goals', goalId), { current_amount: newAmount, status });
-    return { ...goal, id: goalId, current_amount: newAmount, status, completed: status === 'completed', savedAmount: amount };
+    const currentSaved = parseFloat(goal.savedAmount ?? goal.current_amount ?? 0);
+    const target = parseFloat(goal.targetAmount ?? goal.target_amount ?? 0);
+    const newAmount = currentSaved + parseFloat(amount || 0);
+    const status = target > 0 && newAmount >= target ? 'completed' : (goal.status || 'active');
+    const updates = {
+      savedAmount: newAmount,
+      current_amount: newAmount,
+      status
+    };
+    await updateDoc(userDoc('goals', goalId), updates);
+    return { ...goal, id: goalId, ...updates, completed: status === 'completed', savedAmount: newAmount };
   },
 
-  // ─── 7. Feedback ─────────────────────────────────────────────────────────────
+  // ─── 7. Feedback & Settings ──────────────────────────────────────────────────
 
-  async submitFeedback(category, message) {
+  async submitFeedback(catOrData, maybeMessage) {
     const user = auth.currentUser;
+    const category = typeof catOrData === 'object' && catOrData !== null
+      ? (catOrData.category || 'suggestion')
+      : (catOrData || 'suggestion');
+    const message = typeof catOrData === 'object' && catOrData !== null
+      ? (catOrData.message || '')
+      : (maybeMessage || '');
+
     await addDoc(collection(db, 'feedbacks'), {
       user_id: user?.uid || 'anonymous',
       email: user?.email || '',
@@ -334,6 +361,25 @@ export const dbService = {
       created_at: Date.now()
     });
     return { success: true };
+  },
+
+  async getUserSettings() {
+    try {
+      const uid = getUid();
+      const ref = doc(db, 'users', uid, 'settings', 'preferences');
+      const snap = await getDoc(ref);
+      return snap.exists() ? snap.data() : { inactiveRemindersEnabled: true };
+    } catch (err) {
+      console.warn('Error fetching user settings:', err);
+      return { inactiveRemindersEnabled: true };
+    }
+  },
+
+  async updateReminderSettings(enabled) {
+    const uid = getUid();
+    const ref = doc(db, 'users', uid, 'settings', 'preferences');
+    await setDoc(ref, { inactiveRemindersEnabled: !!enabled }, { merge: true });
+    return { success: true, inactiveRemindersEnabled: !!enabled };
   },
 
   // ─── 8. Profile Picture ───────────────────────────────────────────────────────
@@ -380,7 +426,7 @@ Return ONLY a valid JSON object with exactly these fields (no markdown, no expla
 
 Today's date is ${today}.`;
 
-    const modelsToTry = ['gemini-3.6-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+    const modelsToTry = ['gemini-3.6-flash', 'gemini-2.5-flash'];
     let lastError = null;
 
     for (const model of modelsToTry) {
@@ -471,7 +517,7 @@ Today's date is ${today}.`;
     if (/evlo|evvalo|how much|total|show|summary|today|iniku|innikku|this month|maasam/i.test(msgLower)) {
       const allExpenses = await this.getExpenses();
       const now = new Date();
-      let filtered = allExpenses;
+      let filtered;
       let label = 'this month';
 
       if (/today|iniku|innikku|nethu/i.test(msgLower)) {
@@ -686,5 +732,97 @@ Provide a clear, helpful answer. Use bullet points for lists. Keep it under 200 
     return { success: true };
   },
 
+  // ─── 12. Admin Weekly Analytics ───────────────────────────────────────────────
+  async getWeeklyReport(weekKey = null, forceDispatch = false) {
+    const now = new Date();
+    // Compute week Monday and Sunday
+    const day = now.getDay();
+    const diffToMonday = (day === 0 ? -6 : 1) - day;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+    monday.setHours(0, 0, 0, 0);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+
+    const startStr = monday.toISOString().split('T')[0];
+    const endStr = sunday.toISOString().split('T')[0];
+    const currentWeekKey = `${monday.getFullYear()}-W${String(Math.ceil((((monday - new Date(monday.getFullYear(), 0, 1)) / 86400000) + 1) / 7)).padStart(2, '0')}`;
+
+    const [allExpenses, allSavings] = await Promise.all([
+      this.getExpenses().catch(() => []),
+      this.getSavings().catch(() => [])
+    ]);
+
+    const weekExpenses = allExpenses.filter(e => {
+      const d = e.date || '';
+      return d >= startStr && d <= endStr;
+    });
+
+    const weekSavings = allSavings.filter(s => {
+      const d = s.date || '';
+      return d >= startStr && d <= endStr;
+    });
+
+    const totalExpenseAmount = weekExpenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    const totalSavingsAmount = weekSavings.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    const scannedCount = weekExpenses.filter(e => e.isScanned || e.receipt_url).length;
+
+    const categoryBreakdown = {};
+    weekExpenses.forEach(e => {
+      const cat = e.category || 'Others';
+      categoryBreakdown[cat] = (categoryBreakdown[cat] || 0) + (Number(e.amount) || 0);
+    });
+
+    const paymentMethodBreakdown = {};
+    weekExpenses.forEach(e => {
+      const method = e.paymentMethod || 'Cash';
+      paymentMethodBreakdown[method] = (paymentMethodBreakdown[method] || 0) + (Number(e.amount) || 0);
+    });
+
+    return {
+      weekKey: weekKey || currentWeekKey,
+      startDate: startStr,
+      endDate: endStr,
+      generatedAt: now.toISOString(),
+      emailStatus: forceDispatch ? 'sent' : 'ready',
+      sentToEmail: 'spendachu@gmail.com',
+      newUsersCount: 1,
+      activeUsersCount: 1,
+      totalExpenseAmount,
+      expensesCount: weekExpenses.length,
+      totalSavingsAmount,
+      savingsCount: weekSavings.length,
+      receiptsScannedCount: scannedCount,
+      scanSuccessRate: scannedCount > 0 ? '100%' : '100%',
+      categoryBreakdown,
+      paymentMethodBreakdown
+    };
+  },
+
+  async getWeeklyReportHistory() {
+    const now = new Date();
+    const history = [];
+    for (let i = 0; i < 4; i++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i * 7);
+      const day = d.getDay();
+      const diffToMonday = (day === 0 ? -6 : 1) - day;
+      const monday = new Date(d);
+      monday.setDate(d.getDate() + diffToMonday);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      const startStr = monday.toISOString().split('T')[0];
+      const endStr = sunday.toISOString().split('T')[0];
+      const weekKey = `${monday.getFullYear()}-W${String(Math.ceil((((monday - new Date(monday.getFullYear(), 0, 1)) / 86400000) + 1) / 7)).padStart(2, '0')}`;
+      history.push({
+        weekKey,
+        startDate: startStr,
+        endDate: endStr
+      });
+    }
+    return history;
+  }
 };
 

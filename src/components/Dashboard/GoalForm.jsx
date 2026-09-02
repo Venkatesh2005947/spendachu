@@ -1,15 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { X, Save, Sparkles, Check } from 'lucide-react';
+import { useState } from 'react';
+import { X, Save } from 'lucide-react';
 
 export default function GoalForm({ goal, onClose, onSave }) {
-  const [name, setName] = useState('');
-  const [targetAmount, setTargetAmount] = useState('');
-  const [savedAmount, setSavedAmount] = useState('0');
-  const [deadline, setDeadline] = useState('');
-  const [category, setCategory] = useState('General');
-  const [priority, setPriority] = useState('medium');
-  const [notes, setNotes] = useState('');
-  const [allowExceed, setAllowExceed] = useState(false);
+  const getDefaultDeadline = () => {
+    const future = new Date();
+    future.setMonth(future.getMonth() + 6);
+    return future.toISOString().split('T')[0];
+  };
+
+  const [name, setName] = useState(goal?.name || '');
+  const [targetAmount, setTargetAmount] = useState(goal?.targetAmount?.toString() || '');
+  const [savedAmount, setSavedAmount] = useState(goal?.savedAmount?.toString() || '0');
+  const [deadline, setDeadline] = useState(goal?.deadline || getDefaultDeadline());
+  const [category, setCategory] = useState(goal?.category || 'General');
+  const [priority, setPriority] = useState(goal?.priority || 'medium');
+  const [notes, setNotes] = useState(goal?.notes || '');
+  const [allowExceed, setAllowExceed] = useState(goal ? goal.savedAmount > goal.targetAmount : false);
   const [error, setError] = useState('');
 
   const categories = ['General', 'Travel', 'Education', 'Gadgets', 'Home', 'Vehicle', 'Emergency', 'Retirement', 'Others'];
@@ -19,7 +25,10 @@ export default function GoalForm({ goal, onClose, onSave }) {
     { value: 'high', label: 'High 🔥' }
   ];
 
-  useEffect(() => {
+  // Adjust state during render when goal prop changes
+  const [prevGoal, setPrevGoal] = useState(goal);
+  if (goal !== prevGoal) {
+    setPrevGoal(goal);
     if (goal) {
       setName(goal.name || '');
       setTargetAmount(goal.targetAmount?.toString() || '');
@@ -29,13 +38,8 @@ export default function GoalForm({ goal, onClose, onSave }) {
       setPriority(goal.priority || 'medium');
       setNotes(goal.notes || '');
       setAllowExceed(goal.savedAmount > goal.targetAmount);
-    } else {
-      // Default deadline to 6 months from now
-      const future = new Date();
-      future.setMonth(future.getMonth() + 6);
-      setDeadline(future.toISOString().split('T')[0]);
     }
-  }, [goal]);
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault();

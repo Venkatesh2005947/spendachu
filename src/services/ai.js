@@ -108,7 +108,7 @@ export const aiService = {
       if (amt > highestAmt) { highestAmt = amt; highestCat = cat; }
     });
 
-    let comparisonText = "";
+    let comparisonText;
     let percentChange = 0;
     if (lastMonthTotal > 0) {
       percentChange = ((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100;

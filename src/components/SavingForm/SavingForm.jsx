@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, PlusCircle, CheckCircle } from 'lucide-react';
 
 export default function SavingForm({ saving, onClose, onSave }) {

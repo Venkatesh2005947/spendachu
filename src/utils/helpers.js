@@ -20,7 +20,7 @@ export function formatCurrency(amount) {
       currency: 'INR',
       minimumFractionDigits: 2
     }).format(amount);
-  } catch (e) {
+  } catch {
     return `₹${Number(amount).toFixed(2)}`;
   }
 }

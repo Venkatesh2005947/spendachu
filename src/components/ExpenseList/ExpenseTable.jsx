@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Search, 
@@ -25,7 +25,6 @@ import { formatCurrency, exportExpensesToCSV, isDateInRange } from '../../utils/
 export default function ExpenseTable({ 
   expenses, 
   filters, 
-  setFilters, 
   onEditExpense, 
   onDeleteExpense,
   onClearAllExpenses
@@ -109,7 +108,7 @@ export default function ExpenseTable({
   const getSortedExpenses = (filteredList) => {
     if (!sortKey) return filteredList;
     return [...filteredList].sort((a, b) => {
-      let comparison = 0;
+      let comparison;
       if (sortKey === 'amount') {
         comparison = a.amount - b.amount;
       } else {
@@ -176,6 +175,16 @@ export default function ExpenseTable({
 
         {/* Action controls */}
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button 
+            className="outline-btn"
+            onClick={() => handleSort('amount')}
+            title={`Sort by amount (${sortKey === 'amount' ? (sortAsc ? 'Ascending' : 'Descending') : 'Default'})`}
+            style={{ fontSize: '13px', padding: '8px 12px', background: sortKey ? 'var(--accent-glow)' : undefined }}
+          >
+            <ArrowUpDown size={14} />
+            <span>{sortKey === 'amount' ? (sortAsc ? 'Amount ↑' : 'Amount ↓') : 'Sort'}</span>
+          </button>
+
           <button 
             className="outline-btn" 
             onClick={() => exportExpensesToCSV(filtered)}

@@ -139,7 +139,6 @@ export default function AskSpendAchu() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState(DEFAULT_SUGGESTIONS);
-  const [error, setError] = useState(null);
   const [charCount, setCharCount] = useState(0);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -171,7 +170,6 @@ export default function AskSpendAchu() {
 
     setInput('');
     setCharCount(0);
-    setError(null);
 
     // Add user message
     const userMsg = { id: Date.now(), role: 'user', content: q };
@@ -230,7 +228,6 @@ export default function AskSpendAchu() {
     }
     setMessages([]);
     setSuggestions(DEFAULT_SUGGESTIONS);
-    setError(null);
     setInput('');
   }, []);
 

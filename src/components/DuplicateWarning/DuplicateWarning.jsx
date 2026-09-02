@@ -1,4 +1,3 @@
-import React from 'react';
 import { AlertTriangle, AlertCircle, X, Eye, PlusCircle } from 'lucide-react';
 
 /**

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   Sparkles, 
   CreditCard, 
@@ -12,9 +12,6 @@ import {
   Zap,
   ShieldCheck,
   Check,
-  TrendingUp,
-  Camera,
-  Layers,
   Award
 } from 'lucide-react';
 import './OnboardingTutorial.css';
@@ -117,7 +114,11 @@ export default function OnboardingTutorial({ isOpen, onClose, onComplete, userNa
   };
 
   const handleSkip = () => {
-    onComplete();
+    if (onClose) {
+      onClose();
+    } else if (onComplete) {
+      onComplete();
+    }
   };
 
   return (

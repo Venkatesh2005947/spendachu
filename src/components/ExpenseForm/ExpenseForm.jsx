@@ -1,37 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Sparkles, X, PlusCircle } from 'lucide-react';
 import { aiService } from '../../services/ai';
 
 export default function ExpenseForm({ expense, onClose, onSave }) {
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('Food');
-  const [paymentMethod, setPaymentMethod] = useState('Cash');
-  const [description, setDescription] = useState('');
+  const [date, setDate] = useState(expense?.date || new Date().toISOString().split('T')[0]);
+  const [amount, setAmount] = useState(expense?.amount?.toString() || '');
+  const [category, setCategory] = useState(
+    expense?.category?.startsWith('Others') ? 'Others' : (expense?.category || 'Food')
+  );
+  const [paymentMethod, setPaymentMethod] = useState(expense?.paymentMethod || 'Cash');
+  const [description, setDescription] = useState(expense?.description || '');
   
   const [aiPredicted, setAiPredicted] = useState(false);
-  const [customCategory, setCustomCategory] = useState('');
+  const [customCategory, setCustomCategory] = useState(() => {
+    if (expense?.category?.startsWith('Others')) {
+      const match = expense.category.match(/\(([^)]+)\)/);
+      return match ? match[1] : '';
+    }
+    return '';
+  });
   const [error, setError] = useState('');
 
-  useEffect(() => {
+  // Sync state during render when incoming expense prop changes
+  const [prevExpense, setPrevExpense] = useState(expense);
+  if (expense !== prevExpense) {
+    setPrevExpense(expense);
     if (expense) {
       setDate(expense.date);
       setAmount(expense.amount.toString());
-      
-      if (expense.category.startsWith('Others')) {
+      if (expense.category?.startsWith('Others')) {
         setCategory('Others');
         const match = expense.category.match(/\(([^)]+)\)/);
         setCustomCategory(match ? match[1] : '');
       } else {
-        setCategory(expense.category);
+        setCategory(expense.category || 'Food');
         setCustomCategory('');
       }
-
-      setPaymentMethod(expense.paymentMethod);
+      setPaymentMethod(expense.paymentMethod || 'Cash');
       setDescription(expense.description || '');
       setAiPredicted(false);
     }
-  }, [expense]);
+  }
 
   // AI Predictor logic triggered when description changes
   const handleDescriptionChange = (e) => {

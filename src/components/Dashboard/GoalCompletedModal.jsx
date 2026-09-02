@@ -1,4 +1,3 @@
-import React from 'react';
 import { X, Award, Sparkles, Check } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
 

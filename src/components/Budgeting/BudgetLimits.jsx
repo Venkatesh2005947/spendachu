@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { PiggyBank, Sparkles, ShieldCheck, DollarSign } from 'lucide-react';
+import { useState } from 'react';
+import { PiggyBank, ShieldCheck, Sparkles } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
 
 export default function BudgetLimits({ 
@@ -8,16 +8,37 @@ export default function BudgetLimits({
   onSaveBudgets,
   onClearAllExpenses
 }) {
-  const [globalLimit, setGlobalLimit] = useState(budgets.global || 2500);
+  const [globalLimit, setGlobalLimit] = useState(budgets?.global || 40000);
   const [catLimits, setCatLimits] = useState({
-    Food: budgets.Food || 400,
-    Transport: budgets.Transport || 150,
-    Rent: budgets.Rent || 1200,
-    Shopping: budgets.Shopping || 300,
-    Bills: budgets.Bills || 250,
-    Entertainment: budgets.Entertainment || 200,
-    Others: budgets.Others || 200
+    Food: budgets?.Food || 8000,
+    Transport: budgets?.Transport || 3000,
+    Rent: budgets?.Rent || 10000,
+    Shopping: budgets?.Shopping || 4000,
+    Bills: budgets?.Bills || 3000,
+    Entertainment: budgets?.Entertainment || 2000,
+    Others: budgets?.Others || 2000
   });
+
+  // Adjust state during render when budgets prop updates (React recommended pattern)
+  const [prevBudgets, setPrevBudgets] = useState(budgets);
+  if (budgets !== prevBudgets) {
+    setPrevBudgets(budgets);
+    if (budgets && Object.keys(budgets).length > 0) {
+      if (budgets.global !== undefined) {
+        setGlobalLimit(budgets.global);
+      }
+      setCatLimits(prev => ({
+        ...prev,
+        Food: budgets.Food ?? prev.Food,
+        Transport: budgets.Transport ?? prev.Transport,
+        Rent: budgets.Rent ?? prev.Rent,
+        Shopping: budgets.Shopping ?? prev.Shopping,
+        Bills: budgets.Bills ?? prev.Bills,
+        Entertainment: budgets.Entertainment ?? prev.Entertainment,
+        Others: budgets.Others ?? prev.Others
+      }));
+    }
+  }
   
   const [successMsg, setSuccessMsg] = useState('');
 

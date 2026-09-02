@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   BarChart3, 
   Users, 
@@ -12,10 +12,7 @@ import {
   Target, 
   MessageSquare, 
   Send, 
-  RotateCw, 
-  Calendar,
-  ChevronRight,
-  Info
+  Calendar
 } from 'lucide-react';
 import { dbService } from '../../services/db';
 
@@ -27,10 +24,9 @@ export default function AdminAnalytics() {
   const [error, setError] = useState(null);
   const [selectedWeekKey, setSelectedWeekKey] = useState('');
 
-  const loadAnalytics = async (weekKey = null) => {
+  const fetchReport = async (weekKey = null) => {
     try {
       setLoading(true);
-      setError(null);
       const [report, historyList] = await Promise.all([
         dbService.getWeeklyReport(weekKey),
         dbService.getWeeklyReportHistory().catch(() => [])
@@ -49,13 +45,31 @@ export default function AdminAnalytics() {
   };
 
   useEffect(() => {
-    loadAnalytics();
+    let active = true;
+    Promise.all([
+      dbService.getWeeklyReport(),
+      dbService.getWeeklyReportHistory().catch(() => [])
+    ])
+      .then(([report, historyList]) => {
+        if (!active) return;
+        setCurrentReport(report);
+        setHistory(historyList || []);
+        if (report) setSelectedWeekKey(report.weekKey);
+        setLoading(false);
+      })
+      .catch(err => {
+        if (!active) return;
+        console.error('Failed to load admin analytics:', err);
+        setError(err.message || 'Failed to load weekly report.');
+        setLoading(false);
+      });
+    return () => { active = false; };
   }, []);
 
   const handleWeekChange = (e) => {
     const key = e.target.value;
     setSelectedWeekKey(key);
-    loadAnalytics(key);
+    fetchReport(key);
   };
 
   const handleManualDispatch = async () => {
@@ -64,7 +78,7 @@ export default function AdminAnalytics() {
       const updatedReport = await dbService.getWeeklyReport(selectedWeekKey, true);
       setCurrentReport(updatedReport);
       alert(`Weekly report email dispatched to spendachu@gmail.com! (Status: ${updatedReport.emailStatus})`);
-      loadAnalytics(selectedWeekKey);
+      fetchReport(selectedWeekKey);
     } catch (err) {
       alert(`Dispatch error: ${err.message}`);
     } finally {

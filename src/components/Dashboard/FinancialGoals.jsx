@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   Target, Plus, Edit2, Trash2, Pause, Play, PiggyBank, Calendar, 
-  Tag, AlertCircle, ArrowUpRight, CheckCircle2, ChevronRight, HelpCircle
+  Tag, ChevronRight
 } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
 
@@ -47,7 +47,7 @@ export default function FinancialGoals({
       return { label: 'TOTAL NEEDED', value: formatCurrency(remaining), isOver: false };
     }
 
-    let deadlineDate = null;
+    let deadlineDate;
     try {
       if (typeof deadlineStr === 'number') {
         deadlineDate = new Date(deadlineStr);

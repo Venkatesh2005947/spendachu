@@ -302,9 +302,10 @@ export default function AICopilotDrawer({ onExpenseAdded, isOpen: externalIsOpen
           {/* Input area */}
           <div className="acd-input-area">
             <div className="acd-input-wrap">
-              <textarea
+              <input
                 ref={inputRef}
                 id="ai-copilot-input"
+                type="text"
                 className="acd-input"
                 placeholder="e.g. Spent 150 for lunch, Fuel 300 rs, Iniku evlo spend?"
                 value={input}
@@ -312,7 +313,6 @@ export default function AICopilotDrawer({ onExpenseAdded, isOpen: externalIsOpen
                   if (e.target.value.length <= 500) setInput(e.target.value);
                 }}
                 onKeyDown={handleKeyDown}
-                rows={1}
                 maxLength={500}
                 disabled={isLoading}
                 aria-label="Type your message"

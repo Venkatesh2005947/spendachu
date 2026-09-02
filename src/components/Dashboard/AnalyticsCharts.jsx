@@ -1,4 +1,3 @@
-import React from 'react';
 import { 
   ResponsiveContainer, 
   AreaChart, 
@@ -22,6 +21,49 @@ const COLORS = {
   Shopping: '#db2777',
   Bills: '#059669',
   Entertainment: '#0891b2'
+};
+
+// Custom tooltips hoisted outside component render to preserve identity and performance
+const CustomAreaTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{
+        background: 'var(--bg-secondary)',
+        border: '1px solid var(--card-border)',
+        padding: '10px 14px',
+        borderRadius: 'var(--radius-sm)',
+        boxShadow: 'var(--shadow-sm)'
+      }}>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>{payload[0].payload.day}</p>
+        <p style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--accent-primary)' }}>
+          Daily: {formatCurrency(payload[0].payload.Daily)}
+        </p>
+        <p style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--success)' }}>
+          Cumulative: {formatCurrency(payload[0].payload.Cumulative)}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
+const CustomPieTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{
+        background: 'var(--bg-secondary)',
+        border: '1px solid var(--card-border)',
+        padding: '10px 14px',
+        borderRadius: 'var(--radius-sm)',
+        boxShadow: 'var(--shadow-sm)'
+      }}>
+        <p style={{ fontSize: '13px', fontWeight: 'bold', color: payload[0].payload.color || 'var(--text-primary)' }}>
+          {payload[0].name}: {formatCurrency(payload[0].value)}
+        </p>
+      </div>
+    );
+  }
+  return null;
 };
 
 export default function AnalyticsCharts({ expenses, selectedMonth, selectedYear }) {
@@ -83,49 +125,6 @@ export default function AnalyticsCharts({ expenses, selectedMonth, selectedYear 
 
   const dailyData = getDailyData();
   const categoryData = getCategoryData();
-
-  // Custom tooltips
-  const CustomAreaTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div style={{
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--card-border)',
-          padding: '10px 14px',
-          borderRadius: 'var(--radius-sm)',
-          boxShadow: 'var(--shadow-sm)'
-        }}>
-          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>{payload[0].payload.day}</p>
-          <p style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--accent-primary)' }}>
-            Daily: {formatCurrency(payload[0].payload.Daily)}
-          </p>
-          <p style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--success)' }}>
-            Cumulative: {formatCurrency(payload[0].payload.Cumulative)}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const CustomPieTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div style={{
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--card-border)',
-          padding: '10px 14px',
-          borderRadius: 'var(--radius-sm)',
-          boxShadow: 'var(--shadow-sm)'
-        }}>
-          <p style={{ fontSize: '13px', fontWeight: 'bold', color: payload[0].payload.color || 'var(--text-primary)' }}>
-            {payload[0].name}: {formatCurrency(payload[0].value)}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="charts-section">

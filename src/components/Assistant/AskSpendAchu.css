@@ -464,7 +464,15 @@
   font-family: inherit;
   max-height: 100px;
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   box-sizing: border-box;
+}
+
+.asa-input::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .asa-input::placeholder {
