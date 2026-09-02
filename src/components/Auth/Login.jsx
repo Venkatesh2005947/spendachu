@@ -61,7 +61,7 @@ export default function Login({ onLoginSuccess, onSignupClick, onForgotClick }) 
         name: result.user.displayName || email.split('@')[0],
         email: result.user.email,
         profile_picture: result.user.photoURL || null,
-        is_admin: false
+        is_admin: result.user.email?.toLowerCase() === 'spendachu@gmail.com'
       });
     } catch (err) {
       setError(mapFirebaseError(err.code));
@@ -82,7 +82,7 @@ export default function Login({ onLoginSuccess, onSignupClick, onForgotClick }) 
         name: fbUser.displayName || fbUser.email?.split('@')[0] || 'User',
         email: fbUser.email,
         profile_picture: fbUser.photoURL || null,
-        is_admin: false
+        is_admin: fbUser.email?.toLowerCase() === 'spendachu@gmail.com'
       });
     } catch (err) {
       if (err.code !== 'auth/popup-closed-by-user') {

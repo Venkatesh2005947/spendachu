@@ -179,7 +179,7 @@ export default function App() {
           name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
           email: firebaseUser.email,
           profile_picture: firebaseUser.photoURL || null,
-          is_admin: false
+          is_admin: firebaseUser.email?.toLowerCase() === 'spendachu@gmail.com'
         };
         await handleLoginSuccess(appUser);
       } else {

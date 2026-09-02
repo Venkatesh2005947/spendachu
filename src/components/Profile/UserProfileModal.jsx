@@ -133,7 +133,7 @@ const UserProfileModal = ({
                 <span>Remove Photo</span>
               </button>
             )}
-            {user.is_admin && (
+            {(user.is_admin || user.email?.toLowerCase() === 'spendachu@gmail.com') && (
               <div className="upm-role-pill">
                 <ShieldCheck size={14} />
                 <span>Admin Account</span>

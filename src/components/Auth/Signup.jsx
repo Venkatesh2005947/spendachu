@@ -77,7 +77,7 @@ export default function Signup({ onSignupSuccess, onLoginClick }) {
           name: name.trim(),
           email: result.user.email,
           profile_picture: null,
-          is_admin: false,
+          is_admin: result.user.email?.toLowerCase() === 'spendachu@gmail.com',
           isNewUser: true
         });
       }, 800);
@@ -100,7 +100,7 @@ export default function Signup({ onSignupSuccess, onLoginClick }) {
         name: fbUser.displayName || fbUser.email?.split('@')[0] || 'User',
         email: fbUser.email,
         profile_picture: fbUser.photoURL || null,
-        is_admin: false,
+        is_admin: fbUser.email?.toLowerCase() === 'spendachu@gmail.com',
         isNewUser: true
       });
     } catch (err) {
